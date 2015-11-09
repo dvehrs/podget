@@ -1,0 +1,725 @@
+#!/bin/bash
+
+# Copyright (C) 2009 Steven Black <yam655@gmail.com>
+# Contributed to podget on 2009-11-06 to be released under the same license
+#   as podget (currently GPL)
+
+EMPTY_GROUP="Unknown"
+EMPTY_TITLE="Unknown"
+
+PODGET_DIR="$HOME/.podget"
+config_serverlist=`sed -r -n -e 's/^[ 	]*config_serverlist[ 	]*=[ 	]*(["]?)(.*)\1[ 	]*$/\2/p' "$PODGET_DIR/podgetrc"`
+dir_library=`sed -r -n -e 's/^[ 	]*dir_library[ 	]*=[ 	]*(["]?)(.*)\1[ 	]*$/\2/p' "$PODGET_DIR/podgetrc"`
+case "$config_serverlist" in
+    /*)
+        SERVERLIST="$config_serverlist"
+        ;;
+    *)
+        SERVERLIST="$PODGET_DIR/$config_serverlist"
+        ;;
+esac
+case "$dir_library" in
+    /*)
+        LIBRARY_DIR="$dir_library"
+        ;;
+    *)
+        LIBRARY_DIR="$PODGET_DIR/$dir_library"
+        ;;
+esac
+
+if [ ! -f "$SERVERLIST" ] ; then
+    exit 0
+fi
+
+CURL=`which curl`
+
+fake_title() {
+    # Originally we faked a title from the URL.
+    # Now we only do that if we can't get one via curl and sed
+    FAKE_TITLE=""
+    if [ -x "$CURL" ] ; then
+        FAKE_TITLE=`"$CURL" -A "Mozilla/4.0" -f -L -s "$1" | sed -n -e '/<title>/{
+s|^.*<title>\(.*\)</title>.*$|\1|Mp
+q
+}'`
+    fi
+    if [ -z "$FAKE_TITLE" ] ; then
+        FAKE_TITLE=`sed -r \
+            -e 's;^https?://;;' -e 's;[.](com|org|net)/;/;' \
+            -e 's;^(www|web|feeds?[0-9]?)?[.];;' \
+            -e 's;/(bookfeeds|[sS]ite)/;/;g' -e 's;/[mM][pP]3_[fF]eed;;g' \
+            -e 's;[.]libsyn;;' -e 's;^(me|feedburner|librivox)/;;' \
+            -e 's;/feeds?/;/;' -e 's;[.](xml|html)$;;' \
+            -e 's;/feed$;;' \
+            -e 's;/[?]feed=[^/.]+;;' -e 's;/rss/?$;;' -e 's;/$;;' \
+            -e 's;%20; ;g' -e 's;%[0-9a-fA-F][0-9a-fA-F];;' -e 'y;/;_;' \
+                    <<< "$1"`
+    fi
+}
+# fake_title "$1"
+# echo $FAKE_TITLE
+# exit 0
+
+unsetcompetition() {
+    KDIALOG=""
+    XDIALOG=""
+    GTKDIALOG=""
+    WHIPTAIL=""
+    TCDIALOG=""
+    DIALOG=""
+    AUTOMODE=0
+}
+
+checkdialog() {
+    USRDIALOG="$1"
+    unsetcompetition
+    if [ "$USRDIALOG" = "auto" ] ; then
+        AUTOMODE=1
+        return
+    fi
+    if [ ! -z "$USRDIALOG" ] ; then
+        case "$USRDIALOG" in
+            */*) ;;
+            *) USRDIALOG=`which $USRDIALOG` ;;
+        esac
+        if [ ! -x "$USRDIALOG" ] ; then USRDIALOG="" ; fi
+    fi
+    if [ ! -z "$USRDIALOG" ] ; then
+        case "$USRDIALOG" in
+            */kdialog*)
+                KDIALOG="$USRDIALOG"
+                ;;
+            */[xX]dialog*)
+                XDIALOG="$USRDIALOG"
+                ;;
+            */zenity*)
+                ZENITY="$USRDIALOG"
+                ;;
+            */gtkdialog*)
+                GTKDIALOG="$USRDIALOG"
+                ;;
+            */whiptail*)
+                WHIPTAIL="$USRDIALOG"
+                ;;
+            */tcdialog*)
+                TCDIALOG="$USRDIALOG"
+                ;;
+            */sh|*/bash*)
+                DIALOG=""
+                ;;
+            *)
+                # treat as 'dialog'
+                if [ ! -z "$DISPLAY" ] ; then
+                    if tty -s ; then
+                        # Normally 'dialog' will only be used on a real TTY.
+                        # They have a real TTY, so we're fine.
+                        true
+                        DIALOG="$USRDIALOG"
+                    else
+                        # Woah, no TTY. Perhaps we should treat this as Xdialog.
+                        XDIALOG="$USRDIALOG"
+                    fi
+                else
+                    DIALOG="$USRDIALOG"
+                fi
+                ;;
+        esac
+    else
+        if [ ! -z "$DISPLAY" ] ; then
+            KDIALOG=`which kdialog`
+            XDIALOG=`which Xdialog`
+            GTKDIALOG=`which gtkdialog`
+            # Note: We *never* try to use 'zenity' unless the user specified
+            # it. It just doesn't work the way we want -- at all.
+        fi
+        if tty -s ; then
+            WHIPTAIL=`which whiptail`
+            TCDIALOG=`which tcdialog`
+            DIALOG=`which dialog`
+        fi
+    fi
+}
+
+dialogcheck() {
+    local DIALOGS=0
+    if [ "$AUTOMODE" = "1" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "Running in automatic mode."
+        fi
+        return 0
+    fi
+    if [ ! -z "$DISPLAY" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "X dialog services:"
+        fi
+    fi
+    if [ -x "$KDIALOG" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "kdialog: good"
+        fi
+        DIALOGS=1
+    fi
+    if [ -x "$GTKDIALOG" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "gtkdialog: good"
+        fi
+        DIALOGS=1
+    fi
+    if [ -x "$XDIALOG" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "xdialog: okay"
+            echo "---------- NOTICE regarding the use of Xdialog ----------"
+            echo "Xdialog does not have the capacity to load in an icon or "
+            echo "pixmap. This means it'll be uglier than the competition."
+            echo "-----------------------------------------------------------"
+            echo "For a prettier display, install kdialog or gtkdialog."
+        fi
+        DIALOGS=1
+    fi
+    if [ -x "$ZENITY" ] ; then
+        DIALOGS=1
+        echo "zenity: BAD (and UNSUPPORTED)"
+        echo "---------- WARNING regarding the use of Zenity ----------"
+        echo "'zenity' is unsupported. 'zenity' has no support for yes/no or"
+        echo "yes/no/cancel dialogs. It has no capacity to add a button and"
+        echo "change labels, allowing any sort of usable yes/no/cancel system."
+        echo "zenity does not let me repurpose ok/cancel dialogs. The return"
+        echo "code for cancel is the same as abort, so I can't even make do"
+        echo "with changing the behavior there."
+        echo
+        echo "The dialogs will be confusing and missing features."
+        echo 
+        echo "This is why it is unsupported."
+        echo
+        echo "Please install kdialog, Xdialog, or gtkdialog or run it from"
+        echo "a terminal."
+        echo
+        echo "Really, even the automatic mode works better than zenity mode."
+        echo "---------------------------------------------------------"
+        echo "zenity is unsupported. Use at your own risk."
+        if [ -z "$1" ] ; then
+            somedialog --error "'zenity' is unsupported. 'zenity' has no support for yes/no or yes/no/cancel dialogs. It has no capacity to add a button and change labels, allowing any sort of usable yes/no/cancel system. zenity does not let me repurpose ok/cancel dialogs. The return code for cancel is the same as abort, so I can't even make do with changing the behavior there.\n\nThe dialogs will be confusing and missing features.\n\nThis is why it is unsupported.\n\nPlease install kdialog, Xdialog, or gtkdialog or run it from a terminal.\n\nReally, even the automatic mode works better than zenity mode."
+        fi
+    fi
+    if [ $DIALOGS = 0 ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "none: okay (X dialogs unavailable)"
+            echo "------------ NOTICE regarding automatic mode -------------"
+            echo "Will be fully automatic unless run from a terminal."
+            echo "----------------------------------------------------------"
+            echo "Please consider installing kdialog, Xdialog, or gtkdialog."
+            echo
+        fi
+    fi
+    if tty -s ; then
+        if [ ! -z "$1" ] ; then
+            echo "TTY dialog services:"
+        fi
+    fi
+    if [ -x "$DIALOG" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "dialog: good"
+        fi
+    fi
+    if [ -x "$WHIPTAIL" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "whiptail: okay (not as pretty as dialog)"
+            echo "--------- NOTICE regarding the use of whiptail ---------"
+            echo "The line-wrapping in message dialogs is fairly crude."
+            echo "This results in the message dialogs being uglier than"
+            echo "dialog."
+            echo "--------------------------------------------------------"
+            echo "For a prettier display, install dialog."
+            echo
+        fi
+    fi
+    if [ -x "$TCDIALOG" ] ; then
+        if [ ! -z "$1" ] ; then
+            echo "tcdialog: BAD"
+            echo "---------- WARNING regarding the use of tcdialog ----------"
+            echo "tcdialog requires the row and column sizes be specified, so"
+            echo "it produces some awful looking dialogs as we do not "
+            echo "precompute these sizes."
+            echo
+            echo "We've also seen cases of the cursor being missing in the"
+            echo "input dialog with tcdialog."
+            echo "-----------------------------------------------------------"
+            echo "Please consider installing dialog."
+            echo
+        fi
+    fi
+    if [ ! -z "$1" ] ; then
+        echo "bash: okay (not as pretty as dialog)"
+    fi
+}
+
+askquestions() {
+    local MY_URL="$1"
+    local MY_GROUP="${2:-$EMPTY_GROUP}"
+    local MY_TITLE="$3"
+    CUR_ABORT=0
+    fake_title "$MY_URL"
+    MY_TITLE="${MY_TITLE:-${FAKE_TITLE:-$EMPTY_TITLE}}"
+
+    somedialog --input "Title for $MY_URL" "$MY_TITLE"
+    if [ $? -eq 1 ] ; then CUR_ABORT=1 ; return 1 ; fi
+    CUR_TITLE="${SOMEDIALOG:-${FAKE_TITLE:-$EMPTY_TITLE}}"
+
+    somedialog --input "Genre or group for $CUR_TITLE" "$MY_GROUP"
+    if [ $? -eq 1 ] ; then CUR_ABORT=1 ; return 1 ; fi
+    CUR_GROUP="${SOMEDIALOG:-$EMPTY_GROUP}"
+
+    somedialog --yesNOcancel "Activate <$MY_URL> in $CUR_GROUP as '$CUR_TITLE'?"
+    CUR_ACTIVATE="$?"
+    if [ $CUR_ACTIVATE -eq 2 ] ; then CUR_ABORT=1 ; return 1 ; fi
+    if [ -z "$CUR_GROUP" ] ; then
+        CUR_GROUP="$EMPTY_GROUP"
+    fi
+    if [ -z "$CUR_TITLE" ] ; then
+        CUR_TITLE="${FAKE_TITLE:-$EMPTY_TITLE}"
+    fi
+    # Because of the backticks, the \\ needs to be escaped to \\\\
+    CUR_GROUP=`sed -e 'y; /\\\\;___;' <<< "$CUR_GROUP"`
+    CUR_TITLE=`sed -e 'y;/\\\\;__;' <<< "$CUR_TITLE"`
+    return $CUR_ABORT
+}
+
+somedialog() {
+    local TYPE="$1"
+    shift
+    local RET=0
+    if [ -x "$KDIALOG" ] ; then
+        if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+        if [ "$TYPE" = "--error" ] ; then
+            "$KDIALOG" --error "$*"
+        elif [ "$TYPE" = "--sorry" ] ; then
+            "$KDIALOG" --sorry "$*"
+        elif [ "$TYPE" = "--message" ] ; then
+            "$KDIALOG" --msgbox "$*"
+        elif [ "$TYPE" = "--yesno" ] ; then
+            "$KDIALOG" --yesno "$*"
+            RET="$?"
+        elif [ "$TYPE" = "--yesnocancel" ] ; then
+            "$KDIALOG" --yesnocancel "$*"
+            RET="$?"
+        elif [ "$TYPE" = "--input" ] ; then
+            SOMEDIALOG=`"$KDIALOG" --inputbox "$1" "$2"`
+            RET="$?"
+        fi
+    elif [ -x "$XDIALOG" ] ; then
+        if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+        if [ "$TYPE" = "--error" ] ; then
+            "$XDIALOG" --stdout --msgbox "Error: $*" 0 0
+        elif [ "$TYPE" = "--sorry" ] ; then
+            "$XDIALOG" --stdout --msgbox "Sorry: $*" 0 0
+        elif [ "$TYPE" = "--message" ] ; then
+            "$XDIALOG" --stdout --msgbox "$*" 0 0
+        elif [ "$TYPE" = "--yesno" ] ; then
+            "$XDIALOG" --stdout --yesno "$*" 0 0
+            RET="$?"
+            if [ $RET -eq 255 ] ; then RET=1 ; fi
+        elif [ "$TYPE" = "--yesnocancel" ] ; then
+            "$XDIALOG" --stdout --yesno "$*" 0 0
+            RET="$?"
+            if [ $RET -eq 255 ] ; then RET=2 ; fi
+        elif [ "$TYPE" = "--input" ] ; then
+            SOMEDIALOG=`"$XDIALOG" --stdout --inputbox "$1" 0 0 "$2"`
+            RET="$?"
+            if [ $RET -eq 255 ] ; then RET=1 ; fi
+        fi
+    elif [ -x "$GTKDIALOG" ] ; then
+        if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+        if [ "$TYPE" = "--error" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            export GTK_DIALOG="
+<vbox>
+    <hbox>
+        <pixmap><input file stock=\"error\"></input></pixmap>
+        <text><label>$GTKMSG</label></text>
+    </hbox>
+    <hbox>
+        <button ok></button>
+        <button cancel></button>
+    </hbox>
+</vbox>
+"
+            "$GTKDIALOG" --program GTK_DIALOG | grep -q 'EXIT="OK"'
+        elif [ "$TYPE" = "--sorry" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            export GTK_DIALOG="
+<vbox>
+<hbox><pixmap><input file stock=\"sorry\"></input></pixmap>
+<text><label>$GTKMSG</label></text></hbox>
+<hbox><button ok></button><button cancel></button></hbox>
+</vbox>
+"
+            "$GTKDIALOG" --program GTK_DIALOG | grep -q 'EXIT="OK"'
+        elif [ "$TYPE" = "--message" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            export GTK_DIALOG="
+<vbox>
+<hbox><pixmap><input file stock=\"info\"></input></pixmap>
+<text><label>$GTKMSG</label></text></hbox>
+<hbox><button ok></button><button cancel></button></hbox>
+</vbox>
+"
+            "$GTKDIALOG" --program GTK_DIALOG | grep -q 'EXIT="OK"'
+        elif [ "$TYPE" = "--yesno" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            export GTK_DIALOG="
+<vbox>
+<text><label>$GTKMSG</label></text>
+<hbox><button yes></button><button no></button></hbox>
+</vbox>
+"
+            GTK_EXIT=`"$GTKDIALOG" --program GTK_DIALOG | sed -n -e 's/^EXIT="\([^"]*\)"/\1/p'`
+            case "$GTK_EXIT" in
+                Yes) RET=0 ;;
+                No) RET=1 ;;
+                *) RET=1 ;;
+            esac
+        elif [ "$TYPE" = "--yesnocancel" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            export GTK_DIALOG="
+<vbox>
+<text><label>$GTKMSG</label></text>
+<hbox><button yes></button><button no></button><button cancel></button></hbox>
+</vbox>
+"
+            GTK_EXIT=`"$GTKDIALOG" --program GTK_DIALOG | sed -n -e 's/^EXIT="\([^"]*\)"/\1/p'`
+            case "$GTK_EXIT" in
+                Yes) RET=0 ;;
+                No) RET=1 ;;
+                *) RET=2 ;;
+            esac
+        elif [ "$TYPE" = "--input" ] ; then
+            GTKMSG=`echo "$1" | sed -e 's/</[/g' -e 's/>/]/g'`
+            GTKDEFAULT=`echo "$2" | sed -e 's/</[/g' -e 's/>/]/g'`
+            # This isn't what is done in gtkdialog examples, however gtkdialog
+            # does *no escaping* of the input, so you can provide input such
+            # as  '" ; rm /etc/passwd ; true "' and what you get back is:
+            #   SOMEDIALOG="" ; rm /etc/passwd ; true ""
+            export GTK_DIALOG="
+<vbox><text><label>$GTKMSG</label></text>
+<entry><default>$GTKDEFAULT</default><variable>SOMEDIALOG</variable></entry>
+<hbox><button ok></button><button cancel></button></hbox>
+</vbox>
+"
+            GTK_LINES=`"$GTKDIALOG" --program GTK_DIALOG`
+            SOMEDIALOG=`sed -n -e 's/^SOMEDIALOG="\(.*\)"$/\1/p' <<< "$GTK_LINES"`
+            GTK_EXIT=`sed -n -e 's/^EXIT="\([^"]*\)"/\1/p' <<< "$GTK_LINES"`
+            case "$GTK_EXIT" in
+                OK) RET=0 ;;
+                *) SOMEDIALOG="" ; RET=1 ;;
+            esac
+        fi
+    elif [ -x "$ZENITY" ] ; then
+        # There is *NO CANCEL* option, so it is depricated
+        # It also has no Yes/No, so the yesno questions come out confusing
+        if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+        if [ "$TYPE" = "--error" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            "$ZENITY" --error --text="$GTKMSG"
+        elif [ "$TYPE" = "--sorry" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            "$ZENITY" --warning --text="$GTKMSG"
+        elif [ "$TYPE" = "--message" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            "$ZENITY" --info --text="$GTKMSG"
+        elif [ "$TYPE" = "--yesno" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            "$ZENITY" --question --text="$GTKMSG"
+            RET="$?"
+        elif [ "$TYPE" = "--yesnocancel" ] ; then
+            GTKMSG=`echo "$*" | sed -e 's/</[/g' -e 's/>/]/g'`
+            "$ZENITY" --question --text="$GTKMSG"
+            RET="$?"
+        elif [ "$TYPE" = "--input" ] ; then
+            GTKMSG=`echo "$1" | sed -e 's/</[/g' -e 's/>/]/g'`
+            GTKDEFAULT=`echo "$2" | sed -e 's/</[/g' -e 's/>/]/g'`
+            SOMEDIALOG=`"$ZENITY" --entry --text="$GTKMSG" --entry-text="$GTKDEFAULT"`
+            RET="$?"
+        fi
+    elif tty -s && [ $AUTOMODE = 0 ] ; then
+        TTY_ABORT=0
+        # trap TTY_ABORT=1 SIGINT
+        if [ -x "$DIALOG" ] ; then
+            if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+            if [ "$TYPE" = "--error" ] ; then
+                "$DIALOG" --msgbox "Error: $*" 0 0
+            elif [ "$TYPE" = "--sorry " ] ; then
+                "$DIALOG" --msgbox "Sorry: $*" 0 0
+            elif [ "$TYPE" = "--message" ] ; then
+                "$DIALOG" --msgbox "$*" 0 0
+            elif [ "$TYPE" = "--yesno" ] ; then
+                "$DIALOG" --yesno "$*" 0 0
+                if [ $RET -eq 255 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--yesnocancel" ] ; then
+                "$DIALOG" --extra-button --ok-label Yes --extra-label No --no-label Cancel --yesno "$*" 0 0
+                if [ $RET -eq 1 ] ; then RET=2 
+                elif [ $RET -eq 2 ] ; then RET=1
+                elif [ $RET -eq 255 ] ; then RET=2 
+                fi
+            elif [ "$TYPE" = "--input" ] ; then
+                "$DIALOG" --inputbox "$1" 0 0 "$2" 2>"$TMPFILE"
+                RET="$?"
+                SOMEDIALOG=`cat "$TMPFILE"`
+                if [ $RET -eq 255 ] ; then RET=1 ; fi
+            fi
+        elif [ -x "$WHIPTAIL" ] ; then
+            # whiptail doesn't handle 0 0 as nicely as dialog, so it
+            # isn't preferred.
+            if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+            if [ "$TYPE" = "--error" ] ; then
+                "$WHIPTAIL" --msgbox "Error: $*" 0 0
+            elif [ "$TYPE" = "--sorry " ] ; then
+                "$WHIPTAIL" --msgbox "Sorry: $*" 0 0
+            elif [ "$TYPE" = "--message" ] ; then
+                "$WHIPTAIL" --msgbox "$*" 0 0
+            elif [ "$TYPE" = "--yesno" ] ; then
+                "$WHIPTAIL" --yesno "$*" 0 0
+                RET="$?"
+                if [ $RET -eq 255 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--yesnocancel" ] ; then
+                "$WHIPTAIL" --yesno "$* (ESC to cancel)" 0 0
+                RET="$?"
+                if [ $RET -eq 255 ] ; then RET=2 ; fi
+            elif [ "$TYPE" = "--input" ] ; then
+                "$WHIPTAIL" --inputbox "$1" 0 0 "$2" 2>"$TMPFILE"
+                RET="$?"
+                SOMEDIALOG=`cat "$TMPFILE"`
+                if [ $RET -eq 255 ] ; then RET=1 ; fi
+            fi
+        elif [ -x "$TCDIALOG" ] ; then
+            # tcdialog requires the height/width values
+            # as such, it is depricated
+            if [ "$TYPE" = "--yesNOcancel" ] ; then TYPE="--yesnocancel" ; fi
+            if [ "$TYPE" = "--error" ] ; then
+                "$TCDIALOG" --msgbox "Error: $*" 20 60
+            elif [ "$TYPE" = "--sorry " ] ; then
+                "$TCDIALOG" --msgbox "Sorry: $*" 20 60
+            elif [ "$TYPE" = "--message" ] ; then
+                "$TCDIALOG" --msgbox "$*" 20 60
+            elif [ "$TYPE" = "--yesno" ] ; then
+                "$TCDIALOG" --yesno "$*" 20 60
+                RET="$?"
+                if [ $RET -eq 255 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--yesnocancel" ] ; then
+                "$TCDIALOG" --yesno "$* (ESC to cancel)" 20 60
+                RET="$?"
+                if [ $RET -eq 255 ] ; then RET=2 ; fi
+            elif [ "$TYPE" = "--input" ] ; then
+                "$TCDIALOG" --inputbox "$1" 20 60 "$2" 2>"$TMPFILE"
+                RET="$?"
+                SOMEDIALOG=`cat "$TMPFILE"`
+                if [ $RET -eq 255 ] ; then RET=1 ; fi
+            fi
+        else
+            if [ "$TYPE" = "--error" ] ; then
+                echo "Error: $*"
+                read -p "Press <Enter> to continue." RET
+                RET=0
+                if [ $TTY_ABORT -eq 1 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--sorry " ] ; then
+                echo "Sorry: $*"
+                read -p "Press <Enter> to continue." RET
+                RET=0
+                if [ $TTY_ABORT -eq 1 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--message" ] ; then
+                echo "Note: $*"
+                read -p "Press <Enter> to continue." RET
+                RET=0
+                if [ $TTY_ABORT -eq 1 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--yesno" ] ; then
+                read -r -e -p "$* (y/N)?" RET
+                case "$RET" in
+                    [yY]|[yY][eE][sS]) RET=0 ;;
+                    *) RET=1 ;;
+                esac
+                if [ $TTY_ABORT -eq 1 ] ; then RET=1 ; fi
+            elif [ "$TYPE" = "--yesNOcancel" ] ; then
+                read -r -e -p "$* (yes/NO/cancel):" RET
+                if [ -z "$RET" ] ; then RET="n" ; fi
+                case "$RET" in
+                    [yY]|[yY][eE][sS]) RET=0 ;;
+                    [nN]|[nN][oO]) RET=1 ;;
+                    *) RET=2 ;;
+                esac
+                if [ $TTY_ABORT -eq 1 ] ; then RET=2 ; fi
+            elif [ "$TYPE" = "--yesnocancel" ] ; then
+                read -r -e -p "$* (yes/no/CANCEL):" RET
+                case "$RET" in
+                    [yY]|[yY][eE][sS]) RET=0 ;;
+                    [nN]|[nN][oO]) RET=1 ;;
+                    *) RET=2 ;;
+                esac
+                if [ $TTY_ABORT -eq 1 ] ; then RET=2 ; fi
+            elif [ "$TYPE" = "--input" ] ; then
+                read -r -e -p "$1 ($2): " SOMEDIALOG
+                if [ -z "$SOMEDIALOG" ] ; then
+                    SOMEDIALOG="$2"
+                fi
+                RET=$TTY_ABORT
+            fi
+        fi
+        # trap - SIGINT
+    else
+        RET=0
+        if [ "$TYPE" = "--error" ] ; then
+            echo "Error: $*"
+        elif [ "$TYPE" = "--sorry " ] ; then
+            echo "Sorry: $*"
+        elif [ "$TYPE" = "--message" ] ; then
+            echo "Message: $*"
+        elif [ "$TYPE" = "--yesno" ] ; then
+            echo "Yes/No: $* (defaults to NO)"
+            RET=1
+        elif [ "$TYPE" = "--yesNOcancel" ] ; then
+            echo "Yes/No/Cancel: $* (defaults to NO)"
+            RET=1
+        elif [ "$TYPE" = "--yesnocancel" ] ; then
+            echo "Yes/No/Cancel: $* (defaults to CANCEL)"
+            RET=2
+        elif [ "$TYPE" = "--input" ] ; then
+            echo "Input: $1 (defaults to $2)"
+            SOMEDIALOG="$2"
+        fi
+    fi
+    return $RET
+}
+
+showversion() {
+    # Version history:
+    # 0.1 - (yam655) first version
+    # 0.1.1 (2009-05-08):
+    #   fix issue with feed://somewhere/...
+    #   genre/title dialog order swap (as seen in 0.2 line)
+    # 0.2 - (mostly aborted) added ability to run podget afterwards
+    # 0.3 - added inactivity tag support
+    echo "podget-add-feed Version 0.3"
+}
+
+showhelp() {
+    cat << FEOF
+Usage: $0 {Options} <URL>
+Options may include:
+    -h | --help : show this help message
+    -V | --version : show the version
+    -c | --check : check dialog compatibility
+    -a | --auto : run in non-interactive mode
+    -d | --dialog <dialog> : use a specific dialog program
+FEOF
+}
+
+checkdialog
+TMPFILE=`tempfile -p paf.`
+if [ -z "$TMPFILE" ] ; then TMPFILE=`mktemp -t addfeed.XXXXXXXXXX` ; fi
+if [ -z "$TMPFILE" ] ; then TMPFILE="/tmp/podget-add-feed.$$.`hostname`" ; fi
+
+while [ $# -gt 0 ] ; do
+    case "$1" in
+        --check|-c)
+            dialogcheck -v
+            exit 0
+            ;;
+        --help|-h)
+            showhelp
+            exit 0
+            ;;
+        --version|-V)
+            showversion
+            exit 0
+            ;;
+        --auto|-a)
+            unset DISPLAY
+            DIALOG="auto"
+            shift
+            continue
+            ;;
+        --dialog|-d)
+            shift
+            checkdialog "$1"
+            dialogcheck
+            shift
+            continue
+            ;;
+    esac
+    URL="$1"
+    shift
+    CUR_GROUP="$EMPTY_GROUP"
+    CUR_TITLE=""
+    CUR_ACTIVATE=0
+
+    # Interestingly, the body of the single-quoted segments is getting
+    # parsed.
+    URL=`sed -e 's@^feed://@http://@' -e 's@^feed:\([a-z]\+:\)@\1@' \
+             -e 's/ /%20/g' -e 's/|/%7C/g' -e 's/\\\\/%5C/g' \
+             -e 's/\\$/%24/g' -e 's/"/%34/g' -e "s/'/%39/g" \
+            <<< "$URL"`
+    case "$URL" in
+        http:*)
+            ;;
+        https:*)
+            ;;
+        *)
+            somedialog --error "Unknown protocol in URL: $URL"
+            continue
+            ;;
+    esac
+    FOUNDURL=`grep -e "^\(#[a-zA-Z0-9]* \)\?$URL " "$SERVERLIST"`
+    FURL=""
+    FGROUP=""
+    FTITLE=""
+    FACTIVE="inactive"
+    FREASON=""
+    if [ ! -z "$FOUNDURL" ] ; then
+        case "$FOUNDURL" in
+            \#*)
+                read FACTIVE FURL FGROUP FTITLE <<< "$FOUNDURL"
+                if [ "$FACTIVE" != "#" ] ; then
+                    FREASON=" (${FACTIVE:1})"
+                fi
+                FACTIVE="inactive"
+                ;;
+            *)
+                read FURL FGROUP FTITLE <<< "$FOUNDURL"
+                FACTIVE="active"
+                ;;
+        esac
+        if ! somedialog --yesnocancel "Found <$FURL> in $FGROUP as \"$FTITLE\". It is $FACTIVE$FREASON. Change this?" ; then
+            continue
+        fi
+    fi
+    if ! askquestions "$URL" "$FGROUP" "$FTITLE" ; then
+        continue
+    fi
+    ACTIVE=""
+    if [ $CUR_ACTIVATE -ne 0 ] ; then
+        ACTIVE='# '
+    fi
+    if [ -z "$FOUNDURL" ] ; then
+        echo "$ACTIVE$URL $CUR_GROUP $CUR_TITLE" >> "$SERVERLIST"
+    else
+        OLIBDIR="$LIBRARY_DIR/$FGROUP/$FTITLE"
+        NLIBDIR="$LIBRARY_DIR/$CUR_GROUP/$CUR_TITLE"
+        sed -e 's|^\(# \)\?'"$URL"' .*$|'"$ACTIVE$URL $CUR_GROUP $CUR_TITLE"'|g' "$SERVERLIST" > "$SERVERLIST".new
+        mv "$SERVERLIST" "$SERVERLIST~"
+        mv "$SERVERLIST".new "$SERVERLIST"
+        if [ -d "$OLIBDIR" ] ; then
+            if [ ! -d "$LIBRARY_DIR/$CUR_GROUP" ] ; then
+                mkdir -p "$LIBRARY_DIR/$CUR_GROUP"
+            fi
+            if [ -d "$NLIBDIR" ] ; then
+                somedialog --sorry "Directory $NLIBDIR already existed. We could not move $OLIBDIR. You will need to move the files by hand."
+            else
+                mv -f "$OLIBDIR" "$NLIBDIR"
+            fi
+        fi
+        # if [ -z "$ACTIVE" -a "$FACTIVE" != "active" ] ; then
+            # if somedialog --yesno "Run podget now?" ; then
+                # podget
+            # fi
+        # fi
+    fi
+done
+

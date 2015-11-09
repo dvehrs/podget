@@ -1,0 +1,28 @@
+podget (0.7.3-1) unstable; urgency=low
+
+    Modified configuration file format.  By default, this file is stored in
+    $HOME/.podget/podgetrc.  To continue using podget, this file will need to be
+    updated to the new format.  If it is not updated, any attempt to run podget
+    will notify the user that the file needs to be updated and then exit.
+
+    To update the configuration file, follow these steps:
+        1.  Create new configuration file.
+              podget --create-config podgetrc.new
+        2.  Use your favorite editor to compare it to your old configuration
+            file and modify its configuration to match yours.
+              cd $HOME/.podget
+              vimdiff podgetrc podgetrc.new
+        3. Once the configuration has been transferred into the new format,
+           rename or move the files.
+              mv podgetrc podgetrc.old
+              mv podgetrc.new podgetrc
+        4. Once you verify that the new configuration file works as expected,
+           you can delete the old version.
+              rm podgetrc.old
+
+    If you run mulitple session of podget with different configurations then you
+    will need to update each configuration file or when you attempt to run
+    podget with any old version of the configuration file, it will display the
+    need to update and then exit.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Mon, 08 Sep 2014 13:02:47 -0600

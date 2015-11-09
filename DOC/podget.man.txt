@@ -1,0 +1,144 @@
+NAME
+
+Podget \- Simple tool to automate downloading of podcasts.
+
+SYNOPSIS
+podget <options> [command]
+podget -h | --help
+
+DESCRIPTION
+
+OPTIONS
+    -c, --config <FILE>          Name of configuration file.
+
+    --create-config <FILE>       Create configuration file.
+
+    -C, --cleanup                Skip downloading and only run cleanup loop.
+
+    --cleanup_days <NUMBER>      Cleanup files older than <NUMBER> days.
+
+    --cleanup_simulate           Simulate cleanup loop to see what files would
+                                 be deleted.
+
+    -d, --dir_config <DIRECTORY>  Directory that configuration files are stored in.
+
+    -f, --force                  Force download of items from each feed even if
+                                 they've already been downloaded.
+
+    --import_opml <FILE or URL>  Import servers from OPML file or HTTP/FTP URL.
+
+    --export_opml <FILE>         Export serverlist to OPML file.
+
+    --import_pcast <FILE or URL>  Import server from iTunes PCAST file or HTTP/FTP URL.
+
+    -l, --library <DIRECTORY>    Directory to store downloaded files in.
+
+    -p, --playlist-asx           In addition to M3U playlists, create ASX playlists.
+
+    -r, --recent <COUNT>         Download only the <COUNT> newest items from
+                                 each feed.
+
+    --serverlist <FILE>          Use <FILE> as serverlist instead of default.
+
+    -s, --silent                 Run silently (for cron jobs).
+
+    -v                           Set verbosity to level 1.
+
+    --verbosity <LEVEL>          Set verbosity level (0-3).
+
+    -h, --help                   Display help.
+
+
+EXAMPLE CRON JOB
+
+Once podget is running correctly, its most useful if you run it from a cron job so that the new episodes are available to play or load onto a portable player and you don't have to wait for them to download.
+
+To edit your crontab, do:
+
+  $ crontab \-e
+
+Then insert one line (i for insert mode), like the following:
+
+  15 04 * * * /usr/bin/podget \-s
+
+This will run podget at 4:15 AM every day.
+
+AUTOMATIC CLEANUP
+
+You can enabled automatic cleanup with every run by configuring it in your $HOME/.podget/podgetrc file. Simply set the following options:
+
+  # Autocleanup. 
+  # 0 == disabled
+  # 1 == delete any old content
+  cleanup=1
+
+  # Number of days to keep files.   Cleanup will remove anything 
+  # older than this.
+  cleanup_days=7
+
+However, some people prefer to run cleanup as a separate cron session. To do that, set the options in .podgetrc to:
+
+  # Autocleanup.
+  # 0 == disabled
+  # 1 == delete any old content
+  cleanup=0
+
+  # Number of days to keep files.   Cleanup will remove anything
+  # older than this.
+  cleanup_days=7
+
+And add a cron job to run cleanup, like one of these examples:
+
+  # Once a week on Sunday at 04:15AM
+  15 04 * * Sun /usr/bin/podget \-C
+
+SESSION CONTROL
+
+Podget checks for already running sessions when it starts and exits if any are found. Each session requires its own core configuration file, so for multiple sessions simply provide a unique -c <configfile> option for each.
+
+EXAMPLE SERVER LIST
+
+By default, Podget uses $HOME/.podget/serverlist for the default list of servers to contact. However you can configure the name with the config_serverlist variable in your $HOME/.podget/podgetrc file.
+
+The default format is: <url> <category> <name>
+
+NOTES:
+  1. URL Rules:
+    A. Any spaces in the URL needs to be converted to %20 
+  2. Category Rules:
+    A.  Must be one word without spaces. 
+    B.  You may use underscores and dashes.
+    C.  You can insert date substitions.
+        %YY%  ==  Year
+        %MM%  ==  Month
+        %DD%  ==  Day
+  3. Name Rules:
+    A.  If you are creating ASX playlists, make sure the feed name does not
+        have any spaces in it.
+    B.  You can leave the feed name blank, and files will be saved in the category directory.
+  4. Disable the downloading of any feed by commenting it out with a #.
+
+Examples:
+
+  http://www.podcastingnews.com/forum/links.php?func=show&id=214 IT In the Trenches
+  http://www.lugradio.org/episodes.rss Linux LUG Radio
+  http://thelinuxlink.net/tllts/tllts.rss Linux The Linux Link
+  http://www.bbc.co.uk/radio4/history/inourtime/mp3/podcast.xml Philosophy BBC: In Our Time
+  http://www.privacyfreaks.org/podcast.php privacy Privacy Freaks
+  http://dl.chickencat.com/podcast.php privacy Digital Liberties
+
+  Example with date substitution in the category and a blank feed name.
+  http://downloads.bbc.co.uk/rmhttp/downloadtrial/worldservice/summary/rss.xml News-%YY%-%MM%-%DD%
+
+HANDLING UTF-16 FEEDS
+
+Some servers provide their feeds in UTF-16 format rather than the more common UTF-8.
+
+To automatically convert these files, create a secondary serverlist at:
+
+        $HOME/.podget/serverlist.utf16 
+
+Remember to change the name of the serverlist to match what you set it to with config_serverlist if you changed it.
+
+AUTHORS
+  Dave Vehrs

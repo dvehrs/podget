@@ -1,0 +1,2224 @@
+#!/usr/bin/env bash
+
+# Useful to follow command execution and determine when an extra echo outputs during silent mode.
+#set -x
+
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Filename:      podget                                                                                                          {{{
+# Maintainer:    Dave Vehrs <davevehrs(at)users.sourceforge.net>
+# Copyright:     (c) 2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015 Dave Vehrs
+#
+#                This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public
+#                License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any
+#                later version.
+#
+#                This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+#                warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#                details.
+#
+# Description:   Podget is a simple bash script to automate the downloading and
+#                organizing of podcast content.
+# Dependencies:  bash, coreutils, debianutils, findutils, grep, gawk or mawk, libc-bin (for iconv), sed, and wget.
+# Installation:  cp podget.sh /usr/local/bin
+#                chmod 755 /usr/local/bin/podget.sh                                                                              }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Exit Codes                                                                                                                     {{{
+
+# "Reserved" Exit codes
+# 1     General Error
+# 2     Misuse of shell built-ins
+# 126   Command invoked cannot execute
+# 127   Command not found
+# 128+n Invalid argument to exit
+#   130   Script terminated by Control-C (128+2)
+#   143   Script terminated by TERM signal (128+15)
+
+# "Our" Exit codes
+
+# Display Help (set to '0' because it is an valid exit condition, not an error.)
+ERR_DISPLAYHELP=0
+
+# Library directory not defined.
+ERR_LIBNOTDEF=50
+
+# Library directory available space below limit
+ERR_LIBLOWSPACE=51
+
+# Libc6 not installed.  Cannot convert UTF16 feeds.
+ERR_LIBC6NOTINSTALLED=60
+
+# Another running session already exists.
+ERR_RUNNINGSESSION=70
+
+# OPML import error.
+ERR_IMPORTOPML=80
+
+# OPML export error.
+ERR_EXPORTOPML=90
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Traps                                                                                                                          {{{
+
+# FUNCNAME is declared with a default value in case the trap is triggered while
+# outside a function.
+trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+# trap to run CLEANUP function if program receives a TERM (kill) or INT (ctrl-c) signal
+# - CLEANUP called in line for other normal exits.
+trap 'CLEANUP_AND_EXIT 143' TERM
+trap 'CLEANUP_AND_EXIT 130' INT
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Set Shell Options to catch errors ('man bash' for details)                                                                     {{{
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Help text and default file formats                                                                                             {{{
+
+: << HELP_STEXT
+    -c --config <FILE>           Name of configuration file to use.
+    --create-config <FILE>       Exit immediately after creating configuration file.
+    -C --cleanup                 Skip downloading and only run cleanup loop.
+    --cleanup_simulate           Skip downloading and simulate running
+                                 cleanup loop.
+                                 Display files to be deleted.
+    --cleanup_days <COUNT>        Number of days to retain files.  Anything
+                                 older will be removed.
+    -d --dir_config <DIRECTORY>  Directory that configuration files are
+                                 stored in.
+    --dir_session <DIRECTORY>    Directory that session files are stored in.
+    -f --force                   Force download of items from each feed even
+                                 if they have already been downloaded.
+    --import_opml <FILE or URL>  Import servers from OPML file or
+                                 HTTP/FTP URL.
+    --export_opml <FILE>         Export serverlist to OPML file
+    --import_pcast <FILE or URL> Import servers from iTunes PCAST file or
+                                 HTTP/FTP URL.
+    -l --library <DIRECTORY>     Directory to store downloaded files in.
+    -n --no-playlist             Do not create M3U playlist
+    -p --playlist-asx            In addition to the default M3U playlist,
+                                 create an ASX Playlist.  M3U playlist must be
+                                 created to convert to ASX.
+    --playlist-per-podcast       Create playlist for each podcast feed
+    -r --recent <COUNT>          Download only the <count> newest items from
+                                 each feed.
+    --serverlist <LIST>          Serverlist to use.
+    -s --silent                  Run silently (for cron jobs).
+    --verbosity <LEVEL>          Set verbosity level (0-4).
+    -v                           Set verbosity to level 1.
+    -vv                          Set verbosity to level 2.
+    -vvv                         Set verbosity to level 3.
+    -vvvv                        Set verbosity to level 4.
+    -h --help                    Display help.
+HELP_STEXT
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Defaults                                                                                                                       {{{
+
+     #########################################################################################################################
+     ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
+     #########################################################################################################################
+
+# Set DIR_LIBRARY, DIR_SESSION, and DIR_LOG  in config file.
+DIR_CONFIG="${HOME}/.podget"
+CONFIG_CORE="podgetrc"
+CONFIG_SERVERLIST="serverlist"
+
+# DEFAULT FILENAME_BADCHARS used to test the configuration filenames and then unset.  The value used later in the script may be
+# set in the configuration file.  If you have a genuine need to use one of these characters in the filenames of the serverlist or
+# core configuration file then you may need to remove it from this definition.  For all other uses, modify the setting in your
+# configuration file (by default in podgetrc).
+#
+# This is a subset of the FILENAME_BADCHARS set in the default configuration file.  Many of the symbols that have been removed are
+# because they will cause other errors when used on the command line that prevent these checks from working.
+FILENAME_BADCHARS="~#^=+{}[]:\"'?\\"
+
+# Default VERBOSITY
+#  0 == silent
+#  1 == Warning messages only.
+#  2 == Progress and Warning messages.
+#  3 == Debug, Progress and Warning messages.
+#  4 == All messages and wget set to maximum VERBOSITY.
+VERBOSITY=2
+
+# Auto-Cleanup.
+# 0 == disabled
+# 1 == delete any old content
+CLEANUP=0
+
+# Skip downloading and just run cleanup
+# 0 == disable
+CLEANUP_ONLY=0
+
+# Simulate cleanup
+CLEANUP_SIMULATE=0
+
+# Number of days to keep files.   Cleanup will remove anything
+# older than this.
+CLEANUP_DAYS=7
+
+# Most Recent
+# 0  == download all new items.
+# 1+ == download only the <count> most recent
+MOST_RECENT=0
+
+# Force
+# 0 == Only download new material.
+# 1 == Force download all items even those you've downloaded before.
+FORCE=0
+
+# Install session.  This gets called when script is first installed.
+INSTALL_SESSION=0
+
+# Fix filenames for FAT32 compatibility
+MODIFY_FILENAME=0
+
+# Stop downloads if available space drops below
+MIN_SPACE=10000
+
+# Date format for new playlist names
+DATE_FORMAT=+%F
+
+# ASX Playlists for Windows Media Player
+# 0 == do not create
+# 1 == create
+ASX_PLAYLIST=0
+
+# Enable playlist creation
+NO_PLAYLIST=0
+
+     #########################################################################################################################
+     ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
+     #########################################################################################################################
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Text for default configuration files:                                                                                          {{{
+
+: << TEXT_DEFAULT_CONFIG
+# -----------------------------------------------------------------------------
+# Podget configuration file created by version @VERSION@
+# [ NOTE:  Do not delete version line as it will be used by future versions to
+#          to test if configuration files have been updated with any required changes.
+# -----------------------------------------------------------------------------
+# File name and location configuration:
+
+# Name of Server List configuration file
+CONFIG_SERVERLIST=@SERVERLIST@
+
+# Directory to store session files
+# If this option is not configured then by default podget will place the session files in the directory defined by TMPDIR/podget or
+# if it is not defined in the users shell then the session files will be placed in the directory /tmp/podget.
+# If you prefer a different location, then configure this variable.
+# DIR_SESSION=@HOME@/tmp/podget
+
+# Directory where to store downloaded files
+DIR_LIBRARY=@HOME@/POD
+
+# Directory to store logs in
+# By default, logs are stored in DIR_LIBRARY/.LOG
+# If you prefer a different location, then configure this variable.
+# DIR_LOG=@HOME@/POD/LOG
+
+# Set logging file names
+LOG_FAIL=errors
+LOG_COMPLETE=done
+
+# -----------------------------------------------------------------------------
+# Download Options:
+
+# Wget base options
+# Commonly used options:
+#   -c                          Continue interupted downloads
+#   -nH                         No host directories (overrides .wgetrc defaults if necessary)
+#   --proxy=off                 To disable proxy set by environmental variable http_proxy/
+#   --no-check-certificate      To disable HTTPS certificate checks.  Useful for sites that may be using self-signed cerficates
+#                                   and not those from a trusted service authority.
+#  --content-disposition        [EXPERIMENTAL FEATURE] Wget will look for and use "Content-Disposition" headers received from the
+#                                   server.  This can result in extra round-trips to the server for a "HEAD" request.  This option
+#                                   is useful for servers that use the "Content-Disposition" header to hold the filename of the
+#                                   downloaded file rather than appending it to the URL.  This has the potential to make  some of
+#                                   Podget's FILENAME_FORMATFIX options unneeded.
+#
+# Wget options that include spaces need to be surrounded in quotes.
+#
+# WGET_BASEOPTS="-c --proxy=off --no-check-certificate"
+WGET_BASEOPTS="-c -nH"
+
+# Most Recent
+# 0  == download all new items.
+# 1+ == download only the <count> most recent
+MOST_RECENT=0
+
+# Force
+# 0 == Only download new material.
+# 1 == Force download all items even those you've downloaded before.
+FORCE=0
+
+# Autocleanup.
+# 0 == disabled
+# 1 == delete any old content
+CLEANUP=0
+
+# Number of days to keep files.   Cleanup will remove anything
+# older than this.
+CLEANUP_DAYS=7
+
+# Stop downloading if available space on the partition drops below value (in KB)
+# default:  614400 (600MB)
+MIN_SPACE=614400
+
+# -----------------------------------------------------------------------------
+# Playlist Options:
+
+# Disable playlist creation [ No need to comment out other playlist variables ]
+# 0 == create
+# 1 == do not create
+NO_PLAYLIST=0
+
+# Build playlists (comment out or set to a blank string to accept default format: New-).
+PLAYLIST_NAMEBASE=New-
+
+# Date format for new playlist names
+# +%F        = YYYY-MM-DD  like 2014-01-15  (DEFAULT)
+# +%m-%d-%Y  = MM-DD-YYYY  like 01-15-2014
+# For other options 'man date'
+#
+# Date options that include spaces need to be surrounded in quotes.
+#
+DATE_FORMAT=+%F
+
+# ASX Playlists for Windows Media Player
+# 0 == do not create
+# 1 == create
+ASX_PLAYLIST=0
+
+# -----------------------------------------------------------------------------
+# Filename Suffix:
+
+# Add suffix to the filename of every file downloaded to allow for subsequent scripts to detect the newly downloaded files and work
+# on them.  Examples of this would be scripts to run id3v2 to force a standard genre for all MP3 files downloaded or to use mp3gain
+# to normalize files to have the same volume.
+#
+# A period (.) will automatically be added between the filename and tag like so:
+#       fileanme.mp3.newtag
+#
+# Tags will not be added to filenames as they are added to the playlists.  It will be necessary for any script that you run to
+# process the files remove the tag for the playlists to work.
+#
+# If this variable is undefined or commented out, then by default no suffix will be added.
+
+# FILENAME_SUFFIX="newtag"
+
+# -----------------------------------------------------------------------------
+# Downloaded Filename Cleanup Options:
+#
+# These options are for the filenames downloaded from the feeds.  We will try to clean then up rather than interrupting the script
+# execution.
+
+# Filename Cleanup: For FAT32 filename compatability (Feature Request #1378956)
+# Tested with the following characters: !@#$%^&*()_-+=||{[}]:;"'<,>.?/
+#
+# The \`, \" and \\ characters need to be escaped with a leading backslash.
+#
+# Bad Character definitions need to be surrounded in quotes.
+#
+# NOTE: FILENAME_BADCHARS is also used to test for characters that commonly cause errors in directory names.  This can cause
+# FILENAME_BADCHARS to be reported as part of an error for configuration issues with DIR_SESSION, DIR_LOG, DIR_LIBRARY and podcast
+# FEED_NAME and FEED_CATEGORY.
+FILENAME_BADCHARS="\`~!#$^&=+{}*[]:;\"'<>?|\\"
+
+# Filename Replace Character: Character to use to replace any/all
+# bad characters found.
+FILENAME_REPLACECHAR=_
+
+# When you run podget at a VERBOSITY of 3 or 4, it may appear that the filename format fixes are done out of order.  That is because
+# they are named as they are created and as new fixes have been developed, those with more detailed exclusionary conditions have had
+# to be done before those with more generic conditions.  Looking for improvements to fix this issue.
+
+# Filename Cleanup 2:  Some RSS Feeds (like the BBC World News Bulletin)
+# download files with names like filename.mp3?1234567.  Enable this mode
+# to fix the format to filename1234567.mp3.
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX=1
+
+# Filename Cleanup 3: Filenames of feeds hosted by LBC Plus corrupted.
+# Fixed per MoonUnit's feature request (#1660764)
+#
+# Takes an URL that looks like:  http://lbc.audioagain.com/shared/audio/stream.mp3?guid=2007-03/14<...snip>
+#                            <snip...>a7766e8ad2748269fd347eaee2b2e3f8&amp;source=podcast.php&amp;channel_id=88
+#
+# Which normally creates a file named: a7766e8ad2748269fd347eaee2b2e3f8&amp;source=podcast.php&amp;channel_id=88
+#
+# This fix extracts the date of the episode and changes the filename to 2007-03-14.mp3
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX2=1
+
+# Filename Cleanup 4: Filenames of feeds hosted by CatRadio.cat need fixing.
+# Fixed per Oriol Rius's Bug Report (#1744705)
+#
+# Downloaded filenames look like: 1189153569775.mp3?programa=El+mat%ED+de+Catalunya+R%E0dio&amp;podcast=y
+# This fix removes everything after the .mp3
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX3=1
+
+# Filename Cleanup 5:  When the filename is part of the URL and the actual filename stays the same for
+# all items listed.
+#
+# Download URLs look like: http://feeds.theonion.com/~r/theonion/radionews/~5/213589629/podcast_redirect.mp3
+# Where 213589629 is the unique filename.
+#
+# This filename change is disabled by default because it may cause unintended changes to the filename.
+#
+# 0 == disabled (default)
+# 1 == enabled
+FILENAME_FORMATFIX4=0
+
+# Filename Cleanup 6: Remove "?referrer=rss" from the end of filenames as included in some feeds like
+# those from Vimcasts.org.  Setup to work for MP3, M4V, OGG and OGV files.
+#
+# Feed URLs: http://vimcasts.org/feeds/ogg
+#            http://vimcasts.org/feeds/quicktime
+#
+# In the feed, enclosure URLs look like: http://media.vimcasts.org/videos/1/show_invisibles.ogv?referrer=rss
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX5=1
+
+# Filename Cleanup 7:  Removes the trailing part of the filename after the '?'.
+# Fixed at the request of Joerg Schiermeier
+#
+# For dealing with enclosures like those formatted in the ZDF podcast.
+# Feed URL: http://www.zdf.de/ZDFmediathek/podcast/1193018?view=podcast
+# Example enclosure:
+# http://podfiles.zdf.de/podcast/zdf_podcasts/101103_backstage_afo_p.mp4?2010-11-03+06-42
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX6=1
+
+# Filename Cleanup 8:
+# This fix is for feeds that assign the same filename to be downloaded for each
+# enclosure and then embedded the actual filename of the object to be saved in
+# the media_url= parameter.  This fix extracts that name and uses it for the
+# saved file.
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX7=1
+
+# Filename Cleanup 9:
+# This fix is for feeds like Smodcast.  It removes the "?client_id=<string>"
+# from the end of each enclosure url in the feed.
+#
+# NOTE:  To fully fix the filenames on feeds like Smodcast, this fix should
+# be used in conjunction with FILENAME_FORMATFIX4.
+#
+# Example URL: http://api.soundcloud.com/tracks/62837276/stream.mp3?client_id=a427c512429c9c90e58de7955257879c
+# Fixed filename: 62837276_stream.mp3
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX8=1
+
+# Filename Cleanup 10:
+#
+# This is a fix for podcast feeds formatted like those for Audioboo.  Removes everything after the ?
+# in the filename.  Attempted to make this fix generic enough to work with a variety of feeds of mp3, mp4,
+# ogg and ogv files.
+#
+# Feed URL: http://audioboo.fm/users/39903/boos.rss
+# Example URL: http://audioboo.fm/boos/1273271-mw-123-es-wird-fruhling.mp3?keyed=true&amp;source=rss
+# Fixed Filename: 1273271-mw-123-es-wird-fruhling.mp3
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX9=1
+
+# Filename Cleanup 11:
+#
+# This is an attempt to fix feeds hosted on Apple ITunes.  The enclosure URL from these feeds defines the
+# the filename as a long string of numbers and letter.  It's not very descriptive.  However, after the
+# filename and a '?', in the information passed down to the application as part of the URL, we can
+# extract the episode name for each podcast.  It is that name that this fix will use for the filename,
+# with a few character replacements to insure good filenames.
+#
+# 0 == disabled
+# 1 == enabled (default)
+FILENAME_FORMATFIX10=1
+# -----------------------------------------------------------------------------
+TEXT_DEFAULT_CONFIG
+
+: << TEXT_DEFAULT_SERVERLIST
+# Default Server List for podget
+#
+# FORMAT:    <url> <category> <name>
+#
+# NOTES:
+#    1. URL Rules:
+#      A. Any spaces in the URL need to be converted to %20
+#    2. Category Rules:
+#      A.  Must be one word without spaces.
+#      B.  You may use underscores and dashes.
+#      C.  You can insert date substitions.
+#          %YY%  ==  Year
+#          %MM%  ==  Month
+#          %DD%  ==  Day
+#    3. Name Rules:
+#      A.  If you are creating ASX playlists, make sure the feed name does not
+#          have any spaces in it and the filename cannot be blank.
+#      B.  You can leave the feed name blank, and files will be saved in the
+#          category directory.
+#      C.  Names with spaces are only compatible with filesystems that allow for spaces
+#          in filenames.  For example, spaces in feed names are OK for feeds saved to
+#          Linux ext partitions but are not OK for those saved to Microsoft FAT partitions.
+#    4. Disable the downloading of any feed by commenting it out with a leading #.
+#
+# Examples:
+#   http://www.lugradio.org/episodes.rss Linux LUG Radio
+#
+# Example with date substitution in the category and a blank feed name:
+#   http://downloads.bbc.co.uk/rmhttp/downloadtrial/worldservice/summary/rss.xml News-%YY%-%MM%-%DD%
+#
+# Example of two ways to do a feed with authentication:
+#   http://somesite.com/feed.rss CATEGORY Feed Name USER:username PASS:password
+#     OR
+#   http://username:password@somesite.com/feed.rss CATEGORY Feed Name
+#
+#   NOTE:   The second method will fail if a colon (:) is part of the username or password.
+#           Both methods will fail if a space is part of the username or password.
+#
+http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
+TEXT_DEFAULT_SERVERLIST
+
+: << TEXT_ASX_BEGINNING
+<ASX version = "3.0">
+        <PARAM NAME = "Encoding" VALUE = "UTF-8" />
+        <PARAM NAME = "Custom Playlist Version" VALUE = "V1.0 WMP8 for CE" />
+TEXT_ASX_BEGINNING
+
+: << TEXT_ASX_END
+</ASX>
+TEXT_ASX_END
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Functions                                                                                                                      {{{
+
+# Function: CLEANUP_AND_EXIT
+# Closes session and removes lock file (if it exists)
+# ARGUMENTS:
+# ${1} == Exit Status to report.
+CLEANUP_AND_EXIT() {
+    local EXITSTATUS=${1}
+
+    if [ ${VERBOSITY} -ge 2 ] ; then
+        echo -en "\nClosing session"
+    fi
+    if [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
+        if [ ${VERBOSITY} -ge 2 ] ; then
+            echo -n " and removing lock file"
+        fi
+        if [ ${VERBOSITY} -ge 4 ] ; then
+            echo
+            rm -fv "${DIR_SESSION}"/podget.$$
+        else
+            rm -f "${DIR_SESSION}"/podget.$$
+        fi
+    fi
+    if [ ${VERBOSITY} -ge 2 ] && [ ${VERBOSITY} -le 3 ]; then
+        echo "."
+    elif [ ${VERBOSITY} -eq 1 ] || [ ${VERBOSITY} -gt 3 ]; then
+            echo
+    fi
+
+    exit "${EXITSTATUS}"
+}
+
+display_shelp() {
+	echo; echo "Usage $0 [options]"; echo
+	sed --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | sed -e '/HELP_STEXT/d'
+}
+
+# Function: DIRECTORY_CHECK 'Name of Variable to be tested'
+# Simple function to verify that unsafe characters are not used in directory names.
+DIRECTORY_CHECK() {
+    # Variables have a default value of 'UNCONFigured' because this word and combination
+    # of capitalization is unlikely to be used.  This allows us to catch improperly
+    # formated calls to DIRECTORY_CHECK.
+    #
+    # Uses variable indirection,  The '!' introduces indirection which can be read
+    # to say "Get the value of the variable named this".
+    local TEST_STRING=${!1:-"UNCONFigured"}
+    # The second use simply reports the name of the variable to be tested.
+    local TEST_VARIABLE=${1:-"UNCONFigured"}
+    local TEST_FAIL=0
+    local OFFENDING_CHARS=""
+
+    if [ "${TEST_STRING}" == "UNCONFigured" ]; then
+        echo "Improperly formated call to DIRECTORY_CHECK."
+        return 1
+    fi
+
+    # Test if FILENAME_BADCHARS is configured, if it is then check filenames to
+    # prevent the use of disallowed characters.
+    if [ ! -z "${FILENAME_BADCHARS+set}" ]; then
+        for (( i=0; i<${#FILENAME_BADCHARS}; i++ )); do
+            local TEST_CHAR=${FILENAME_BADCHARS:$i:1}
+
+            # Grep looks for --fixed-strings so that certain characters are not
+            # interpreted as regular expressions (like ^ $ or /)
+            if grep --quiet --fixed-strings "${TEST_CHAR}" <<<${TEST_STRING}; then
+                OFFENDING_CHARS="${OFFENDING_CHARS}${TEST_CHAR}"
+                # This test must come first because it will set TEST_FAIL to 1 regardless
+                # of how many offending characters are found.  Given that this test can be
+                # reported multiple times, we do not want it to cause additional suggestions
+                # to be given to the user below.
+                TEST_FAIL=1
+            fi
+        done
+    fi
+
+    # consult Shellcheck SC2076 for why I choose this construct rather than using regex (=~) checks
+    if [[ ${TEST_STRING} = *"../"* ]]; then
+        TEST_FAIL=$((TEST_FAIL+2))
+    fi
+
+    if [[ ${TEST_STRING} = *"*"* ]]; then
+        TEST_FAIL=$((TEST_FAIL+4))
+    fi
+
+    # This test will create duplicate suggestions as the back-slash character also appears in
+    # the default FILENAME_BADCHARS.
+    if [[ ${TEST_STRING} = *"\\000"* ]]; then
+        TEST_FAIL=$((TEST_FAIL+8))
+    fi
+
+    if [ ${TEST_FAIL} -ne 0 ]; then
+        echo "DIRECTORY CHECK ERROR: ${TEST_VARIABLE} = ${TEST_STRING}"
+
+        echo
+        echo "Suggestion(s):"
+        local COUNT=0
+        while [ "${TEST_FAIL}" -ne 0 ]; do
+            if ((8<=TEST_FAIL && TEST_FAIL<=15)); then
+                COUNT=$((COUNT+1))
+                echo "  ${COUNT}. '\000' cannot be used in directory names as mkdir expects"
+                echo "     to get a null terminated string and '\000' is considered 'end of string'."
+
+                if [ "${TEST_FAIL}" -ge 8 ]; then
+                    TEST_FAIL=$((TEST_FAIL-8))
+                fi
+            elif ((4<=TEST_FAIL && TEST_FAIL<=7)); then
+                COUNT=$((COUNT+1))
+                echo "  ${COUNT}. The asterisk should not be used in directories as they are commonly used"
+                echo "     to designate a wild card for expansion in Bash variables."
+                if [ "${TEST_FAIL}" -ge 4 ]; then
+                    TEST_FAIL=$((TEST_FAIL-4))
+                fi
+            elif ((2<=TEST_FAIL && TEST_FAIL<=3)); then
+                COUNT=$((COUNT+1))
+                echo "  ${COUNT}. Directories should not contain two periods and a slash in conjunction."
+                echo "     If you need to save certain files outside of the Podcast Library directory,"
+                echo "     defined by this podgetrc, the proper solution is to create a second podgetrc"
+                echo "     with the new library location defined and to run podget with the --config"
+                echo "     command line option to designate the podgetrc file to use."
+                if [ "${TEST_FAIL}" -ge 2 ]; then
+                    TEST_FAIL=$((TEST_FAIL-2))
+                fi
+            elif ((1==TEST_FAIL)); then
+                COUNT=$((COUNT+1))
+                echo "  ${COUNT}. Attempts to use characters disallowed by FILENAME_BADCHARS."
+                echo "     Either remove the offending characters from the configured directory"
+                echo "     or FILENAME_BADCHARS."
+                echo "       Configured characters not allowed:  ${FILENAME_BADCHARS}"
+                echo "       Offending character(s):             ${OFFENDING_CHARS}"
+                if [ "${TEST_FAIL}" -ge 1 ]; then
+                    TEST_FAIL=$((TEST_FAIL-1))
+                fi
+            fi
+        done
+        if [ "${TEST_VARIABLE}" == "FEED_NAME" ] || [ "${TEST_VARIABLE}" == "FEED_CATEGORY" ]; then
+            return 1
+        else
+            CLEANUP_AND_EXIT 1
+        fi
+    fi
+
+}
+
+EXIT_ERROR() {
+  # Name of script
+  JOB_NAME=$(basename "$0")
+  # The following three variables are configured with a default value in case
+  # the function is called without options set.
+  LINENUM="${1:-"Unconfigured"}"                   # Line with error
+  EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
+  FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
+
+  echo
+  echo "Error:"
+  echo -e "\tScript:\t\t${JOB_NAME}"
+
+  # Function line only appears if it has been set to value other than the
+  # default.  Works on the assumption that "Unconfigured" is not likely to be
+  # chosen as a function name.
+  if [ "${FUNCTION}" != "Unconfigured" ]; then
+      echo -e "\tFunction:\t${FUNCTION}"
+  fi
+
+  echo -e "\tAt line:\t${LINENUM}"
+  echo -e "\tExit Status:\t${EXITSTATUS}"
+  echo
+  CLEANUP_AND_EXIT 1
+}
+
+# Function: FILENAME_CHECK 'Name of Variable to be tested'
+# This function tests the filenames used by podget locally for various configuration and log files.  While these checks have
+# some similarity to those applied to downloaded files the major difference is that violations of these rules will interrupt
+# the execution of podget and podget will attempt to fix the other filenames but many not always succeed.
+# Arguments:
+FILENAME_CHECK() {
+    # Variables have a default value of 'UNCONFigured' because this word and combination
+    # of capitalization is unlikely to be used.  This allows us to catch improperly
+    # formated calls to FILENAME_CHECK.
+    #
+    # Uses variable indirection,  The '!' introduces indirection which can be read
+    # to say "Get the value of the variable named this".
+    local TEST_STRING=${!1:-"UNCONFigured"}
+    # The second use simply reports the name of the variable to be tested.
+    local TEST_VARIABLE=${1:-"UNCONFigured"}
+    local TEST_FAIL=0
+    local OFFENDING_CHARS=""
+
+    if [ "${TEST_STRING}" == "UNCONFigured" ]; then
+        echo "Improperly formated call to DIRECTORY_CHECK."
+        return 1
+    fi
+
+    # Test if FILENAME_BADCHARS is configured, if it is then check filenames to
+    # prevent the use of disallowed characters.
+    if [ ! -z "${FILENAME_BADCHARS+set}" ]; then
+        for (( i=0; i<${#FILENAME_BADCHARS}; i++ )); do
+            local TEST_CHAR=${FILENAME_BADCHARS:$i:1}
+
+            # Grep looks for --fixed-strings so that certain characters are not
+            # interpreted as regular expressions (like ^ $ or /)
+            if grep --quiet --fixed-strings "${TEST_CHAR}" <<<${TEST_STRING}; then
+                OFFENDING_CHARS="${OFFENDING_CHARS}${TEST_CHAR}"
+                # This test must come first because it will set TEST_FAIL to 1 regardless
+                # of how many offending characters are found.  Given that this test can be
+                # reported multiple times, we do not want it to cause additional suggestions
+                # to be given to the user below.
+                TEST_FAIL=1
+            fi
+        done
+    fi
+
+    if [ -z "${TEST_STRING##*/*}" ]; then
+        # First test remove PATH from TEST_FILENAME variable.
+        local TEST_DIRECTORY="${TEST_STRING%/*}"
+        local TEST_FILENAME="${TEST_STRING##*/}"
+
+        if [  -n "${TEST_DIRECTORY}" ]; then
+            TEST_FAIL=$((TEST_FAIL+2))
+        fi
+
+        # Remove directory from string to be tested for following tests.
+        TEST_STRING=${TEST_FILENAME}
+    fi
+
+    # Configuration files should not be hidden by leading periods and trailing periods can cause issues on some file systems or
+    # operating systems.  Test if filename begins or ends with a period (.)
+    if [ "${TEST_STRING:0:1}" == "." ] || [ "${TEST_STRING:(-1):1}" == "." ]; then
+        TEST_FAIL=$((TEST_FAIL+4))
+    fi
+
+
+    if [ "${TEST_FAIL}" -ne 0 ]; then
+        echo
+
+        case "${TEST_VARIABLE}" in
+            "CONFIG_CORE"       )
+                echo "Configuration filename specified by -c or --create-config violates the following rules..."
+                ;;
+            "CMDL_SERVERLIST"   )
+                echo "Serverlist filename specified by --serverlist violates the following rules..."
+                ;;
+            "CONFIG_SERVERLIST" )
+                echo "Default Serverlist filename violates the following rules..."
+                ;;
+            "LOG_FAIL"          )
+                echo "LOG_FAIL defined in ${CONFIG_CORE} violates the following rules..."
+                ;;
+            "LOG_COMPLETE"      )
+                echo "LOG_COMPLETE defined in ${CONFIG_CORE} violates the following rules..."
+                ;;
+            *                   )
+                echo "${TEST_VARIABLE} violates the following rules..."
+                ;;
+        esac
+
+        echo
+        echo "Suggestion(s):"
+        COUNT=0
+        while [ "${TEST_FAIL}" -ne 0 ]; do
+            case ${TEST_FAIL} in
+                # Included as an example of how other errors could be added with
+                # a binary progression for the values they add to TEST_FAIL.
+                [4-7])
+                    COUNT=$((COUNT+1))
+                    echo "  ${COUNT}. Remove leading or trailing period from ${TEST_STRING}"
+                    if [ "${TEST_FAIL}" -gt 1 ]; then
+                        TEST_FAIL=$((TEST_FAIL-4))
+                    fi
+                    ;;
+                [2-3])
+                    COUNT=$((COUNT+1))
+                    echo "  ${COUNT}. Filenames should not include any directory configuration."
+                    echo "     Remove the directory configuration."
+                    case "${TEST_VARIABLE}" in
+                        "CONFIG_CORE" | "CMDL_SERVERLIST" | "CONFIG_SERVERLIST" )
+                            echo "     If you need to specify a directory other than the default,"
+                            echo "     use the -d or --dir_config command line options."
+                            ;;
+                        "LOG_FAIL" | "LOG_COMPLETE" )
+                            echo "     If you wish to specify another location to store the logs,"
+                            echo "     then configure the DIR_LOG variable in your ${CONFIG_CORE}"
+                            ;;
+                    esac
+
+                    if [ "${TEST_FAIL}" -ge 2 ]; then
+                        TEST_FAIL=$((TEST_FAIL-2))
+                    fi
+                    ;;
+                1)
+                    COUNT=$((COUNT+1))
+                    echo "  ${COUNT}. Attempts to use characters disallowed by FILENAME_BADCHARS."
+                    echo "     Either remove the offending characters from the configured directory"
+                    echo "     or FILENAME_BADCHARS."
+                    echo "       Configured characters not allowed:  ${FILENAME_BADCHARS}"
+                    echo "       Offending character(s):             ${OFFENDING_CHARS}"
+                    if [ "${TEST_FAIL}" -ge 1 ]; then
+                        TEST_FAIL=$((TEST_FAIL-1))
+                    fi
+                    ;;
+            esac
+        done
+
+        CLEANUP_AND_EXIT 1
+    fi
+}
+
+# Function: filenameFixFormat ${1} ${2}
+# Arguments:
+# ${1} == name of variable to hold return string
+# ${2} == string to fix the format of
+filenameFixFormat() {
+    # variable to hold returned value.
+    local VAR_RETURN=${1}
+
+    # Filename to be modified.
+    # Set original value for filename format fixes and character substitutions.
+    # Set according to what is passed as the second argument to function.
+    local MODIFIED_FILENAME=${2}
+
+
+    if [ ! -z "${FILENAME_FORMATFIX+set}" ] || [ ! -z "${FILENAME_FORMATFIX2+set}" ] || [ ! -z "${FILENAME_FORMATFIX3+set}" ] ||
+       [ ! -z "${FILENAME_FORMATFIX4+set}" ] || [ ! -z "${FILENAME_FORMATFIX5+set}" ] || [ ! -z "${FILENAME_FORMATFIX6+set}" ] ||
+       [ ! -z "${FILENAME_FORMATFIX7+set}" ] || [ ! -z "${FILENAME_FORMATFIX8+set}" ] || [ ! -z "${FILENAME_FORMATFIX9+set}" ] ||
+       [ ! -z "${FILENAME_FORMATFIX10+set}" ]; then
+        if [ ${VERBOSITY} -ge 3 ] ; then
+           echo -e "ORIGINAL FILENAME:\t${MODIFIED_FILENAME}"
+        fi
+    fi
+
+    # Note:  Filename format fixes that have more specific conditions come first.  More generic last.  This is
+    # because a fix with too liberal a condition can prevent a more specific fix from running.  Fixes are named in
+    # the order they were created, so it may appear that they are out of order.  By changing the order that they are
+    # executed in, it is possible to have more enabled by default.
+    #
+    # TODO: Create exclusionary conditions for the fixes that are out of order to restore sanity to this list.
+    #
+    # FILENAME_FORMATFIX has been moved to the end of the order.
+    #
+    # FILENAME_FORMATFIX4 is not part of this function and is called immediately after this function ends.
+
+    # Filename format fix for podcasts hosted on http://lbc.audioagain.com.
+    if [ ! -z "${FILENAME_FORMATFIX2+set}" ] && [ "${FILENAME_FORMATFIX2}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # Filename format fix for podcasts hosted on http://www.catradio.cat
+    if [ ! -z "${FILENAME_FORMATFIX3+set}" ] && [ "${FILENAME_FORMATFIX3}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
+    if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  [ "${FILENAME_FORMATFIX5}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # ZDF podcast filename fix
+    if [ ! -z "${FILENAME_FORMATFIX6+set}" ] && [ "${FILENAME_FORMATFIX6}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # media_url cleanup
+    # This fix was inspired by the Radio France podcast feed.  Each enclosure URL in the feed had the same filename
+    # specified to be downloaded, and the actual filename of the MP3 file was appended in the media_url variable.
+    # This fix extracts that filename and uses it for the downloaded file.
+    #
+    # Filename consists of: numbers, letters, dashes, underscore, plus, percent, equals, question mark, ampersand, and period
+    # with extended regex and buffers limited
+    # wget -O - http://radiofrance-podcast.net/podcast09/rss_12036.xml | grep enclosure | sed -ru 's/.*(media_url=.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/'
+    if [ ! -z "${FILENAME_FORMATFIX7+set}" ] && [ "${FILENAME_FORMATFIX7}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # SMODCAST cleanup
+    # Remove "?client_id=<string>" from filename.
+    #
+    # Note: This is only the first part of the cleanup needed for the SMODCAST feeds.  These removes the trailing portion of the
+    # enclosure URL but every filename is left as "stream.mp3".  The distinguishing part of each URL is held one segment before the
+    # filename and so FILENAME_FORMATFIX4 must also be enabled.  This can potentially affect other feeds and so it may be desirable
+    # to separate these feeds to their own configuration and serverlist files.  They can then be loaded by using the -c and
+    # --serverlist flags on the command line.
+    if [ ! -z "${FILENAME_FORMATFIX8+set}" ] && [ "${FILENAME_FORMATFIX8}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # Audioboo Filename Cleanup.
+    # Enclosure URLs hav "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
+    # It should work for Audioboo podcasts and others with similar formating.
+    if [ ! -z "${FILENAME_FORMATFIX9+set}" ] && [ "${FILENAME_FORMATFIX9}" -gt 0 ]; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # MP3 on Apple ITunes
+    # Filenames are generally long strings of numbers and letters, with the actual episode name being defined after the '?'
+    # This extracts the episode name and uses it for the filename.
+    if [ ! -z "${FILENAME_FORMATFIX10+set}" ] && [ "${FILENAME_FORMATFIX10}" -gt 0 ]; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+    # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
+    if [ ! -z "${FILENAME_FORMATFIX+set}" ] && [ "${FILENAME_FORMATFIX}" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$")" -gt 0 ] ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
+
+
+    # Test for filename modifications.
+    if [ ! -z "${MODIFY_FILENAME}" ] && [ "${MODIFY_FILENAME}" -gt 0 ] ; then
+         # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+         # down to a single time.
+         MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+        if [ ${VERBOSITY} -ge 3 ] ; then
+            echo -e "MODIFIED FILENAME:\t${MODIFIED_FILENAME}"
+        fi
+    fi
+
+    # Pass the modified filename back to the calling variable.
+    eval "${VAR_RETURN}='${MODIFIED_FILENAME}'"
+
+    # close without error
+    return 0
+}
+
+PLAYLIST_ConvertToASX() {
+    local DIR_LIBRARY=${1}
+    local M3U_PLAYLISTNAME=${2}
+    ASX_LOCATION="\\SD Card\\POD\\"
+    ASX_PLAYLISTNAME=$(basename "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}" .m3u).asx
+    sed --silent -e '/TEXT_ASX_BEGINNING$/,/^TEXT_ASX_BEGINNING/p' "$0" |
+      sed -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+
+    while read line ; do
+#      local FIXED_ENTRY=$(echo "${line}" | sed 's/\//\\/g')
+      local FIXED_ENTRY="${line//\//\\}"
+      {
+          echo '    <ENTRY>'
+          echo "        <ref href = \"${ASX_LOCATION}${FIXED_ENTRY}\" />"
+          echo "        <ref href = \".\\${FIXED_ENTRY}\" />"
+          echo '    </ENTRY>'
+      } >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+    done < "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}"
+
+    sed --silent -e '/TEXT_ASX_END$/,/^TEXT_ASX_END/p' "$0" |
+      sed -e '/TEXT_ASX_END/d' >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+
+     # Removing unix2dos dependency. Converting to sed statement with in-place editing of the file in question.
+     # ctrl-v ctrl-m for windows line end.
+     sed -i 's/$//' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+}
+
+PLAYLIST_Sort() {
+    local DIR_LIBRARY=${1}
+    local M3U_PLAYLISTNAME=${2}
+    local REALPLAYLISTNAME="${DIR_LIBRARY}/$M3U_PLAYLISTNAME"
+
+    # Potentially need to turn of errexit for this function.
+
+    # Sort Playlist
+    unset TEMPPLAYLISTNAME
+    local TEMPPLAYLISTNAME
+    if hash mktemp >&2; then
+        TEMPPLAYLISTNAME=$(mktemp 2>/dev/null)
+    elif hash tempfile >&2; then
+        TEMPPLAYLISTNAME=$(tempfile 2>/dev/null)
+    else
+        echo "Error: Neither mktemp or tempfile found.  Unable to sort playlist."
+        unset REALPLAYLISTNAME TEMPPLAYLISTNAME
+        return
+    fi
+
+    cp -p "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && sort -o "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && rm "$TEMPPLAYLISTNAME"
+
+    unset REALPLAYLISTNAME TEMPPLAYLISTNAME
+}
+
+# Function: REMOVE_URL
+# Simple function to cleanup URLs for removal from FILE.
+# Arguments:
+# ${1} == URL to remove from file
+# ${2} == FILE to remove URL from
+REMOVE_URL() {
+    local URL_INPUT=${1}
+    local TARGET_FILE=${2}
+
+    # Characters unlikely to appear in an URL that are suitable for use as delimiters in SED statements.
+    # List has been pruned down to eliminate any characters that need to be escaped themselves.
+    # Listed as "Unsafe" in RFC 1738
+    # Source: https://www.ietf.org/rfc/rfc1738.txt
+    local TEST_STRING="#|^~<>[] "
+
+    # Escape any characters that can affect the sed command below, currently: *
+    local URL_CLEAN
+
+    URL_CLEAN=$(echo "${URL_INPUT}" | sed -e "s/\([^\\]\)\*/\1\\\*/g")
+
+    for (( i=0; i<${#TEST_STRING}; i++ )); do
+        local TEST_CHAR=${TEST_STRING:$i:1}
+
+        # grep looks for --fixed-strings so that certain characters are not
+        # interpreted as regular expressions (like ^ $ or /)
+        if grep --quiet --fixed-strings "${TEST_CHAR}" <<<${URL_INPUT}; then
+            break
+        fi
+    done
+
+    sed -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
+}
+
+COMPARE_StringInString() {
+    echo "Enter Compare ..."
+    echo "1 == ${1}"
+    echo "2 == ${2}"
+    case "${2}" in
+        *"${1}" )
+            echo "Found!"
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Version  (Update with changes!)                                                                                                {{{
+
+VERSION=0.7.9
+REPORT_VERSION=0
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Parse command line                                                                                                             {{{
+
+# Set defaults for command line options so variables do not conflict with 'set -o nounset' by being undeclared.
+CMDL_CLEANUP_SIMULATE=0
+CMDL_FORCE=0
+
+# Parameter Substitution will cause script to exit with an error when 'errexit' is enabled.  Disable while processing the command
+# line.
+set +o errexit
+# Also disable trap for reporting errors on non-zero exit statuses.
+trap - ERR
+
+while [ $# -ge 1 ] ; do
+	case ${1} in
+        -c | --config               ) CONFIG_CORE=${2:-NONE}                            ; shift ; shift           ;;
+             --create-config        ) CONFIG_CORE=${2:-NONE}; CMDL_CREATECONFIG=1       ; shift ; shift           ;;
+        -C | --cleanup              ) CLEANUP_ONLY=1 ; CLEANUP=1                        ; shift                   ;;
+        --cleanup_days              ) CMDL_CLEANUP_DAYS=${2:-NONE}                      ; shift ; shift           ;;
+        --cleanup_simulate          ) CMDL_CLEANUP_SIMULATE=1 ; CLEANUP_ONLY=1 ; CLEANUP=1 ; shift                ;;
+        -d | --dir_config           ) DIR_CONFIG=${2:-NONE}                             ; shift ; shift           ;;
+             --dir_session          ) CMDL_SESSION=${2:-NONE}                           ; shift ; shift           ;;
+        -f | --force                ) CMDL_FORCE=1                                      ; shift                   ;;
+             --import_opml          ) IMPORT_OPML=${2:-NONE}                            ; shift ; shift           ;;
+             --export_opml          ) EXPORT_OPML=${2:-NONE}                            ; shift ; shift           ;;
+             --import_pcast         ) IMPORT_PCAST=${2:-NONE}                           ; shift ; shift           ;;
+        -l | --library              ) CMDL_LIBRARY=${2:-NONE}                           ; shift ; shift           ;;
+        -n | --no-playlist          ) CMDL_NOPLAYLIST=1                                 ; shift                   ;;
+        -p | --playlist-asx         ) CMDL_ASX=1                                        ; shift                   ;;
+             --playlist-per-podcast ) CMDL_PLAYLISTPERPODCAST=1                         ; shift                   ;;
+        -r | --recent               ) CMDL_MOSTRECENT=${2:-NONE}                        ; shift ; shift           ;;
+             --serverlist           ) CMDL_SERVERLIST=${2:-NONE}                        ; shift ; shift           ;;
+        -s | --silent               ) VERBOSITY=0                                       ; shift                   ;;
+        -V | --version              ) VERBOSITY=2 ; REPORT_VERSION=1                    ; shift                   ;;
+		-v                          ) VERBOSITY=1                                       ; shift                   ;;
+		-vv                         ) VERBOSITY=2                                       ; shift                   ;;
+		-vvv                        ) VERBOSITY=3                                       ; shift                   ;;
+		-vvvv                       ) VERBOSITY=4                                       ; shift                   ;;
+        --verbosity                 ) VERBOSITY=${2:-NONE}                                 ; shift ; shift           ;;
+		*                           ) display_shelp                         ; CLEANUP_AND_EXIT ${ERR_DISPLAYHELP} ;;
+	esac
+done
+
+# Re-enable errexit
+set -o errexit
+# Re-enable trap
+trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+if [ ! -z "${VERBOSITY+set}" ] ; then
+    if [ -z ${VERBOSITY##*[!0-9]*} ]; then
+        echo "Verbosity is not a supported integer value"
+        exit 1
+    fi
+fi
+
+if [ ! -z "${CMDL_SERVERLIST+set}" ] ; then
+    if [ "${CMDL_SERVERLIST}" == "NONE" ]; then
+        echo "Unset filename for server list"
+        CLEANUP_AND_EXIT 1
+    fi
+    CONFIG_SERVERLIST=${CMDL_SERVERLIST}
+fi
+
+if [ "${VERBOSITY}" -ge 2 ] ; then
+    echo "podget"
+fi
+
+if [ ${REPORT_VERSION} -eq 1 ]; then
+    echo "Version: ${VERSION}"
+    CLEANUP_AND_EXIT 0
+fi
+
+if [ "${CONFIG_CORE}" == "NONE" ]; then
+    echo "Unset filename for configuration"
+    CLEANUP_AND_EXIT 1
+fi
+
+if [ "${DIR_CONFIG}" == "NONE" ]; then
+    echo "Unset directory to store configuration"
+    CLEANUP_AND_EXIT 1
+fi
+
+if [ "${VERBOSITY}" -ge 3 ] ; then
+    echo
+    echo "Parsing Config file."
+    echo -e "Config directory:\t\t${DIR_CONFIG}"
+    echo -e "Config file:\t\t\t${CONFIG_CORE}"
+    echo -e "Server List:\t\t\t${CONFIG_SERVERLIST}"
+fi
+
+if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
+    if [ ! -z "${CMDL_ASX+set}" ]; then
+        echo "Conflicting playlist options."
+        CLEANUP_AND_EXIT 1
+    fi
+fi
+
+# for testing
+#echo "Verbosity: ${VERBOSITY}"
+#CLEANUP_AND_EXIT 0
+
+# Test filename for CONFIG_CORE, CMDL/CONFIG_SERVERLIST and directory for DIR_CONFIG
+if [ "${VERBOSITY}" -ge 3 ] ; then
+    echo
+    echo "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
+fi
+FILENAME_CHECK CONFIG_CORE
+if [ ! -z "${CMDL_SERVERLIST+set}" ] ; then
+    FILENAME_CHECK CMDL_SERVERLIST
+else
+    FILENAME_CHECK CONFIG_SERVERLIST
+fi
+
+DIRECTORY_CHECK DIR_CONFIG
+
+if [ "${VERBOSITY}" -ge 3 ] ; then
+    echo "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
+    echo
+fi
+unset FILENAME_BADCHARS
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Test for existing configuration directory, if missing install it.                                                              {{{
+
+if [ ! -d "${DIR_CONFIG}" ] ; then
+    echo "  Configuration directory not found.  Creating \"${DIR_CONFIG}\""
+    mkdir "${DIR_CONFIG}"
+    EXITSTATUS=$?
+    if [ ${EXITSTATUS} -ne 0 ]; then
+        echo "  Failed to create \"${DIR_CONFIG}\""
+        CLEANUP_AND_EXIT 1
+    fi
+    INSTALL_SESSION=1
+fi
+
+# Exit if set to --create-config
+if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
+    if [ ${CMDL_CREATECONFIG} -eq 1 ]; then
+        if [ -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
+            echo "  Configuration file ${DIR_CONFIG}/${CONFIG_CORE} already exists."
+            echo "    If you would like to reuse this name, then the old file needs"
+            echo "    to be deleted first. Or you need to pick a new name."
+            CLEANUP_AND_EXIT 1
+        fi
+    fi
+fi
+
+if [ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
+
+    echo "  Installing default user configuration file in ${DIR_CONFIG}/${CONFIG_CORE}"
+    sed --silent -e '/TEXT_DEFAULT_CONFIG$/,/^TEXT_DEFAULT_CONFIG/p' "$0" |
+        sed -e '/TEXT_DEFAULT_CONFIG/d' |
+        sed -e "s|@HOME@|${HOME}|" -e "s/@VERSION@/${VERSION}/" -e "s/@SERVERLIST@/${CONFIG_SERVERLIST}/"> "${DIR_CONFIG}"/"${CONFIG_CORE}"
+    EXITSTATUS=$?
+    if [ ${EXITSTATUS} -ne 0 ]; then
+        echo "  Failed to create \"${DIR_CONFIG}/${CONFIG_CORE}\""
+        CLEANUP_AND_EXIT 1
+    fi
+    INSTALL_SESSION=1
+fi
+
+if [ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ] ; then
+    echo "  Installing default server list configuration."
+    sed --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
+        sed -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+    EXITSTATUS=$?
+    if [ ${EXITSTATUS} -ne 0 ]; then
+        echo "  Failed to install \"${DIR_CONFIG}/${CONFIG_SERVERLIST}\""
+        CLEANUP_AND_EXIT 1
+    fi
+    INSTALL_SESSION=1
+fi
+
+# Exit if set to --create-config
+if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
+    if [ ${CMDL_CREATECONFIG} -eq 1 ]; then
+        CLEANUP_AND_EXIT 0
+    fi
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Configuration                                                                                                                  {{{
+
+# Test if configuration file was created by a version that supports all the necessary items and formats.
+if ! fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" >/dev/null ; then
+	echo "${DIR_CONFIG}/${CONFIG_CORE} cannot be verified to be compatible with this version of podget."
+    echo
+	echo "It is missing the version line that is included in configuration files created by newer versions of podget."
+    echo
+	echo "Please create a new configuration file by running 'podget --create-config <FILENAME>',"
+	echo "and then converting your old configuration to the new format.  Then move the new file"
+	echo "in place of the old and podget will work as it used to."
+    CLEANUP_AND_EXIT 1
+else
+    # get version
+    VERSION=$(fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | sed -e 's/.*by version \([0-9.]\)/\1/')
+
+    # Extract BASE from VERSION.  Unneeded for a while, but its here for when we do.
+    # BASE="${VERSION%%.*}"
+
+    # Two step process.  First remove the MINOR version and then the BASE version.
+    TEMP_MAJOR=${VERSION%.*}
+    MAJOR=${TEMP_MAJOR#*.}
+
+    # Extract MINOR from VERSION
+    MINOR="${VERSION##*.}"
+
+    # echo "BASE: ${BASE}"
+    # echo "MAJOR: ${MAJOR}"
+    # echo "MINOR: ${MINOR}"
+
+    if [[ "${MAJOR}" -lt "7" && "${MINOR}" -lt "19" ]]; then
+        echo "${DIR_CONFIG}/${CONFIG_CORE} was created by an older version of podget than is needed by this version."
+        echo
+        echo "This version of podget requires a configuration produced for version 0.7.0 or newer.  This configuration"
+        echo  "was produced by version ${VERSION}"
+        echo
+        echo "Please update your configuration by creating a new one with the command 'podget --create-config <FILENAME>'"
+        echo "and then comparing its contents to your old configuration.  Once the new file has been updated to reflect"
+        echo "your desired configuration, move it in place of the old one."
+        CLEANUP_AND_EXIT 1
+    fi
+fi
+
+source "${DIR_CONFIG}"/"${CONFIG_CORE}"
+
+if [ ! -z "${CMDL_SERVERLIST+set}" ]; then
+    if [ ${VERBOSITY} -ge 1 ] ; then
+        echo -e "\t\tServerlist set on command line, overriding value from configuration file."
+    fi
+    CONFIG_SERVERLIST=${CMDL_SERVERLIST}
+fi
+
+if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
+    if [ ${VERBOSITY} -ge 1 ] ; then
+        echo -e "\t\tNO PLAYLIST set on command line, overriding value from configuration file."
+    fi
+    NO_PLAYLIST=${CMDL_NOPLAYLIST}
+fi
+
+if [ ${INSTALL_SESSION} -gt 0 ] ; then
+    echo "  Downloading a single item from each default server to test configuration."
+    echo
+    MOST_RECENT=1
+    VERBOSITY=3
+fi
+
+if [ ! -z "${CMDL_LIBRARY+set}" ] ; then
+    if [ "${CMDL_LIBRARY}" == "NONE" ]; then
+        echo "Unset directory to store podcast library"
+        CLEANUP_AND_EXIT 1
+    fi
+    if [ ${VERBOSITY} -ge 3 ] ; then
+        echo -e "\t\tOverriding Library Directory specified in configuration file."
+    fi
+    DIR_LIBRARY=${CMDL_LIBRARY}
+fi
+
+if [ ${VERBOSITY} -ge 3 ] ; then
+    echo -e "Library Directory:\t\t${DIR_LIBRARY}"
+fi
+
+if [ -z "${DIR_LIBRARY}" ] ; then
+    echo "ERROR - Library directory not defined." 1>&2
+    CLEANUP_AND_EXIT ${ERR_LIBNOTDEF}
+else
+    DIRECTORY_CHECK DIR_LIBRARY
+fi
+
+if [ ! -z "${CMDL_SESSION+set}" ] ; then
+    if [ "${CMDL_SESSION}" == "NONE" ]; then
+        echo "Unset directory to store session files."
+        CLEANUP_AND_EXIT 1
+    fi
+    DIR_SESSION=${CMDL_SESSION}
+fi
+
+# Added so old configuration files (that were created before this option was added) still work.
+if [ -z "${DIR_SESSION+set}" ] ; then
+    if [ ! -z "${TMPDIR+set}" ]; then
+        DIR_SESSION=${TMPDIR}/podget
+    else
+        DIR_SESSION=/tmp/podget
+    fi
+fi
+
+if [ ! -z "${DIR_SESSION+set}" ]; then
+    DIRECTORY_CHECK DIR_SESSION
+fi
+
+if [ ${VERBOSITY} -ge 3 ] ; then
+    echo -e "Session Directory:\t\t${DIR_SESSION}"
+fi
+
+if [ ! -z "${CMDL_CLEANUP_DAYS+set}" ] ; then
+    if [ -z ${CMDL_CLEANUP_DAYS##*[!0-9]*} ]; then
+        echo "Cleanup Days is not a positive integer value"
+        CLEANUP_AND_EXIT 1
+    fi
+    if [ "${CMDL_CLEANUP_DAYS}" -gt 0 ] ; then
+        CLEANUP_DAYS=${CMDL_CLEANUP_DAYS}
+    fi
+fi
+
+if [ ! -z "${CMDL_CLEANUP_SIMULATE}" ] ; then
+    CLEANUP_SIMULATE=${CMDL_CLEANUP_SIMULATE}
+fi
+
+if [ -z "${DIR_LOG+set}" ] ; then
+    DIR_LOG=${DIR_LIBRARY}/.LOG
+fi
+
+DIRECTORY_CHECK DIR_LOG
+
+if [ ${VERBOSITY} -ge 3 ] ; then
+    echo -e "Log Directory:\t\t\t${DIR_LOG}"
+fi
+
+if [ ! -z "${CMDL_ASX+set}" ]; then
+    ASX_PLAYLIST=${CMDL_ASX}
+fi
+
+if [ ! -z "${CMDL_PLAYLISTPERPODCAST+set}" ]; then
+    PLAYLIST_PERPODCAST=1
+fi
+
+if [ "${CMDL_FORCE}" -ne 0 ] ; then
+    FORCE=${CMDL_FORCE}
+#    WGET_BASEOPTS=$(echo "${WGET_BASEOPTS}" | sed -e 's/-c //')
+#    Change to ${variable/search/replace} format.
+    WGET_BASEOPTS="${WGET_BASEOPTS/-c /}"
+fi
+
+if [ ! -z "${CMDL_MOSTRECENT+set}" ] ; then
+    if [ -z ${CMDL_MOSTRECENT##*[!0-9]*} ]; then
+        echo
+        echo "Recent is not a positive integer value"
+        CLEANUP_AND_EXIT 1
+    fi
+    if [ "${CMDL_MOSTRECENT}" -ne 0 ] ; then
+        MOST_RECENT=${CMDL_MOSTRECENT}
+    fi
+fi
+
+if [ ${VERBOSITY} -le 1 ] ; then
+        WGET_OPTIONS="-q ${WGET_BASEOPTS}"
+elif [ ${VERBOSITY} -eq 2 ] ; then
+    WGET_OPTIONS="-nv ${WGET_BASEOPTS}"
+elif [ ${VERBOSITY} -eq 3 ] ; then
+    WGET_OPTIONS="${WGET_BASEOPTS} --progress=dot:mega"
+else
+    WGET_OPTIONS="${WGET_BASEOPTS} --progress=bar"
+fi
+
+if [ ${VERBOSITY} -ge 3 ]; then
+    echo -e "WGet options:\t\t\t${WGET_OPTIONS}"
+fi
+
+if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
+    # make sure backslash is escaped.
+    FILENAME_BADCHARS="${FILENAME_BADCHARS/\\/\\\\}"
+
+    if [ ${VERBOSITY} -ge 3 ] ; then
+        echo -e "Filename Bad Characters:\t${FILENAME_BADCHARS}"
+        echo -e "Filename Replace Character:\t${FILENAME_REPLACECHAR}"
+    fi
+
+    MODIFY_FILENAME=1
+fi
+
+if [ ${VERBOSITY} -ge 1 ] ; then
+    echo
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Test for another session.                                                                                                      {{{
+# Moved below the configuration reading so that the DIR_SESSION could be configurable.
+
+# Test that session directory exists (useful when placed on a tmpfs filesystem).
+if [ ! -d "${DIR_SESSION}" ]; then
+    if [ ${VERBOSITY} -ge 2 ] ; then
+        echo -e "\nSession directory not found, creating"
+    fi
+    mkdir -p "${DIR_SESSION}"
+fi
+
+# The cleanup portion of the following procedure may be less needed because we have gotten a lot more complete in our cleanup
+# procedures with traps that mean that the session file should be deleted whenever the session exits (whether good or
+# bad).  This procedures main purpose is to prevent concurrent sessions for running on the same configuration file.
+
+TEST_SESSION=0
+while read -d $'\0' FILE ; do
+    if [ "$(stat -c %u "${FILE}")" == "${UID}" ]; then
+        if [ ${VERBOSITY} -ge 2 ] ; then
+            echo "Session FILE found: ${FILE} (that my user owns)"
+        fi
+        TEST_SESSION=1
+        while read LINE ; do
+            TEST_Index=$(expr "${LINE}" : "^[Cc]onfig\sfile:")
+            if [ "A${TEST_Index}" != "A" ]; then
+                TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
+                if [ "${TEST_File}" == "${CONFIG_CORE}" ] ; then
+                    SESSION_PID=$(echo "${FILE}" | sed -n -e 's/.*podget.\([0-9]*\)$/\1/p')
+                    if [ ${VERBOSITY} -ge 2 ] ; then
+                        echo "  Testing PID ${SESSION_PID} to determine if its still running."
+                    fi
+
+                    if ps --pid "${SESSION_PID}" &>/dev/null; then
+                        echo "Another session with config file ${CONFIG_CORE} found running.  Killing session." 1>&2
+                        CLEANUP_AND_EXIT ${ERR_RUNNINGSESSION}
+                    else
+                        if [ ${VERBOSITY} -ge 2 ] ; then
+                            echo "  Session PID ${SESSION_PID} is not running, removing lock file"
+                        fi
+                        rm -f "${FILE}"
+                    fi
+                fi
+            fi
+        done < "${FILE}"
+    fi
+done < <(find "${DIR_SESSION}" -maxdepth 1 -type f -name "podget.[0-9]*" -print0)
+
+if [ ${VERBOSITY} -ge 2 ] ; then
+    if [ ${TEST_SESSION} -gt 0 ] ; then
+        echo "  Old Session file(s) found and removed.  Creating new one."
+    else
+        echo "Session file not found.  Creating podget.$$ ."
+    fi
+fi
+
+# Set session file.  Stores the configuration file used so that multiple sessions can be run per user simultaneously as
+# long as they each have different configuration files.
+# An example would be two sessions running as:
+#       podget -c podgetrc.1
+#       podget -c podgetrc.2
+echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
+
+#                                                                                                                               }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Loop over servers on list                                                                                                      {{{
+
+if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ] && [ -z "${IMPORT_PCAST+set}" ] ; then
+    if [ ${VERBOSITY} -ge 3 ] ; then
+        echo -e "\nMain loop."
+        echo "SERVER LIST FILE: $CONFIG_SERVERLIST"
+        echo "WGET OPTIONS: ${WGET_OPTIONS}"
+        if [ ${NO_PLAYLIST} -eq 0 ]; then
+            echo "Playlist Creation Enabled."
+        else
+            echo "Playlist Creation Disabled."
+        fi
+        if [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+            echo "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
+        fi
+    fi
+
+    mkdir -p "${DIR_LOG}"
+    FILENAME_CHECK LOG_FAIL
+    FILENAME_CHECK LOG_COMPLETE
+    touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
+
+    if [ ${NO_PLAYLIST} -eq 0 ] && [ -z "${PLAYLIST_PERPODCAST+set}" ]; then
+        PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
+
+        COUNTER=2
+        while [[ -e ${DIR_LIBRARY}/${PLAYLIST_NAME} ]] ; do
+            PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).r$COUNTER.m3u"
+            COUNTER=$((COUNTER+1))
+        done
+
+        if [ ${VERBOSITY} -ge 3 ]; then
+            echo "Playlist name: ${PLAYLIST_NAME}"
+        fi
+    fi
+
+    # UTF-8/16 handling
+    for FILETYPE in utf8 utf16 ; do
+        if [ ${VERBOSITY} -ge 3 ] ; then
+            echo
+            case ${FILETYPE} in
+                'utf8')
+                    echo "UTF-8 Loop running." ;;
+                'utf16')
+                    echo "UTF-16 Loop running." ;;
+            esac
+        fi
+        case ${FILETYPE} in
+            'utf8')
+                CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
+            'utf16')
+                # Test if iconv is installed.  If it is not, display error.
+                if ! hash iconv >/dev/null 2>&1; then
+                    echo "Can't find iconv binary, is libc-bin installed?" 1>&2
+                    echo "Exiting UTF16 loop, unable to convert file to UTF8" 1>&2
+                    CLEANUP_AND_EXIT $ERR_LIBC6NOTINSTALLED
+                fi
+                CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
+            *)
+                echo "Unknown Filetype: ${FILETYPE}"
+        esac
+        if [ ! -f "${CURRENT_SERVERLIST}" ] ; then
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "No config file found, exiting loop."
+            fi
+            continue
+        fi
+
+        while read FEED_URL FEED_CATEGORY FEED_NAME ; do
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                if [ ${VERBOSITY} -ge 4 ] ; then
+                    echo
+                fi
+                echo "Serverlist Line --> ${FEED_URL}"
+            fi
+
+            if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
+                if [ ${VERBOSITY} -ge 4 ] ; then
+                    echo "  Discarding (comment or blank line)."
+                fi
+                continue
+            fi
+
+            FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
+
+            # Extract PASSWORD from FEED_NAME if found.
+            if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
+                URL_PASSWORD=$(echo "${FEED_NAME}" | sed -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)PASS:[^ $]\+\(.*$\)/\1\2/')
+            fi
+
+            # Extract USERNAME from FEED_NAME if found.
+            if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
+                URL_USERNAME=$(echo "${FEED_NAME}" | sed -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
+            fi
+
+            # Remove any residual trailing spaces from ${FEED_NAME}
+            while [ "$(expr "${FEED_NAME}" : ".*[ ]\+$")" -gt 0 ]; do
+                FEED_NAME=${FEED_NAME%[ ]*}
+            done
+
+            # Remove any residual leading spaces from ${FEED_NAME}
+            while [ "$(expr "${FEED_NAME}" : "[ ]\+.*$")" -gt 0 ]; do
+                FEED_NAME=${FEED_NAME#[ ]*}
+            done
+
+            # Add Username and Password to wget options if found.
+            # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
+            # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
+            if [ ! -z "${URL_USERNAME+set}" ]; then
+                WGET_OPTIONS="${WGET_OPTIONS} --user=${URL_USERNAME}"
+                echo "${WGET_OPTIONS}"
+            fi
+
+            if [ ! -z "${URL_PASSWORD+set}" ]; then
+                WGET_OPTIONS="${WGET_OPTIONS} --password=${URL_PASSWORD}"
+            fi
+
+            # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
+
+            # Disable exit-on-error for DIRECTORY_CHECK
+            set +o errexit
+            # Also disable trap for reporting errors on non-zero exit statuses.
+            trap - ERR
+
+            for i in FEED_CATEGORY FEED_NAME; do
+                DIRECTORY_CHECK ${i}
+
+                EXITSTATUS=$?
+
+                if [ ${EXITSTATUS} -ne 0 ]; then
+                    echo
+                    echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
+                    echo
+                    continue
+                fi
+            done
+
+            # Re-enable errexit
+            set -o errexit
+            # Re-enable trap
+            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+            # If configured to create individual playlists for each podcast, set playlist name here.
+            # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
+            if [ ${NO_PLAYLIST} -eq 0 ] && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').m3u"
+
+                COUNTER=2
+                while [[ -e "${DIR_LIBRARY}/${PLAYLIST_NAME}" ]] ; do
+                    PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').r$COUNTER.m3u"
+                    COUNTER=$((COUNTER+1))
+                done
+            fi
+
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo -e "\n-------------------------------------------------"
+            fi
+            if [ ${VERBOSITY} -ge 1 ] ; then
+                printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
+            fi
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                if [ ! -z "${URL_USERNAME+set}" ]; then
+                    printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
+                fi
+                if [ ${VERBOSITY} -ge 4 ] ; then
+                    if [ ! -z "${URL_PASSWORD+set}" ]; then
+                        # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
+                        # useful for debugging connection issues.
+                        printf '%-30s %-50s\n' "" "Password: ${URL_PASSWORD}"
+                    fi
+                    printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS}"
+                fi
+                if [ ${NO_PLAYLIST} -eq 0 ] && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                    printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
+                fi
+
+                echo
+                echo "Downloading feed index from ${FEED_URL}"
+            fi
+
+            # Wget returns a non-zero exit status if the file is not found.  This will cause the 'pipefail' attribute to cause the
+            # script to exit and report an error.  To avoid this issue, we disable 'pipefail' for these commands but re-enable it
+            # afterwards.
+            set +o pipefail
+
+            # Also disable trap for reporting errors.
+            trap - ERR
+
+            case ${FILETYPE} in
+                'utf8')
+                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}"  | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
+                        sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                                     -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
+                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' | \
+                        sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                        sed -e ':a;N;$!ba;s/\n/ /g') ;;
+                'utf16')
+                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | ${BINARY_ICONV} -f UTF-16 -t UTF-8  | \
+                        tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
+                        sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                                     -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
+                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' | \
+                        sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                        sed -e ':a;N;$!ba;s/\n/ /g') ;;
+            esac
+
+            # Re-enable pipefail
+            set -o pipefail
+
+            # Re-enable trap
+            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+            if [ -n "${INDEXFILE}" ] ; then
+
+                # Remove any error log entries for the FEED_URL if it failed before
+                REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+
+                if [ "${MOST_RECENT}" -gt 0 ] ; then
+                    FULLINDEXFILE="${INDEXFILE}"
+                    INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
+                fi
+
+                if [ ${VERBOSITY} -ge 4 ] ; then
+                    if [ "${MOST_RECENT}" -gt 0 ] ; then
+                        echo -e "Modified Index List:\n${INDEXFILE}"
+                        echo -e "Full Index List:\n${FULLINDEXFILE}"
+                    else
+                        echo -e "Index List:\n${INDEXFILE}"
+                    fi
+                fi
+
+                for URL in ${INDEXFILE}
+                do
+
+                    if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || [ ${FORCE} -ne 0 ] ; then
+
+                        if [ ${VERBOSITY} -ge 2 ] ; then
+                            echo
+                        fi
+
+                        # Without the 'sed' statements.
+                        URL_FILENAME="${URL##*/}"
+                        URL_BASE="${URL%/*}"
+
+                        # replace any whitespace in the filename with underscores.
+                        URL_FILENAME=$(echo "${URL_FILENAME}" | tr '[:blank:]' '_' | tr -s '_')
+
+                        # Test for available space on library partition
+                        AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
+                        if [ "${AVAIL_SPACE}" -le ${MIN_SPACE} ] ; then
+                            echo -e "\nAvailable space on Library partition has dropped below allowed.\nStopping Session." 1>&2
+                            CLEANUP_AND_EXIT ${ERR_LIBLOWSPACE}
+                        fi
+
+                        # Filename format fixes and character substitutions.
+                        # Return value stored in variable ${MOD_FILENAME}, called here as a string to be used as the name of the
+                        # variable.
+                        filenameFixFormat MOD_FILENAME "${URL_FILENAME}"
+
+                        # Fix where filename part of URI is constant
+                        # This fix is known to cause issues with in filenames when it is not needed.  Disabled by default.
+                        if [ ! -z "${FILENAME_FORMATFIX4+set}" ] && [ "${FILENAME_FORMATFIX4}" -gt 0 ] ; then
+                            if [ -z "${MOD_FILENAME}" ] ; then
+                                MOD_FILENAME="${URL_FILENAME}"
+                            fi
+                            MOD_PREFIX="${URL_BASE%%/}"
+                            MOD_PREFIX="${MOD_PREFIX##*/}"
+                            MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
+                            if [ ${VERBOSITY} -ge 3 ] ; then
+                                echo "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
+                            fi
+                        fi
+
+                        # If directories do not exist, then create them.
+                        if [ ! -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]; then
+                            mkdir -p "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}"
+                        fi
+
+                        if [ ${VERBOSITY} -ge 2 ] ; then
+                            if [ $MODIFY_FILENAME -gt 0 ] || [ "$FILENAME_FORMATFIX" -gt 0 ] ||
+                               [ "$FILENAME_FORMATFIX2" -gt 0 ]; then
+                                echo -e "Downloading ${MOD_FILENAME} from ${URL_BASE}"
+                            else
+                                echo -e "Downloading ${URL_FILENAME} from ${URL_BASE}"
+                            fi
+                        fi
+
+                        # Wget returns a non-zero exit status if a file is not found.  If 'errexit' is enabled, this will cause
+                        # podget to exit and report an error.  To address this problem, 'errexit' is disabled before wget is called
+                        # and then re-enabled afterwards.
+                        set +o errexit
+
+                        # Also disable trap for reporting errors on non-zero exit statuses.
+                        trap - ERR
+
+                        if [ -n "${MOD_FILENAME}" ] ; then
+                            # if SUFFIX is defined, then add it to filename.
+                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
+                            else
+                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
+                            fi
+                        else
+                            # if SUFFIX is defined, then add it to filename.
+                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
+                            else
+                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" "${URL}"
+                            fi
+                        fi
+
+                        WGET_EXITSTATUS=$?
+
+                        # Re-enable 'errexit'
+                        set -o errexit
+
+                        # Re-enable trap
+                        trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+                        if [ ${WGET_EXITSTATUS} -eq 0  ] ; then
+                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
+
+                            # Remove any error log entries for the URL if it failed before
+                            REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                            if [ ${NO_PLAYLIST} -eq 0 ]; then
+                                # if creating playlists, then add to file.
+                                # Suggested fix from https://sourceforge.net/tracker/?func=detail&aid=2170298&group_id=133382&atid=727035
+                                if [ ! -z "${PLAYLIST_NAME+set}" ] ; then
+                                    if [ ! -z "${MOD_FILENAME+set}" ] ; then
+                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                        fi
+                                    else
+                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                        fi
+                                    fi
+                                fi
+                            fi
+                        else
+                            # if downloaded failed, add URL to LOG_FAIL
+                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+                            # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
+                            # continue function can work on later attempts.
+                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" ]; then
+                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}"
+                                fi
+                            else
+                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                                fi
+                            fi
+
+                        fi
+                    else
+                        # Remove any error log entries for the URL if it failed before
+                        REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                        if [ ${VERBOSITY} -ge 2 ] ; then
+                            if [ ${VERBOSITY} -ge 4 ] ; then echo ; fi
+                            echo "Already downloaded ${URL}."
+                        fi
+                    fi
+                done
+
+                if [ ${VERBOSITY} -ge 3 ] ; then echo; fi
+
+                if [ "${MOST_RECENT}" -ne 0 -a $INSTALL_SESSION -eq 0 ] ; then
+                    for URL in ${FULLINDEXFILE}
+                    do
+                        if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
+                            URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
+                            if [ ${VERBOSITY} -ge 2 ] ; then
+                                    echo "Marking as already downloaded ${URL_FILENAME}."
+                            fi
+                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
+                        fi
+                    done
+                fi
+
+                # If doing individual playlists for each podcast Sort new playlist
+                if [ "${NO_PLAYLIST}" -eq 0 ] && [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]  && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                    PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+
+                    # If doing individual playlists for each podcast, Create ASX Playlist
+                    if [ ${ASX_PLAYLIST} -gt 0 ] ; then
+                        PLAYLIST_ConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+                    fi
+
+                    # Done with playlist, unset name.
+                    unset PLAYLIST_NAME
+                fi
+
+                if [ ${VERBOSITY} -ge 4 ] ; then
+                    echo
+                    echo "Cleanup Loop vars:"
+                fi
+                unset URL_USERNAME
+                unset URL_PASSWORD
+
+                WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(.*\) --user=[^ ]*\(.*\)/\1\2/' -e 's/\(.*\) --password=[^ ]*\(.*\)/\1\2/')
+                if [ ${VERBOSITY} -ge 4 ] ; then
+                    echo -e "\tWGET OPTIONS: ${WGET_OPTIONS}"
+                fi
+            else
+                if [ ${VERBOSITY} -ge 1 ] ; then
+                    echo "  No enclosures in feed: ${FEED_URL}"
+                fi
+                echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+            fi
+        done < "${CURRENT_SERVERLIST}"
+    done
+
+    # If doing one combined playlist for all podcasts, Sort new playlist
+    if [ "${NO_PLAYLIST}" -eq 0 ] && [ ! -z "${PLAYLIST_NAME+set}" ]; then
+        if [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ] ; then
+            PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+
+            # If doing one combined playlist for all podcasts, Create ASX Playlist
+            if [ ${ASX_PLAYLIST} -gt 0 ] ; then
+                PLAYLIST_ConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+            fi
+        fi
+    fi
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# CLEANUP loop                                                                                                                   {{{
+
+
+if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT_PCAST+set}" ] ; then
+
+    if [ ${CLEANUP} -ne 0 ] || [ ${CLEANUP_ONLY} -ne 0 ] ; then
+        if [ ${VERBOSITY} -ge 2 ] ; then
+            if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                echo "Simulating cleanup, the following files will be removed when you run cleanup."
+            else
+                echo -e "\n-------------------------------------------------\nCleanup old tracks."
+            fi
+        fi
+        FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u" -mtime +"${CLEANUP_DAYS}")
+        for FILE in ${FILELIST} ; do
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Deleting tracks from ${FILE}:"
+            fi
+            while read LINE ; do
+                if [ -f "${DIR_LIBRARY}"/"${LINE}" ]; then
+                    if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                        echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
+                    else
+                        if [ ${VERBOSITY} -ge 2 ] ; then
+                            rm -v "${DIR_LIBRARY}/${LINE}"
+                        else
+                            rm -f "${DIR_LIBRARY}/${LINE}"
+                        fi
+                    fi
+                else
+                    if [ ${VERBOSITY} -ge 2 ] || [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                        echo "File not found:  ${DIR_LIBRARY}/${LINE}"
+                    fi
+                fi
+            done < "${FILE}"
+            if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                echo "Playlist to remove: ${FILE}"
+            else
+                if [ ${VERBOSITY} -eq 0 ] ; then
+                    rm -f "${FILE}"
+                else
+                    rm -fv "${FILE}"
+                fi
+            fi
+        done
+    fi
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# OPML import loop:                                                                                                              {{{
+
+if [ ! -z "${IMPORT_OPML+set}" ] ; then
+    if [ "${IMPORT_OPML}" == "NONE" ]; then
+        echo
+        echo "unset FILE or URL to import from."
+        CLEANUP_AND_EXIT 1
+    fi
+
+    if [ ${VERBOSITY} -ge 2 ] ; then
+        echo -e "\nImport servers from OPML file: ${IMPORT_OPML}"
+    fi
+
+    new_category="OPML_Import_$(date ${DATE_FORMAT})"
+
+    if [[ ${IMPORT_OPML} == http:* ]] || [[ ${IMPORT_OPML} == ftp:* ]] ; then
+        if [ ${VERBOSITY} -ge 2 ] ; then
+            echo "Getting opml list."
+        fi
+        opml_list=$(wget ${WGET_OPTIONS} -O - "${IMPORT_OPML}")
+    else
+        opml_list=$(cat "${IMPORT_OPML}")
+    fi
+
+    new_list=$(echo "${opml_list}" | sed -e 's/\(\/>\)/\1\n/g' | sed -e :a -n -e 's/<outline\([^>]\+\)\/>/\1/Ip;/<outline/{N;s/\n\s*/ /;ba;}')
+
+    if [ -n "$new_list" ] ; then
+
+        OLD_IFS=$IFS
+        IFS=$'\n'
+
+        for data in ${new_list} ; do
+            if [ ${VERBOSITY} -ge 1 ] ; then
+                echo -e "\n---------------"
+            fi
+
+            new_label=$(echo "${data}" | sed -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | sed -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
+            new_url=$(echo "${data}" | sed -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | sed -e 's/ /%20/g')
+
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "LABEL:  ${new_label}"
+                echo "URL:    ${new_url}"
+            fi
+
+            # grep returns a non-zero exit status if the URL is not found.  When errexit is enabled, this causes the script to exit.
+            # Therefore, we disable errexit while this grep command is running.
+            set +o errexit
+            # Also disable trap for reporting errors on non-zero exit statuses.
+            trap - ERR
+
+            test=$(grep "${new_url}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}")
+
+            # Re-enable errexit
+            set -o errexit
+            # Re-enable trap
+            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+            if [ -z "$test" ] ; then
+                echo "${new_url} ${new_category} ${new_label}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+            elif [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Feed ${new_label} is already in the serverlist"
+            fi
+        done
+
+        IFS=$OLD_IFS
+    else
+        if [ ${VERBOSITY} -ge 2 ] ; then
+            echo "  OPML Import Error ${IMPORT_OPML}" 1>&2
+        fi
+        echo "OPML Import Error: ${IMPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+        CLEANUP_AND_EXIT ${ERR_IMPORTOPML}
+    fi
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# OPML export loop:                                                                                                              {{{
+
+if [ ! -z "${EXPORT_OPML+set}" ] ; then
+    if [ "${EXPORT_OPML}" == "NONE" ]; then
+        echo
+        echo "unset FILE to import to."
+        CLEANUP_AND_EXIT 1
+    fi
+
+    if [ ${VERBOSITY} -ge 2 ] ; then
+        echo -e "\nExport serverlist to OPML file: ${EXPORT_OPML}"
+    fi
+
+    if [ ! -e "${EXPORT_OPML}" ]; then
+        echo '<?xml version="1.0" encoding="utf-8" ?>
+<opml version="1.0">
+<head/>
+<body>' > "${EXPORT_OPML}"
+
+	while read FEED_URL FEED_CATEGORY FEED_NAME ; do
+        if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Discarding line (comment or blank line)."
+            fi
+            continue
+        fi
+
+        # Remove PASSWORD from FEED_NAME if found.
+        if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
+            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)PASS:[^ $]\+\(.*$\)/\1\2/')
+        fi
+
+        # Remove USERNAME from FEED_NAME if found.
+        if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
+            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
+        fi
+
+        # Remove any residual trailing spaces from ${FEED_NAME}
+        while [ "$(expr "${FEED_NAME}" : ".*[ ]\+$")" -gt 0 ]; do
+            FEED_NAME=${FEED_NAME%[ ]*}
+        done
+
+        # Remove any residual leading spaces from ${FEED_NAME}
+        while [ "$(expr "${FEED_NAME}" : "[ ]\+.*$")" -gt 0 ]; do
+            FEED_NAME=${FEED_NAME#[ ]*}
+        done
+
+	    if [ ${VERBOSITY} -ge 3 ] ; then
+	             echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
+	    fi
+        echo '<outline text="'"${FEED_CATEGORY}"'"><outline text="'"${FEED_NAME}"'" type="rss" xmlUrl="'"${FEED_URL}"'" /></outline>' >> "${EXPORT_OPML}"
+    done < "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+
+	echo '</body>
+</opml>' >> "${EXPORT_OPML}"
+    else
+        echo "OPML Export Error: ${EXPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+        CLEANUP_AND_EXIT ${ERR_EXPORTOPML}
+    fi
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# PCAST import:                                                                                                                  {{{
+
+if [ ! -z "${IMPORT_PCAST+set}" ] ; then
+    if [ "${IMPORT_PCAST}" == "NONE" ]; then
+        echo
+        echo "unset FILE or URL to import from."
+        CLEANUP_AND_EXIT 1
+    fi
+
+    if [ ${VERBOSITY} -ge 2 ] ; then
+        echo -e "\nImport server from PCAST file: ${IMPORT_PCAST}"
+    fi
+
+    if [[ ${IMPORT_PCAST} == http:* ]] || [[ ${IMPORT_PCAST} == ftp:* ]] ; then
+        if [ ${VERBOSITY} -ge 2 ] ; then
+            echo "Getting pcast file."
+        fi
+        pcast_data=$(wget ${WGET_OPTIONS} -O - "${IMPORT_PCAST}")
+    else
+        pcast_data=$(cat "${IMPORT_PCAST}")
+    fi
+
+    new_link=$(echo "${pcast_data}" | sed -n -e 's/.*\(href\|url\)="\([^"]\+\)".*/\2/Ip' | sed -e 's/ /%20/g')
+    new_category=$(echo "${pcast_data}" | sed -n -e 's/.*<category>\([^<]\+\)<.*/\1/Ip' | sed -e 's/ /_/g;s/\&quot;/\&/g;s/\&amp;/\&/g')
+    new_title=$(echo "${pcast_data}" | sed -n -e 's/.*<title>\([^<]\+\)<.*/\1/Ip')
+
+    if [ ${VERBOSITY} -ge 2 ] ; then
+        echo "LINK: ${new_link}"
+        echo "CATEGORY: ${new_category}"
+        echo "TITLE: ${new_title}"
+    fi
+
+    # grep returns a non-zero exit status if the URL is not found.  When errexit is enabled, this causes the script to exit.
+    # Therefore, we disable errexit while this grep command is running.
+    set +o errexit
+    # Also disable trap for reporting errors on non-zero exit statuses.
+    trap - ERR
+
+    test=$(grep "${new_link}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}")
+
+    # Re-enable errexit
+    set -o errexit
+    # Re-enable trap
+    trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+    if [ -z "$test" ] ; then
+        echo "${new_link} ${new_category} ${new_title}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+    elif [ ${VERBOSITY} -ge 2 ] ; then
+        echo "Feed ${new_title} is already in the serverlist"
+    fi
+fi
+
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Close session with '0' status and clean up:                                                                                    {{{
+
+CLEANUP_AND_EXIT 0
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Notes:                                                                                                                         {{{
+# 1.  Best viewed in Vim (http://vim.sf.net) with the Relaxedgreen colorscheme (vimscripts #791).
+# 2.  Known Bug:  If the same filename is downloaded for multiple items on a
+#     single feed, wgets continue fuction will cause them to append or error.
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# vim:tw=132:ts=4:sw=4

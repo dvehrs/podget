@@ -1,0 +1,45 @@
+From Steven Black's posting:
+
+
+
+This is a simple shell script I created to easily add RSS feeds from within Firefox, etc.
+
+The user-interface is handled through third-party tools, falling back to BASH built-ins if on a TTY and sane defaults if not on a TTY. If you run the script from an xterm with --check it will check for the available interfaces and print the details.
+
+Usable X-based dialog tools include: kdialog, gtkdialog, Xdialog. Xdialog won't look as good as either kdialog or gtkdialog. ("zenity" is not supported as it is missing core features required.)
+
+Usable TTY-based dialog tools include: dialog (preferred), whiptail (not as good-looking or full-functioning as dialog), BASH is also well-supported.
+
+As mentioned previously, there are sane defaults and with no available user-interface it works in "automated" mode. (--help produces arguments.)
+
+For the title, it uses 'curl' to do a quick-download of the feed to try to get the proper title. (It usually works.) If it can't be determined from the feed, it tries to mangle the URL to get something of a usable default. If even that fails, it falls back to "Unknown".
+
+It supports the genre/group, but at this time it doesn't present a list of the currently in-use options. It is on my list of things to add, but I've been so lax on adding support for it that I'm making it available before I add it.
+
+It also supports both active and inactive feeds. These are handled by commenting out the feed in the ~/.podget/serverlist file. If running in automated mode, the feeds are inactive with an "Unknown" genre/group. (If it is automated, it is expected that you will need to manually tweak the title and group/genre.)
+
+If you add an existing feed, you can edit the title, genre/group, and activate/deactivate the feed. If you change the title or genre/group of a feed, it will automatically move the underlying directory if possible. (It tries to move the directory, if the directory already exists, it does nothing.)
+
+Additionally, it supports "inactivity tags". These are simple one-word reasons for why a feed is deactivated. These are handled by adding the word directly to the comment character in the serverlist. I use it to mark when a podiobook is completely downloaded ("DONE"), when I've finished reading a completed podiobook ("READ"), and when I've abandoned a feed ("QUIT").
+
+So I have things like the following in my serverlist:
+
+#### Scott Sigler
+http://feeds.feedburner.com/scottsigler Horror Scott Sigler
+#READ http://www.podiobooks.com/title/infected/feed Horror Scott Sigler, Infected
+
+There's no user-interface to set the inactivity tag, (it needs to be set directly in the serverlist file) but if you reference the URL again it will present it to you.
+
+If I run podget-add-feed with the first URL, it will present a dialog like:
+
+Found <http://feeds.feedburner.com/scottsigler> in Horror as "Scott Sigler". It is active. Change this?
+
+For the second URL, it would say:
+
+Found <http://www.podiobooks.com/title/infected/feed> in Horror as "Scott Sigler, Infected". It is inactive (READ). Change this?
+
+If the inactivity tag were not defined, the whole " (...)" section would be missing, as you would expect.
+
+Oh, and when editing an existing feed it does not move the feed within the file. It's an in-place sed-based operation. This means that if I ran the command on either of the above-mentioned URLs, they would remain in the "Scott Sigler" section of my serverlist. It's a human-readable file, so it is expected that it would have human-centered structure.
+
+I have Firefox set to display the feed within the browser. I can then choose to add it as a text feed using some other software, or I can select "podget-add-feed" and it will allow me to set it up for podget.

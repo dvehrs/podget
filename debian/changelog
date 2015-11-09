@@ -1,0 +1,371 @@
+podget (0.7.4-1) unstable; urgency=low
+
+  * Updated Debian Package.
+  * From this point forward, the Debian change log will only show changes that
+    are specific to the Debian package.  Older entries are maintained as they
+    were at the time of release.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Mon, 27 Oct 2014 14:54:43 -0600 
+
+podget (0.7.3-1) unstable; urgency=low
+
+  * Continued script cleanup.
+  * Added new function to remove temporary files when script exits.
+  * Added function to test local configuration and log file names.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Wed, 20 Aug 2014 15:13:56 -0600
+
+podget (0.7.2-1) unstable; urgency=low
+
+  * Fix for --silent.  It was outputting a single black line that needed to be
+    suppressed for verbosity < 1.  Thanks to Willem for reporting it.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Mon, 11 Aug 2014 10:26:35 -0600
+
+podget (0.7.1-1) unstable; urgency=low
+
+  * Converted unix2dos statement to a sed statement to reduce dependencies.
+  * Added exit statement after configuration files created with --create-config
+    to allow the user to adjust the files prior to any actual downloading.
+    (Thanks to Willem and our friends at Arch Linux).
+  * Added check to see if --create-config was issued with a filename that
+    is already in use.  Exited with error that informs the user of their choice
+    to delete the old file or use a different name.  (Thanks again to Willem).
+  * Updated check for PLAYLIST_NAME. (Thanks again to Willem).
+  * Added checks for NO_PLAYLIST.
+  * Updated MAN page. (Thanks yet again to Willem).
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sun, 10 Aug 2014 10:07:16 -0600
+
+podget (0.7.0-1) unstable; urgency=high
+
+  * Modified configuration file format.  Users will need to update their
+    configuration files before continuing use of podget.  If older
+    configuration files are detected, podget will automatically exit.
+  * Code Cleanup.  Worked to standardize variable naming, etc.
+  * Added 'SUFFIX' option to tag all new podcast filenames with a suffix
+    to make it easy to run subsequent scripts to modify the newly downloaded
+    files.  For example, these scripts may use id3v2 to standardize the genre
+    of the files or use mp3gain to normalize the volumes.
+  * Enabled shell attributes for errexit, pipefail and nounset.  These should
+    help to make a more robust and less error-prone script.
+  * Added findutils to the dependencies of the package.
+  * Added gawk or mawk to the dependencies of the package.
+  * Added libc-bin to the 'Suggests' of the package for the iconv binary.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri,  8 Aug 2014 08:47:29 -0600
+
+podget (0.6.18-1) unstable; urgency=low
+
+  * Added new ability to handle authentication for premium podcasts by the
+    user adding a couple tags (USER: and PASS:) to the podcast description in
+    their serverlist file.  Many thanks to Dan Rich and Stephen Michael Blott
+    for their ideas and suggested implementations.  After mixing their ideas
+    with the need for backwards compatibility, we've come up with a solution
+    that needs more testing but hopefully will work for all.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Mon, 19 May 2014 05:13:30 -0600
+
+podget (0.6.17-1) unstable; urgency=low
+
+  * Added default for playlist creation to automatically create playlist unless
+    disabled on the command line or in configuration file to resolve bug
+    reported by Yuri D'Elia (Debian Bug #742905)
+  * Divided creation of configuration directory and files up into three parts
+    to provide greater error reporting possibilities.  Expands opportunities
+    to use them as well.  (need to expand man page to show how & when)
+  * Fixed bug with handling of playlist creation and individual podcast feed
+    playlists
+  * Added header to podgetrc file that includes version string that can be
+    checked to determine if any updates should be applied to it
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri, 28 Mar 2014 15:32:39 -0600
+
+podget (0.6.16-1) unstable; urgency=low
+
+  * Added option for to disable playlist creation.
+  * Added filename_formatfix10 to extract the podcast episode name from the
+    enclosure URLs within Apple ITunes feeds.  Thanks to Francois Marier for
+    reporting the issue.
+  * Thanks to Chris Elvidge for helping to find and fix a few bugs with
+    date_format, and configuration file parsing.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Wed, 26 Mar 2014 10:18:34 -0600
+
+podget (0.6.15-3) unstable; urgency=low
+
+  * Fixed dates in Changelog
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 19 Aug 2013 06:38:23 -0600
+
+podget (0.6.15-2) unstable; urgency=low
+
+  * Updated Standards Version to 3.9.4
+  * Fixed error reported by Lintain in the man page.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 17 Aug 2013 16:42:50 -0600
+
+podget (0.6.15-1) unstable; urgency=low
+
+  * Moved session files to be created and stored in /tmp by default rather than
+    the old location ${HOME}/.podget.  Also created dir_session configuration
+    file variable so the user can reassign as they desire.
+  * Added test for ownership of session files so multiple users can use the
+    same session directory and their sessions won't conflict with each other.
+  * Fixed so that podget can properly handle spaces in filenames.
+  * Include patch by Simon Rutishauser to enable export of the server list as an
+    OPML file.  
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 17 Aug 2013 16:04:21 -0600
+
+podget (0.6.14-1) unstable; urgency=low
+
+  * Updated filename format fix checks so that they do not produce an error if
+    that fix is not defined in your podgetrc.
+  * Created filename_formatfix9 to address issues with the Audioboo feed URL
+    format.  Removes "?keyed=true&amp;source=rss" from the enclosure URL.  Tried
+    to make the string matches as generic as possible so that it might work for
+    other feeds.  Issue submitted on Sourceforge as bug #3609600 by Markus.
+    Many thanks!
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue,  5 Apr 2013 09:27:01 -0600
+
+podget (0.6.13-1) unstable; urgency=low
+
+  * Update to default podgetrc contents to further explain the Smodcast fixes.
+ 
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 29 Mar 2013 16:20:31 -0600
+
+podget (0.6.12-1) unstable; urgency=low
+
+  * Smodcast issue reported by Stephen (stallmer) on Sourceforge in Bug ID
+    3605008.  Created filename format fix that works in conjunction with
+    filename_formatfix4 to resolve the issue.
+  * Moved all of the filename format fixes but 1 to a new function.  This cleans
+    up the main loop making it easier to understand and maintain.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 29 Mar 2013 14:52:10 -0600
+
+podget (0.6.11-1) unstable; urgency=low
+
+  * Update to filename_formatfix to correct for feeds that place the name of
+    the file to be downloaded in the parameter media_url=.  Issue reported with
+    the Radio France feeds by tom-angoumoisin on March 6, 2013
+  * Experimenting with order of filename format fixes.  Those with more specific
+    exclusionary conditions go first.  More generic last.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 16 Mar 2013 11:25:10 -0600
+
+podget (0.6.10-1) unstable; urgency=low
+
+  * Update to filename_formatfix to correct for trailing characters on
+    enclosures for the zdf.de podcasts.  Issue submitted by Joerg Schiermeier on
+    Jan 20, 2013.  Thanks.
+  * Fixed to display of filenames while marking older podcasts as downloaded
+    with the --recent option.  Rather than display the current filename for 
+    each item, it would display the last modified filename repeatedly.  Fixed
+    to display the filename of the item being marked as downloaded.
+  * Refined the filename_formatfix to correct filenames downloaded from
+    Vimcasts.org.  Filename modification is now simpler and easier to
+    understand.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 30 Jan 2013 08:30:15 -0700
+
+podget (0.6.9-1) unstable; urgency=low
+
+  * Updated Debian version number to stay in sync with changes to the
+    source package.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Thu, 27 Dec 2012 12:48:50 -0700
+
+podget (0.6.8-13) unstable; urgency=low
+
+  * Removed duplicate entries in debian/control file.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  3 Dec 2012 16:06:45 -0700
+
+podget (0.6.8-12) unstable; urgency=low
+
+  * Small update to version number string in podget file.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 11:31:20 -0700
+
+podget (0.6.8-11) unstable; urgency=low
+
+  * More updates for Debian Package.  Restored version 9 for debhelper
+    in debian/compat file.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 11:14:02 -0700
+
+podget (0.6.8-10) unstable; urgency=low
+
+  * More updates for Debian Package.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 11:03:41 -0700
+
+podget (0.6.8-9) unstable; urgency=low
+
+  * More updates for Debian Package.  Updated control file to specify
+    a Homepage for both package types.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:53:10 -0700
+
+podget (0.6.8-8) unstable; urgency=low
+
+  * More updates for Debian Package.  Updated compat file to specify an 
+    updated version of debhelper (v7).
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:39:11 -0700
+
+podget (0.6.8-7) unstable; urgency=low
+
+  * More updates for Debian Package.  Updated compat file to specify an 
+    updated version of debhelper (v9).
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:28:30 -0700
+
+podget (0.6.8-6) unstable; urgency=low
+
+  * More updates for Debian Package.  Updated control file to specify an 
+    updated version of debhelper.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:12:23 -0700
+
+podget (0.6.8-5) unstable; urgency=low
+
+  * More updates for Debian Package.  Updated Makefile to changed name for 
+    upstream changelog and gzipped it.  Updated Makefile to remove changelog
+    during the clean step.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 15:01:11 -0700
+
+podget (0.6.8-4) unstable; urgency=low
+
+  * More updates for Debian Package.  Added instructions to install the 
+    upstream changelog to the Makefile.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 14:27:45 -0700
+
+podget (0.6.8-3) unstable; urgency=low
+
+  * Further updates for Debian package. Made sure tar.gz and orig.tar.gz had
+    the same md5sum.  
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 14:14:07 -0700
+
+podget (0.6.8-2) unstable; urgency=low
+
+  * Further updates for Debian package.  Deleted .pc directory and excluded
+    debian directory from the tar.gz and orig.tar.gz
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 14:05:00 -0700
+
+podget (0.6.8-1) unstable; urgency=low
+
+  * Updates for Debian Package.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 13:32:15 -0700
+
+podget (0.6.7-1) unstable; urgency=low
+
+  * Fixed Bug #3146457 reported on Sourceforge by oaolsen.  Fixes urls with
+    ampersands in them. Thanks.
+  * Fixed Bug #3021524 reported on Sourceforge by thebreaker.  Fixes running
+    session detection. Thanks.
+  * Fixed podgets verbosity with a patch submitted by Norman Rasmussen. And
+    fixed my email address in the script. Thanks.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat, 14 Apr 2012 11:28:55 -0700
+
+podget (0.6.6-1) unstable; urgency=low
+  
+  * Fixed Bug #666149 reported by Elena Grandi via the Debian reporting system.
+    Playlist names were being created with spaces that would break some lines.
+    Added quotes to prevent.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Wed,  4 Apr 2012 15:47:55 -0700
+
+podget (0.6.5-1) unstable; urgency=low
+
+  * Added version reporting flags (-V or --version), so people can test to see
+    what version they have installed.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Wed,  4 Apr 2012 15:30:00 -0700
+
+podget (0.6.4-1) unstable; urgency=low
+
+  * Fixed enclosure bug.
+  * Fixed error checking for successful wget run.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri, 19 Nov 2011 10:44:00 -0700
+
+podget (0.6.3-1) unstable; urgency=low
+
+  * Fixed tempfile bug/typo.
+  * Fixed -f and --force to redownload existing files, including fix to 
+    wget base options. 
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri, 18 Nov 2011 11:29:02 -0700
+
+podget (0.6.2-1) unstable; urgency=low
+
+  * Added use of the tempfile command to the playlist sorting per Renalt
+    Sabitov's idea and bug report (via Debian).  
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri, 16 Sep 2011 18:00:19 -0700
+  
+podget (0.6.1-1) unstable; urgency=low
+
+  * Various fixes for Debian Lintain reports.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Wed, 14 Sep 2011 12:56:19 -0700
+
+podget (0.6) unstable; urgency=low
+
+  * Added date substitutions to the feed category per David Willmore's 
+    feature request (#1652606).  Thanks.
+  * Reversed order of filename character modifications and format fixing.  
+  * Fixed error reports to go to stderr.
+  * Added more custom error/exit codes to simplify debugging.
+  * Added another filename format fix for feeds from LBC Plus per
+    MoonUnit's feature request (#1660764).  Thanks.
+  * Fixed playlist sorting to prevent a race condition in some implementations
+    of the sort command as suggested by Cameron Paine. Thanks.
+  * Fixed Indexfile creation for Podcast feeds that have the enclosure URL
+    broken over multiple lines as suggested by Colin Carter.  Thanks.
+  * Modified Session file messaging to clearer report when old session files 
+    were removed.
+  * Fixed -r (most recent) and -f (force) command line options to override
+    the defaults stored in the user configuration files.  Thanks to Jim C.
+    for reporting the bug and providing a potential patch.  
+  * Wrapped eval statement on line 422 in quotes to try to fix an OBSD error.
+  * Changed install command --mode flags to -m in the Makefile so that it
+    would be OBSD compatible.
+  * Changed #!/bin/bash to #!/usr/bin/env bash so that its more cross platform
+    compatible.
+  * Moved test for configuration directory to before creation of session file
+    so it has a place to store the session file.
+  * Added Filename Format fix for podcasts hosted on Catradio.cat per Oriol
+    Rius's Bug Report (#1744705). Thanks.
+  * Fixed "Filesystem paths including spaces crash the podget script" (Bug#
+    1889724) submitted by Anonymous. Thanks.
+  * Fixed "Some filenames cause podget to fail" (Patch#1845815) submitted by
+    Anonymous. Thanks. 
+  * Fixed error with playlist loading submitted by Markus.  Thanks.
+  * Added a filename format fix as suggested by Rob Sims via the Debian Bug
+    Reporting System (http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=459949,
+    Bug#459949). Thanks.
+  * Added SCRIPTS directory for user submitted scripts.  First script is from
+    Steven Black and allows for easy addition of feeds from within Firefox.
+    Thanks.
+  * Added patch from Steven Black to fix problem handling single apostrophes in
+    filenames.  Thanks again.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sun, 25 Apr 2010 12:28:39 -0700
+
+podget (0.5.8-1) unstable; urgency=low
+
+  * Initial release 
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 23 Jan 2007 13:19:37 -0700
+

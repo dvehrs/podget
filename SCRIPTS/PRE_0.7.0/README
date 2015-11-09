@@ -1,0 +1,4 @@
+This folder contains older user submitted scripts that extend podget's
+functionality but have not be updated to reflect the new configuration file
+format used as of podget version 0.7.0.  They are included here as inspiration
+to others on what can be done.

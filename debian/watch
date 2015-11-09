@@ -1,0 +1,6 @@
+
+# Format Version
+version=3
+
+# Update Redirector URL
+http://sf.net/podget/podget-(.+)\.tar\.gz
