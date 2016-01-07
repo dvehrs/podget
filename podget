@@ -1828,21 +1828,35 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # Also disable trap for reporting errors on non-zero exit statuses.
                         trap - ERR
 
-                        if [ -n "${MOD_FILENAME}" ] ; then
-                            # if SUFFIX is defined, then add it to filename.
-                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
-                            else
-                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
+                        # To catch content-disposition flag and mv file
+                        # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
+
+                        if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+                            if [ ${VERBOSITY} -ge 2 ] ; then
+                                echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
                             fi
+                            wget ${WGET_OPTIONS} -q -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
                         else
-                            # if SUFFIX is defined, then add it to filename.
-                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
-                            else
-                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" "${URL}"
-                            fi
+                            wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
                         fi
+
+#                        if [ -n "${MOD_FILENAME}" ] ; then
+#                            # if SUFFIX is defined, then add it to filename.
+#                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
+#                            else
+#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
+#                            fi
+#                        else
+#                            # if SUFFIX is defined, then add it to filename.
+#                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
+#                            else
+#                                # Missing filename here?   Was this an error?
+##                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" "${URL}"
+#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
+#                            fi
+#                        fi
 
                         WGET_EXITSTATUS=$?
 
@@ -1853,42 +1867,95 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
                         if [ ${WGET_EXITSTATUS} -eq 0  ] ; then
+                            # make sure CONTENT_FILENAME hasn't been used before
+                            unset CONTENT_FILENAME
+                            unset FINAL_FILENAME
+
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
 
                             # Remove any error log entries for the URL if it failed before
                             REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
+                            # Before filename changes, set FINAL_FILENAME to URL_FILENAME
+                            FINAL_FILENAME="${URL_FILENAME}"
+
+                            # if --content-disposition get filename and remove quotes around it.
+                            if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+                                CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
+
+                                # Do we need a cleanup on CONTENT_FILENAME here?
+                            fi
+
+                            # Move URL_FILENAME to MOD_FILENAME
+                            if [ -n "${MOD_FILENAME}" ] ; then
+                                if [ ${VERBOSITY} -ge 2 ]; then
+                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
+                                fi
+                                mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                FINAL_FILENAME="${MOD_FILENAME}"
+                            fi
+
+                            # Move filename to that provided by content-disposition
+                            if [ -n "${CONTENT_FILENAME}" ]; then
+                                if [ ${VERBOSITY} -ge 2 ]; then
+                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                fi
+                                mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                FINAL_FILENAME="${CONTENT_FILENAME}"
+                            fi
+
+                            # Add filename.suffix
+                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+                                if [ ${VERBOSITY} -ge 2 ]; then
+                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}.${FILENAME_SUFFIX}"
+                                fi
+                                mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                            fi
+
                             if [ ${NO_PLAYLIST} -eq 0 ]; then
                                 # if creating playlists, then add to file.
                                 # Suggested fix from https://sourceforge.net/tracker/?func=detail&aid=2170298&group_id=133382&atid=727035
                                 if [ ! -z "${PLAYLIST_NAME+set}" ] ; then
-                                    if [ ! -z "${MOD_FILENAME+set}" ] ; then
-                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-                                        if [ ${VERBOSITY} -ge 2 ]; then
-                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
-                                        fi
-                                    else
-                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-                                        if [ ${VERBOSITY} -ge 2 ]; then
-                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
-                                        fi
+                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
                                     fi
+#                                    if [ ! -z "${MOD_FILENAME+set}" ] ; then
+#                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+#                                        if [ ${VERBOSITY} -ge 2 ]; then
+#                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
+#                                        fi
+#                                    else
+#                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+#                                        if [ ${VERBOSITY} -ge 2 ]; then
+#                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
+#                                        fi
+#                                    fi
                                 fi
                             fi
+
+                            # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
+                            unset CONTENT_FILENAME
+                            unset FINAL_FILENAME
                         else
                             # if downloaded failed, add URL to LOG_FAIL
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                             # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
                             # continue function can work on later attempts.
-                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" ]; then
-                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}"
-                                fi
-                            else
-                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
-                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
-                                fi
+                            if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                                rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
                             fi
+                            # Suffix is only set for successfully downloaded files now.
+#                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+#                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" ]; then
+#                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}"
+#                                fi
+#                            else
+#                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+#                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+#                                fi
+#                            fi
 
                         fi
                     else
@@ -1899,6 +1966,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             if [ ${VERBOSITY} -ge 4 ] ; then echo ; fi
                             echo "Already downloaded ${URL}."
                         fi
+                    fi
+
+                    # Remove server response file as it's no longer needed
+                    if [ -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
+                        rm -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
                     fi
                 done
 
