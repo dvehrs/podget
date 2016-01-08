@@ -236,9 +236,10 @@ LOG_COMPLETE=done
 
 # Wget base options
 # Commonly used options:
-#   -c                          Continue interupted downloads
+#   -c                          Continue interupted downloads - While this flag is commonly used there are feeds that it can
+#                                   cause "403 Forbidden" errors.
 #   -nH                         No host directories (overrides .wgetrc defaults if necessary)
-#   --proxy=off                 To disable proxy set by environmental variable http_proxy/
+#   --proxy=off                 To disable proxy set by environmental variable http_proxy
 #   --no-check-certificate      To disable HTTPS certificate checks.  Useful for sites that may be using self-signed cerficates
 #                                   and not those from a trusted service authority.
 #  --content-disposition        [EXPERIMENTAL FEATURE] Wget will look for and use "Content-Disposition" headers received from the
@@ -247,9 +248,15 @@ LOG_COMPLETE=done
 #                                   downloaded file rather than appending it to the URL.  This has the potential to make  some of
 #                                   Podget's FILENAME_FORMATFIX options unneeded.
 #
+#                                   Warning:  Enabling this flag disables any download progress information from being passed on to
+#                                   the user.  To debug errors that may occur during sessions with this flag enabled, it may be
+#                                   necessary to enable DEBUG and then examine the temporary files that are not deleted in
+#                                   DIR_SESSION.
+#
 # Wget options that include spaces need to be surrounded in quotes.
 #
 # WGET_BASEOPTS="-c --proxy=off --no-check-certificate"
+# WGET_BASEOPTS="-nH --proxy=off --content-disposition"
 WGET_BASEOPTS="-c -nH"
 
 # Most Recent
@@ -458,6 +465,17 @@ FILENAME_FORMATFIX9=1
 # 0 == disabled
 # 1 == enabled (default)
 FILENAME_FORMATFIX10=1
+
+# -----------------------------------------------------------------------------
+# DEBUG
+#
+# Enabling debug will stop podget from automatically deleting some temporary files in DIR_SESSION.
+#
+# 0 == disabled (default)
+# 1 == enabled
+#
+#DEBUG=0
+
 # -----------------------------------------------------------------------------
 TEXT_DEFAULT_CONFIG
 
@@ -527,7 +545,7 @@ CLEANUP_AND_EXIT() {
     if [ ${VERBOSITY} -ge 2 ] ; then
         echo -en "\nClosing session"
     fi
-    if [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
+    if [ "${DEBUG}" -eq 0 ] && [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
         if [ ${VERBOSITY} -ge 2 ] ; then
             echo -n " and removing lock file"
         fi
@@ -537,6 +555,9 @@ CLEANUP_AND_EXIT() {
         else
             rm -f "${DIR_SESSION}"/podget.$$
         fi
+    else
+        echo
+        echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/podget.$$"
     fi
     if [ ${VERBOSITY} -ge 2 ] && [ ${VERBOSITY} -le 3 ]; then
         echo "."
@@ -1460,6 +1481,18 @@ if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
     MODIFY_FILENAME=1
 fi
 
+if [ -z "${DEBUG+set}" ]; then
+    DEBUG=0
+fi
+
+if [ ${VERBOSITY} -ge 3 ] ; then
+    if [ "${DEBUG}" -eq 0 ]; then
+        echo -e "Debug\t\t\t\tDisabled - Delete temp files."
+    else
+        echo -e "Debug\t\t\t\tEnabled - Do not delete temp files."
+    fi
+fi
+
 if [ ${VERBOSITY} -ge 1 ] ; then
     echo
 fi
@@ -1835,7 +1868,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             if [ ${VERBOSITY} -ge 2 ] ; then
                                 echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
                             fi
-                            wget ${WGET_OPTIONS} -q -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
+                            wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
                         else
                             wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
                         fi
@@ -1881,13 +1914,33 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                             # if --content-disposition get filename and remove quotes around it.
                             if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
-                                CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
+#                                echo "CONTENT-DISPOSITION TESTS!"
+                                if [ -s "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
+#                                    echo "SERVER RESPONSE FILE NONZERO SIZE!"
+
+                                    # Grep exits non-zero if match isn't found.
+                                    set +o errexit
+
+                                    # Also disable trap for reporting errors on non-zero exit statuses.
+                                    trap - ERR
+
+                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
+
+#                                    echo "CONTENT_FILENAME: ${CONTENT_FILENAME}"
+
+                                    # Re-enable 'errexit'
+                                    set -o errexit
+
+                                    # Re-enable trap
+                                    trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+                                fi
 
                                 # Do we need a cleanup on CONTENT_FILENAME here?
                             fi
 
                             # Move URL_FILENAME to MOD_FILENAME
-                            if [ -n "${MOD_FILENAME}" ] ; then
+                            if [ -n "${MOD_FILENAME}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
                                 fi
@@ -1896,7 +1949,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             # Move filename to that provided by content-disposition
-                            if [ -n "${CONTENT_FILENAME}" ]; then
+                            if [ ! -z "${CONTENT_FILENAME+set}" ] && [ -n "${CONTENT_FILENAME}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                 fi
@@ -1905,7 +1958,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             # Add filename.suffix
-                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+                            if [ ! -z "${FILENAME_SUFFIX+set}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}.${FILENAME_SUFFIX}"
                                 fi
@@ -1921,23 +1974,16 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     if [ ${VERBOSITY} -ge 2 ]; then
                                         echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
                                     fi
-#                                    if [ ! -z "${MOD_FILENAME+set}" ] ; then
-#                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-#                                        if [ ${VERBOSITY} -ge 2 ]; then
-#                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
-#                                        fi
-#                                    else
-#                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-#                                        if [ ${VERBOSITY} -ge 2 ]; then
-#                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
-#                                        fi
-#                                    fi
                                 fi
                             fi
 
                             # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
-                            unset CONTENT_FILENAME
-                            unset FINAL_FILENAME
+                            if [ ! -z "${CONTENT_FILENAME+set}" ] ; then
+                                unset CONTENT_FILENAME
+                            fi
+                            if [ ! -z "${FINAL_FILENAME+set}" ] ; then
+                                unset FINAL_FILENAME
+                            fi
                         else
                             # if downloaded failed, add URL to LOG_FAIL
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
@@ -1946,17 +1992,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
                                 rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
                             fi
-                            # Suffix is only set for successfully downloaded files now.
-#                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-#                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" ]; then
-#                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}"
-#                                fi
-#                            else
-#                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
-#                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
-#                                fi
-#                            fi
-
                         fi
                     else
                         # Remove any error log entries for the URL if it failed before
@@ -1969,8 +2004,14 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     fi
 
                     # Remove server response file as it's no longer needed
-                    if [ -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
-                        rm -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
+                    if [ "${DEBUG}" -eq 0 ]; then
+                        if [ ! -z "${URL_FILENAME+set}" ] && [ -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
+                            rm -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
+                        fi
+                    else
+                        if [ ! -z "${URL_FILENAME+set}" ] && [ ${VERBOSITY} -ge 2 ] ; then
+                            echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
+                        fi
                     fi
                 done
 
