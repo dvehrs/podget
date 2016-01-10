@@ -248,10 +248,13 @@ LOG_COMPLETE=done
 #                                   downloaded file rather than appending it to the URL.  This has the potential to make  some of
 #                                   Podget's FILENAME_FORMATFIX options unneeded.
 #
-#                                   Warning:  Enabling this flag disables any download progress information from being passed on to
+#                                   WARNING:  Enabling this flag disables any download progress information from being passed on to
 #                                   the user.  To debug errors that may occur during sessions with this flag enabled, it may be
 #                                   necessary to enable DEBUG and then examine the temporary files that are not deleted in
 #                                   DIR_SESSION.
+#
+#                                   NOTE: This can be enable globally for all feeds here or if you want to enable it for only a few
+#                                   specific feeds, you can add "OPT_CONTENT_DISPOSITION" to their line in your serverlist.
 #
 # Wget options that include spaces need to be surrounded in quotes.
 #
@@ -517,6 +520,26 @@ TEXT_DEFAULT_CONFIG
 #
 #   NOTE:   The second method will fail if a colon (:) is part of the username or password.
 #           Both methods will fail if a space is part of the username or password.
+#
+# Additional Options:
+#   OPT_CONTENT_DISPOSITION     - Attempt to get filename from the Content-Disposition tag that is part of
+#                                 wget --server-response.
+#   OPT_DISPOSITION_FAIL        - This option works in conjunction with OPT_CONTENT_DISPOSITION by removing
+#                                 any URLs that fail to recieve a filename from the COMPLETED log.  This allows
+#                                 them to be automatically retried the next time a session runs.  If this option
+#                                 is added to a feed that has already been downloaded then the user will need to
+#                                 remove the URLs for the problematic files from the COMPLETED log manually. On
+#                                 one feed this allowed for the improvement of the number of filename problems from
+#                                 appproximately 15% to under 2% over the course of 6 sessions.  Those sessions can
+#                                 occur sequentially on one day or as part of your established cron rotation.
+#   OPT_FILENAME_LOCATION       - Some feeds do not have the detailed filename listed in the FEED but rather rename
+#                                 the file on redirection.  This option address that issue by attempting to grab the
+#                                 filename from the last 'Location:' tag in the output of 'wget --server-response'.
+#
+# Examples:
+#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
+#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
+#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION
 #
 http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
 TEXT_DEFAULT_SERVERLIST
@@ -1456,17 +1479,17 @@ if [ ! -z "${CMDL_MOSTRECENT+set}" ] ; then
 fi
 
 if [ ${VERBOSITY} -le 1 ] ; then
-        WGET_OPTIONS="-q ${WGET_BASEOPTS}"
+        WGET_COMMON_OPTIONS="-q ${WGET_BASEOPTS}"
 elif [ ${VERBOSITY} -eq 2 ] ; then
-    WGET_OPTIONS="-nv ${WGET_BASEOPTS}"
+    WGET_COMMON_OPTIONS="-nv ${WGET_BASEOPTS}"
 elif [ ${VERBOSITY} -eq 3 ] ; then
-    WGET_OPTIONS="${WGET_BASEOPTS} --progress=dot:mega"
+    WGET_COMMON_OPTIONS="${WGET_BASEOPTS} --progress=dot:mega"
 else
-    WGET_OPTIONS="${WGET_BASEOPTS} --progress=bar"
+    WGET_COMMON_OPTIONS="${WGET_BASEOPTS} --progress=bar"
 fi
 
 if [ ${VERBOSITY} -ge 3 ]; then
-    echo -e "WGet options:\t\t\t${WGET_OPTIONS}"
+    echo -e "WGet options:\t\t\t${WGET_COMMON_OPTIONS}"
 fi
 
 if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
@@ -1569,7 +1592,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
     if [ ${VERBOSITY} -ge 3 ] ; then
         echo -e "\nMain loop."
         echo "SERVER LIST FILE: $CONFIG_SERVERLIST"
-        echo "WGET OPTIONS: ${WGET_OPTIONS}"
+        echo "WGET OPTIONS: ${WGET_COMMON_OPTIONS}"
         if [ ${NO_PLAYLIST} -eq 0 ]; then
             echo "Playlist Creation Enabled."
         else
@@ -1646,6 +1669,27 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 continue
             fi
 
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo
+                echo "Serverlist Line --> ${FEED_URL}"
+            fi
+
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Reset WGET_OPTIONS to remove loop specific options"
+                echo " -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
+            fi
+            WGET_OPTIONS="${WGET_COMMON_OPTIONS}"
+
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Reset WGET_OPTION_FILENAME_LOCATION"
+            fi
+            WGET_OPTION_FILENAME_LOCATION=0
+
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Reset WGET_OPTION_DISPOSITION_FAIL"
+            fi
+            WGET_OPTION_DISPOSITION_FAIL=0
+
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
             # Extract PASSWORD from FEED_NAME if found.
@@ -1658,6 +1702,24 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
                 URL_USERNAME=$(echo "${FEED_NAME}" | sed -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*OPT_CONTENT_DISPOSITION.*")" -gt 0 ] ; then
+                # Check to see if --content-disposition was previously set globally for all feeds before adding it.
+                if [[ "${WGET_OPTIONS}" != *"--content-disposition"* ]]; then
+                    WGET_OPTIONS="${WGET_OPTIONS} --content-disposition"
+                fi
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_CONTENT_DISPOSITION\(.*$\)/\1\2/')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*OPT_DISPOSITION_FAIL.*")" -gt 0 ] ; then
+                WGET_OPTION_DISPOSITION_FAIL=1
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_DISPOSITION_FAIL\(.*$\)/\1\2/')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*")" -gt 0 ] ; then
+                WGET_OPTION_FILENAME_LOCATION=1
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_FILENAME_LOCATION\(.*$\)/\1\2/')
             fi
 
             # Remove any residual trailing spaces from ${FEED_NAME}
@@ -1675,12 +1737,26 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
             if [ ! -z "${URL_USERNAME+set}" ]; then
                 WGET_OPTIONS="${WGET_OPTIONS} --user=${URL_USERNAME}"
-                echo "${WGET_OPTIONS}"
             fi
 
             if [ ! -z "${URL_PASSWORD+set}" ]; then
                 WGET_OPTIONS="${WGET_OPTIONS} --password=${URL_PASSWORD}"
             fi
+
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS}"
+            fi
+
+#            #  TEMPORARY!  For TESTING!
+#            if [ ${VERBOSITY} -ge 2 ] ; then
+#                echo "Loop Feed Name:  ${FEED_NAME}"
+#                if [ ${WGET_OPTION_FILENAME_LOCATION} -gt 0 ]; then
+#                    echo "ALTERNATE LOCATION: ${WGET_OPTION_FILENAME_LOCATION}"
+#                fi
+#            fi
+#            unset URL_USERNAME
+#            unset URL_PASSWORD
+#            continue
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
 
@@ -1762,7 +1838,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                         sed -e ':a;N;$!ba;s/\n/ /g') ;;
                 'utf16')
-                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | ${BINARY_ICONV} -f UTF-16 -t UTF-8  | \
+                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8  | \
                         tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
                         sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                      -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
@@ -1864,9 +1940,14 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # To catch content-disposition flag and mv file
                         # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
 
-                        if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+                        if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
                             if [ ${VERBOSITY} -ge 2 ] ; then
-                                echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
+                                if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+                                    echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
+                                fi
+                                if [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
+                                        echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
+                                fi
                             fi
                             wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
                         else
@@ -1902,6 +1983,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         if [ ${WGET_EXITSTATUS} -eq 0  ] ; then
                             # make sure CONTENT_FILENAME hasn't been used before
                             unset CONTENT_FILENAME
+                            unset LOCATION_FILENAME
                             unset FINAL_FILENAME
 
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
@@ -1914,9 +1996,13 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                             # if --content-disposition get filename and remove quotes around it.
                             if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
-#                                echo "CONTENT-DISPOSITION TESTS!"
+                                if [ ${VERBOSITY} -ge 2 ]; then
+                                    echo "CONTENT-DISPOSITION TESTS"
+                                fi
                                 if [ -s "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
-#                                    echo "SERVER RESPONSE FILE NONZERO SIZE!"
+                                    if [ ${VERBOSITY} -ge 4 ]; then
+                                        echo "SERVER RESPONSE FILE NONZERO SIZE"
+                                    fi
 
                                     # Grep exits non-zero if match isn't found.
                                     set +o errexit
@@ -1926,18 +2012,96 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                                     CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
 
-#                                    echo "CONTENT_FILENAME: ${CONTENT_FILENAME}"
+                                    # Test CONTENT_FILENAME is not null or consists solely of whitespace
+                                    if [ -n "${CONTENT_FILENAME}" ] && [[ ! -z "${CONTENT_FILENAME// }" ]]; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
+                                        fi
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "SERVER RESPONSE FILE - No Content-Disposition Tag"
+                                        fi
+                                        # if variable is effectively blank, we can unset it
+                                        unset CONTENT_FILENAME
+
+                                        if [ ${WGET_OPTION_DISPOSITION_FAIL} -gt 0 ]; then
+                                            if [ ${VERBOSITY} -ge 2 ]; then
+                                                echo "  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
+                                            fi
+
+                                            # Remove any COMPLETE log entries to allow it to retry next session.
+                                            REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
+                                        fi
+                                    fi
 
                                     # Re-enable 'errexit'
                                     set -o errexit
 
                                     # Re-enable trap
                                     trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
-
+                                else
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                    fi
                                 fi
 
                                 # Do we need a cleanup on CONTENT_FILENAME here?
+                                # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+                                # down to a single time.
+                                if [[ ! -z ${CONTENT_FILENAME+set} ]]; then
+                                    CONTENT_FILENAME=$(echo "${CONTENT_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                                fi
                             fi
+
+                            if [ ${WGET_OPTION_FILENAME_LOCATION} -gt 0 ]; then
+                                if [ ${VERBOSITY} -ge 2 ]; then
+                                    echo "FILENAME LOCATION TESTS"
+                                fi
+                                if [ -s "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
+                                    if [ ${VERBOSITY} -ge 4 ]; then
+                                        echo "SERVER RESPONSE FILE NONZERO SIZE"
+                                    fi
+
+                                    # Grep exits non-zero if match isn't found.
+                                    set +o errexit
+
+                                    # Also disable trap for reporting errors on non-zero exit statuses.
+                                    trap - ERR
+
+                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/')
+
+                                    LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
+
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
+                                        if [ -n "${LOCATION_FILENAME}" ]  && [[ ! -z "${LOCATION_FILENAME// }" ]]; then
+                                            echo "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
+                                        else
+                                            echo "SERVER RESPONSE FILE - No Location Tag"
+                                            # If LOCATION_FILENAME is effectively blank we can unset it
+                                            unset LOCATION_FILENAME
+                                        fi
+                                    fi
+
+                                    # Re-enable 'errexit'
+                                    set -o errexit
+
+                                    # Re-enable trap
+                                    trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+                                else
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                    fi
+                                fi
+
+                                # Do we need a cleanup on LOCATION_FILENAME here?
+                                # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+                                # down to a single time.
+                                if [[ ! -z ${LOCATION_FILENAME+set} ]]; then
+                                    LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                                fi
+                            fi
+
 
                             # Move URL_FILENAME to MOD_FILENAME
                             if [ -n "${MOD_FILENAME}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
@@ -1948,13 +2112,34 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 FINAL_FILENAME="${MOD_FILENAME}"
                             fi
 
-                            # Move filename to that provided by content-disposition
-                            if [ ! -z "${CONTENT_FILENAME+set}" ] && [ -n "${CONTENT_FILENAME}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]; then
-                                if [ ${VERBOSITY} -ge 2 ]; then
-                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                            # Move filename to that provided by LOCATION_FILENAME
+                            if [ ! -z "${LOCATION_FILENAME+set}" ] && [ -n "${LOCATION_FILENAME}" ]; then
+                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]; then
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                    FINAL_FILENAME="${LOCATION_FILENAME}"
+                                else
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                    fi
                                 fi
-                                mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
-                                FINAL_FILENAME="${CONTENT_FILENAME}"
+                            fi
+
+                            # Move filename to that provided by content-disposition
+                            if [ ! -z "${CONTENT_FILENAME+set}" ] && [ -n "${CONTENT_FILENAME}" ]; then
+                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]; then
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                    FINAL_FILENAME="${CONTENT_FILENAME}"
+                                else
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                    fi
+                                fi
                             fi
 
                             # Add filename.suffix
@@ -2050,10 +2235,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 unset URL_USERNAME
                 unset URL_PASSWORD
 
-                WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(.*\) --user=[^ ]*\(.*\)/\1\2/' -e 's/\(.*\) --password=[^ ]*\(.*\)/\1\2/')
-                if [ ${VERBOSITY} -ge 4 ] ; then
-                    echo -e "\tWGET OPTIONS: ${WGET_OPTIONS}"
-                fi
+                #  -- Moved cleanup of WGET_OPTIONS to top of loop and made it less error prone.
+                # WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(.*\) --user=[^ ]*\(.*\)/\1\2/' -e 's/\(.*\) --password=[^ ]*\(.*\)/\1\2/')
+#                if [ ${VERBOSITY} -ge 4 ] ; then
+#                    echo -e "\tWGET OPTIONS: ${WGET_OPTIONS}"
+#                fi
             else
                 if [ ${VERBOSITY} -ge 1 ] ; then
                     echo "  No enclosures in feed: ${FEED_URL}"

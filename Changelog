@@ -1,3 +1,13 @@
+
+  * Many thanks to Nicolae Lucian Sandor for his work on proving that we can use
+    wget's --content-disposition and --server-response flags.  With these enabled,
+    we have been able to rename files based on values held in the
+    Content-Disposition or Location tags.  Without his inspired ideas these
+    updates would not have been possible.
+  * Thanks to ael for reporting an unbound variable (BINARY_ICONV).  I changed
+    how I was checking for it's installation and didn't catch all the necessary
+    updates.
+
 podget (0.7.9) unstable; urgency=low
 
   * Many thanks to Filip Szymański for pointing out that while I had updated
