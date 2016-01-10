@@ -1747,6 +1747,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS}"
             fi
 
+#            # -----------------------------------------------------------------
 #            #  TEMPORARY!  For TESTING!
 #            if [ ${VERBOSITY} -ge 2 ] ; then
 #                echo "Loop Feed Name:  ${FEED_NAME}"
@@ -1757,6 +1758,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 #            unset URL_USERNAME
 #            unset URL_PASSWORD
 #            continue
+#            #  TEMPORARY!  For TESTING!
+#            # -----------------------------------------------------------------
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
 
