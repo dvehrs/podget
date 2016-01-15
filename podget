@@ -1947,6 +1947,9 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             if [ ${VERBOSITY} -ge 2 ] ; then
                                 if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
                                     echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
+                                    # removing actual --content-disposition option from WGET because it is not needed.  It is
+                                    # primarily used as a flag to indicate the mode we're in.
+                                    WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(^.*\)--content-disposition[^ $]\+\(.*$\)/\1\2/')
                                 fi
                                 if [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
                                         echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
