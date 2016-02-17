@@ -1744,6 +1744,13 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
 
             if [ ${VERBOSITY} -ge 2 ] ; then
+                echo -e "\n-------------------------------------------------"
+            fi
+            if [ ${VERBOSITY} -ge 1 ] ; then
+                printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
+            fi
+
+            if [ ${VERBOSITY} -ge 2 ] ; then
                 echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS}"
             fi
 
@@ -1769,6 +1776,12 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             trap - ERR
 
             for i in FEED_CATEGORY FEED_NAME; do
+                # FEED_NAME can be blank, if it is then we skip the DIRECTORY_CHECK
+                if [ "${i}" == "FEED_NAME" ] && [ -z "${!i}" ]; then
+                    # we use continue rather than break here in case the variables are in a different order.
+                    continue
+                fi
+
                 DIRECTORY_CHECK ${i}
 
                 EXITSTATUS=$?
@@ -1777,7 +1790,9 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     echo
                     echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
                     echo
-                    continue
+                    # This needs to be 'continue 2' because we are not continuing the immediate for loop but rather the
+                    # loop wrapping it.
+                    continue 2
                 fi
             done
 
@@ -1798,12 +1813,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 done
             fi
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
-                echo -e "\n-------------------------------------------------"
-            fi
-            if [ ${VERBOSITY} -ge 1 ] ; then
-                printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
-            fi
             if [ ${VERBOSITY} -ge 2 ] ; then
                 if [ ! -z "${URL_USERNAME+set}" ]; then
                     printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"

@@ -7,6 +7,8 @@
   * Thanks to ael for reporting an unbound variable (BINARY_ICONV).  I changed
     how I was checking for it's installation and didn't catch all the necessary
     updates.
+  * Thanks to Francois Marier for reporting a couple issues with the new
+    DIRECTORY_CHECK function that had evaded my testing.
 
 podget (0.7.9) unstable; urgency=low
 
