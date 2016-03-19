@@ -1,3 +1,11 @@
+podget (0.7.12) unstable; urgency=low
+
+  * Thanks to Filip Szymański for reporting a second unbound variable error.
+  * Thanks to Marcus Stollsteimer for submitting a couple of patches for the
+    INSTALL and Makefile files on Github.  Both have been merged.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Sat, 19 Mar 2016 10:45:08 -0600
+
 podget (0.7.11) unstable; urgency=low
 
   * Thanks to Willem and our friends at Arch for reporting that we had an
