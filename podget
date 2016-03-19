@@ -571,19 +571,21 @@ CLEANUP_AND_EXIT() {
     if [ ${VERBOSITY} -ge 2 ] ; then
         echo -en "\nClosing session"
     fi
-    if [ "${DEBUG}" -eq 0 ] && [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
-        if [ ${VERBOSITY} -ge 2 ] ; then
-            echo -n " and removing lock file"
-        fi
-        if [ ${VERBOSITY} -ge 4 ] ; then
-            echo
-            rm -fv "${DIR_SESSION}"/podget.$$
+    if [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
+        if [ "${DEBUG}" -eq 0 ]; then
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo -n " and removing lock file"
+            fi
+            if [ ${VERBOSITY} -ge 4 ] ; then
+                echo
+                rm -fv "${DIR_SESSION}"/podget.$$
+            else
+                rm -f "${DIR_SESSION}"/podget.$$
+            fi
         else
-            rm -f "${DIR_SESSION}"/podget.$$
+            echo
+            echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/podget.$$"
         fi
-    else
-        echo
-        echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/podget.$$"
     fi
     if [ ${VERBOSITY} -ge 2 ] && [ ${VERBOSITY} -le 3 ]; then
         echo "."
