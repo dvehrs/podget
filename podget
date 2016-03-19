@@ -194,6 +194,9 @@ ASX_PLAYLIST=0
 # Enable playlist creation
 NO_PLAYLIST=0
 
+# Default DEBUG Disabled (Enables deletion of temporary files)
+DEBUG=0
+
      #########################################################################################################################
      ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
      #########################################################################################################################
@@ -1128,7 +1131,7 @@ COMPARE_StringInString() {
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Version  (Update with changes!)                                                                                                {{{
 
-VERSION=0.7.10
+VERSION=0.7.11
 REPORT_VERSION=0
 
 #                                                                                                                                }}}
@@ -1504,10 +1507,6 @@ if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
     MODIFY_FILENAME=1
 fi
 
-if [ -z "${DEBUG+set}" ]; then
-    DEBUG=0
-fi
-
 if [ ${VERBOSITY} -ge 3 ] ; then
     if [ "${DEBUG}" -eq 0 ]; then
         echo -e "Debug\t\t\t\tDisabled - Delete temp files."
@@ -1754,20 +1753,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS}"
             fi
 
-#            # -----------------------------------------------------------------
-#            #  TEMPORARY!  For TESTING!
-#            if [ ${VERBOSITY} -ge 2 ] ; then
-#                echo "Loop Feed Name:  ${FEED_NAME}"
-#                if [ ${WGET_OPTION_FILENAME_LOCATION} -gt 0 ]; then
-#                    echo "ALTERNATE LOCATION: ${WGET_OPTION_FILENAME_LOCATION}"
-#                fi
-#            fi
-#            unset URL_USERNAME
-#            unset URL_PASSWORD
-#            continue
-#            #  TEMPORARY!  For TESTING!
-#            # -----------------------------------------------------------------
-
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
 
             # Disable exit-on-error for DIRECTORY_CHECK
@@ -1964,7 +1949,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                         echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
                                 fi
                             fi
-                            wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
+                            wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         else
                             wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
                         fi
@@ -2014,7 +1999,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "CONTENT-DISPOSITION TESTS"
                                 fi
-                                if [ -s "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
+                                if [ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
                                     if [ ${VERBOSITY} -ge 4 ]; then
                                         echo "SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
@@ -2025,7 +2010,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     # Also disable trap for reporting errors on non-zero exit statuses.
                                     trap - ERR
 
-                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
+                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [ -n "${CONTENT_FILENAME}" ] && [[ ! -z "${CONTENT_FILENAME// }" ]]; then
@@ -2072,7 +2057,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "FILENAME LOCATION TESTS"
                                 fi
-                                if [ -s "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
+                                if [ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
                                     if [ ${VERBOSITY} -ge 4 ]; then
                                         echo "SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
@@ -2083,7 +2068,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     # Also disable trap for reporting errors on non-zero exit statuses.
                                     trap - ERR
 
-                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}"/"${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/')
+                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/')
 
                                     LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
 
@@ -2205,8 +2190,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                     # Remove server response file as it's no longer needed
                     if [ "${DEBUG}" -eq 0 ]; then
-                        if [ ! -z "${URL_FILENAME+set}" ] && [ -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp" ]; then
-                            rm -f "${DIR_SESSION}"/"${URL_FILENAME}.servresp"
+                        if [ ! -z "${URL_FILENAME+set}" ] && [ -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
+                            rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     else
                         if [ ! -z "${URL_FILENAME+set}" ] && [ ${VERBOSITY} -ge 2 ] ; then

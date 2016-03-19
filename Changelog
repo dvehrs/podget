@@ -1,3 +1,13 @@
+podget (0.7.11) unstable; urgency=low
+
+  * Thanks to Willem and our friends at Arch for reporting that we had an
+    unbound variable error when using the --create-config functions.  Fixed by
+	setting a default for DEBUG that can be used at this stage and modified
+	later by the value in a users configuration file.
+  * General cleanup.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Sat, 19 Mar 2016 06:25:54 -0600
+
 podget (0.7.10) unstable; urgency=low
 
   * Many thanks to Nicolae Lucian Sandor for his work on proving that we can use
