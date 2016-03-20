@@ -3,7 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Dave Vehrs <dvehrs@gmail.com>
 Build-Depends: debhelper (>= 9)
-Standards-Version: 3.9.6
+Standards-Version: 3.9.7
 Homepage: http://podget.sourceforge.net
 
 Package: podget

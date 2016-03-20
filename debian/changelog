@@ -1,20 +1,12 @@
 podget (0.7.12-1) unstable; urgency=medium
 
+  [ Dave Vehrs ]
   * New upstream release
+
+  [ Francois Marier ]
+  * Bump Standards-Version up to 3.9.7
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat, 19 Mar 2016 10:53:26 -0600
-
-podget (0.7.11-1) unstable; urgency=medium
-
-  * New upstream release
-
- -- Dave Vehrs <dvehrs@gmail.com>  Sat, 19 Mar 2016 06:34:55 -0600
-
-podget (0.7.10-1) unstable; urgency=medium
-
-  * New upstream release
-
- -- Dave Vehrs <dvehrs@gmail.com>  Thu, 17 Mar 2016 17:22:28 -0600
 
 podget (0.7.9-1) unstable; urgency=medium
 
