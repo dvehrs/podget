@@ -1,3 +1,6 @@
+  * Thanks to Marcus Stollsteimer for submitting corrections to the man pages
+    and help text.
+
 podget (0.7.12) unstable; urgency=low
 
   * Thanks to Filip Szymański for reporting a second unbound variable error.
