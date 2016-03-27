@@ -1,5 +1,4 @@
 NAME
-
 Podget \- Simple tool to automate downloading of podcasts.
 
 SYNOPSIS
@@ -51,7 +50,7 @@ OPTIONS
 
 EXAMPLE CRON JOB
 
-Once podget is running correctly, its most useful if you run it from a cron job so that the new episodes are available to play or load onto a portable player and you don't have to wait for them to download.
+Once podget is running correctly, it's most useful if you run it from a cron job so that the new episodes are available to play or load onto a portable player and you don't have to wait for them to download.
 
 To edit your crontab, do:
 
@@ -65,18 +64,18 @@ This will run podget at 4:15 AM every day.
 
 AUTOMATIC CLEANUP
 
-You can enabled automatic cleanup with every run by configuring it in your $HOME/.podget/podgetrc file. Simply set the following options:
+You can enable automatic cleanup with every run by configuring it in your $HOME/.podget/podgetrc file. Simply set the following options:
 
-  # Autocleanup. 
+  # Autocleanup.
   # 0 == disabled
   # 1 == delete any old content
   cleanup=1
 
-  # Number of days to keep files.   Cleanup will remove anything 
+  # Number of days to keep files.   Cleanup will remove anything
   # older than this.
   cleanup_days=7
 
-However, some people prefer to run cleanup as a separate cron session. To do that, set the options in .podgetrc to:
+However, some people prefer to run cleanup as a separate cron session. To do that, set the options in podgetrc to:
 
   # Autocleanup.
   # 0 == disabled
@@ -104,11 +103,11 @@ The default format is: <url> <category> <name>
 
 NOTES:
   1. URL Rules:
-    A. Any spaces in the URL needs to be converted to %20 
+    A. Any spaces in the URL need to be converted to %20
   2. Category Rules:
-    A.  Must be one word without spaces. 
+    A.  Must be one word without spaces.
     B.  You may use underscores and dashes.
-    C.  You can insert date substitions.
+    C.  You can insert date substitutions.
         %YY%  ==  Year
         %MM%  ==  Month
         %DD%  ==  Day
@@ -136,7 +135,7 @@ Some servers provide their feeds in UTF-16 format rather than the more common UT
 
 To automatically convert these files, create a secondary serverlist at:
 
-        $HOME/.podget/serverlist.utf16 
+        $HOME/.podget/serverlist.utf16
 
 Remember to change the name of the serverlist to match what you set it to with config_serverlist if you changed it.
 
