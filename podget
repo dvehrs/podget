@@ -88,7 +88,7 @@ set -o pipefail
     --cleanup_simulate           Skip downloading and simulate running
                                  cleanup loop.
                                  Display files to be deleted.
-    --cleanup_days <COUNT>        Number of days to retain files.  Anything
+    --cleanup_days <COUNT>       Number of days to retain files.  Anything
                                  older will be removed.
     -d --dir_config <DIRECTORY>  Directory that configuration files are
                                  stored in.
@@ -97,15 +97,15 @@ set -o pipefail
                                  if they have already been downloaded.
     --import_opml <FILE or URL>  Import servers from OPML file or
                                  HTTP/FTP URL.
-    --export_opml <FILE>         Export serverlist to OPML file
+    --export_opml <FILE>         Export serverlist to OPML file.
     --import_pcast <FILE or URL> Import servers from iTunes PCAST file or
                                  HTTP/FTP URL.
     -l --library <DIRECTORY>     Directory to store downloaded files in.
-    -n --no-playlist             Do not create M3U playlist
+    -n --no-playlist             Do not create M3U playlist.
     -p --playlist-asx            In addition to the default M3U playlist,
                                  create an ASX Playlist.  M3U playlist must be
                                  created to convert to ASX.
-    --playlist-per-podcast       Create playlist for each podcast feed
+    --playlist-per-podcast       Create playlist for each podcast feed.
     -r --recent <COUNT>          Download only the <count> newest items from
                                  each feed.
     --serverlist <LIST>          Serverlist to use.
