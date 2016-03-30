@@ -1,9 +1,13 @@
+podget (0.7.13) unstable; urgency=low
+
   * Thanks to Marcus Stollsteimer for submitting corrections to the man pages
     and help text.
   * Thanks to Marcus Stollsteimer for reporting a bug in the REMOVE_URL function
     where we failed to account for a suitable delimiter character in a sed
 	statement.  By moving the offending sed statement after our test for
 	suitable character the issue was resolved.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Wed, 30 Mar 2016 16:31:11 -0600
 
 podget (0.7.12) unstable; urgency=low
 
