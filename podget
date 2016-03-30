@@ -1098,20 +1098,23 @@ REMOVE_URL() {
     # Source: https://www.ietf.org/rfc/rfc1738.txt
     local TEST_STRING="#|^~<>[] "
 
-    # Escape any characters that can affect the sed command below, currently: *
-    local URL_CLEAN
-
-    URL_CLEAN=$(echo "${URL_INPUT}" | sed -e "s/\([^\\]\)\*/\1\\\*/g")
-
+    # Find suitable TEST_CHAR to use for sed statements below.
     for (( i=0; i<${#TEST_STRING}; i++ )); do
         local TEST_CHAR=${TEST_STRING:$i:1}
 
         # grep looks for --fixed-strings so that certain characters are not
         # interpreted as regular expressions (like ^ $ or /)
-        if grep --quiet --fixed-strings "${TEST_CHAR}" <<<${URL_INPUT}; then
+        #
+        # We're looking for a character NOT found in the string so its ! grep
+        if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<${URL_INPUT}; then
+            # When a character is not found in the string that we can use, break out of the loop.
             break
         fi
     done
+
+    # Escape any characters that can affect the sed command below, currently: *
+    local URL_CLEAN
+    URL_CLEAN=$(echo "${URL_INPUT}" | sed -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
 
     sed -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
 }
