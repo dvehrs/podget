@@ -1112,7 +1112,9 @@ REMOVE_URL() {
         fi
     done
 
-    # Escape any characters that can affect the sed command below, currently: *
+    # Both sed statements below use TEST_CHAR as their delimiter
+
+    # Escape any characters in URL that can affect the sed command below, currently: *
     local URL_CLEAN
     URL_CLEAN=$(echo "${URL_INPUT}" | sed -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
 
