@@ -1,3 +1,7 @@
+podget (0.7.14) unstable; urgency=low
+
+  * Thanks to angoongo for submitting a report for an unbound variable error.  
+
 podget (0.7.13) unstable; urgency=low
 
   * Thanks to Marcus Stollsteimer for submitting corrections to the man pages
