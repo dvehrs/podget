@@ -206,11 +206,11 @@ DEBUG=0
 # Text for default configuration files:                                                                                          {{{
 
 : << TEXT_DEFAULT_CONFIG
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Podget configuration file created by version @VERSION@
 # [ NOTE:  Do not delete version line as it will be used by future versions to
 #          to test if configuration files have been updated with any required changes.
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # File name and location configuration:
 
 # Name of Server List configuration file
@@ -234,7 +234,7 @@ DIR_LIBRARY=@HOME@/POD
 LOG_FAIL=errors
 LOG_COMPLETE=done
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Download Options:
 
 # Wget base options
@@ -288,7 +288,7 @@ CLEANUP_DAYS=7
 # default:  614400 (600MB)
 MIN_SPACE=614400
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Playlist Options:
 
 # Disable playlist creation [ No need to comment out other playlist variables ]
@@ -313,7 +313,7 @@ DATE_FORMAT=+%F
 # 1 == create
 ASX_PLAYLIST=0
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Filename Suffix:
 
 # Add suffix to the filename of every file downloaded to allow for subsequent scripts to detect the newly downloaded files and work
@@ -330,7 +330,7 @@ ASX_PLAYLIST=0
 
 # FILENAME_SUFFIX="newtag"
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # Downloaded Filename Cleanup Options:
 #
 # These options are for the filenames downloaded from the feeds.  We will try to clean then up rather than interrupting the script
@@ -472,7 +472,7 @@ FILENAME_FORMATFIX9=1
 # 1 == enabled (default)
 FILENAME_FORMATFIX10=1
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 # DEBUG
 #
 # Enabling debug will stop podget from automatically deleting some temporary files in DIR_SESSION.
@@ -482,7 +482,7 @@ FILENAME_FORMATFIX10=1
 #
 #DEBUG=0
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 TEXT_DEFAULT_CONFIG
 
 : << TEXT_DEFAULT_SERVERLIST
@@ -1590,7 +1590,7 @@ fi
 #       podget -c podgetrc.2
 echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 
-#                                                                                                                               }}}
+#                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Loop over servers on list                                                                                                      {{{
 
@@ -2152,7 +2152,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             # Add filename.suffix
                             if [ ! -z "${FILENAME_SUFFIX+set}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
-                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}.${FILENAME_SUFFIX}"
+                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                 fi
                                 mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                 FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
