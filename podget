@@ -550,11 +550,15 @@ TEXT_DEFAULT_CONFIG
 #                                 each file is the time of download.  Which may be acceptable in some situations but can
 #                                 cause confusion when downloading more than one item at a time from a feed.
 #
+# Note:  It is possible to use more than one option per feed, this will combine the effects of the options in order from
+#        top to bottom as they are listed here.
+#
 # Examples:
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
+#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION OPT_FILENAME_RENAME_MDATE
 #
 http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
 TEXT_DEFAULT_SERVERLIST
@@ -1983,24 +1987,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
                         fi
 
-#                        if [ -n "${MOD_FILENAME}" ] ; then
-#                            # if SUFFIX is defined, then add it to filename.
-#                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
-#                            else
-#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
-#                            fi
-#                        else
-#                            # if SUFFIX is defined, then add it to filename.
-#                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}.${FILENAME_SUFFIX}" "${URL}"
-#                            else
-#                                # Missing filename here?   Was this an error?
-##                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" "${URL}"
-#                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
-#                            fi
-#                        fi
-
                         WGET_EXITSTATUS=$?
 
                         # Re-enable 'errexit'
@@ -2155,29 +2141,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 fi
                             fi
 
-                            # Move filename to that provided by LOCATION_FILENAME
-                            if [ ! -z "${LOCATION_FILENAME+set}" ] && [ -n "${LOCATION_FILENAME}" ]; then
-                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]; then
-                                    if [ ${VERBOSITY} -ge 2 ]; then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                    fi
-                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
-                                    FINAL_FILENAME="${LOCATION_FILENAME}"
-                                else
-                                    if [ ${FORCE} -ne 0 ] ; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                        fi
-                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
-                                        FINAL_FILENAME="${LOCATION_FILENAME}"
-                                    else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
-                                            echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
-                                        fi
-                                    fi
-                                fi
-                            fi
-
                             # Move filename to that provided by content-disposition
                             if [ ! -z "${CONTENT_FILENAME+set}" ] && [ -n "${CONTENT_FILENAME}" ]; then
                                 if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]; then
@@ -2196,6 +2159,29 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     else
                                         if [ ${VERBOSITY} -ge 2 ]; then
                                             echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                        fi
+                                    fi
+                                fi
+                            fi
+
+                            # Move filename to that provided by LOCATION_FILENAME
+                            if [ ! -z "${LOCATION_FILENAME+set}" ] && [ -n "${LOCATION_FILENAME}" ]; then
+                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]; then
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                    FINAL_FILENAME="${LOCATION_FILENAME}"
+                                else
+                                    if [ ${FORCE} -ne 0 ] ; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                        FINAL_FILENAME="${LOCATION_FILENAME}"
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
                                         fi
                                     fi
                                 fi
@@ -2332,12 +2318,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 fi
                 unset URL_USERNAME
                 unset URL_PASSWORD
-
-                #  -- Moved cleanup of WGET_OPTIONS to top of loop and made it less error prone.
-                # WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(.*\) --user=[^ ]*\(.*\)/\1\2/' -e 's/\(.*\) --password=[^ ]*\(.*\)/\1\2/')
-#                if [ ${VERBOSITY} -ge 4 ] ; then
-#                    echo -e "\tWGET OPTIONS: ${WGET_OPTIONS}"
-#                fi
             else
                 if [ ${VERBOSITY} -ge 1 ] ; then
                     echo "  No enclosures in feed: ${FEED_URL}"
@@ -2614,8 +2594,6 @@ CLEANUP_AND_EXIT 0
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Notes:                                                                                                                         {{{
 # 1.  Best viewed in Vim (http://vim.sf.net) with the Relaxedgreen colorscheme (vimscripts #791).
-# 2.  Known Bug:  If the same filename is downloaded for multiple items on a
-#     single feed, wgets continue fuction will cause them to append or error.
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # vim:tw=132:ts=4:sw=4
