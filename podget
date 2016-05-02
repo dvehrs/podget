@@ -1696,6 +1696,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
             WGET_OPTION_DISPOSITION_FAIL=0
 
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Reset POST_WGET_RENAME_MDATE"
+            fi
+            POST_WGET_RENAME_MDATE=0
+
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
             # Extract PASSWORD from FEED_NAME if found.
@@ -1726,6 +1731,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*")" -gt 0 ] ; then
                 WGET_OPTION_FILENAME_LOCATION=1
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_FILENAME_LOCATION\(.*$\)/\1\2/')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_RENAME_MDATE.*")" -gt 0 ] ; then
+                POST_WGET_RENAME_MDATE=1
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_FILENAME_RENAME_MDATE\(.*$\)/\1\2/')
             fi
 
             # Remove any residual trailing spaces from ${FEED_NAME}
@@ -2145,6 +2155,23 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 else
                                     if [ ${VERBOSITY} -ge 2 ]; then
                                         echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                    fi
+                                fi
+                            fi
+
+                            # Rename file to start from modification date
+                            if [ $POST_WGET_RENAME_MDATE == 1 ]; then
+                                FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
+                                FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
+                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]; then
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
+                                    FINAL_FILENAME="${FILENAME_MDATE}"
+                                else
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
                                     fi
                                 fi
                             fi
