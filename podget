@@ -2119,8 +2119,10 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 fi
                             fi
 
-
                             # Move URL_FILENAME to MOD_FILENAME
+                            # NOTE: This section does not need a force or prevented copy option because there is no need to rename
+                            # the file if already MOD_FILENAME == FINAL_FILENAME.  Forced updating of the file will have already
+                            # happened.
                             if [ -n "${MOD_FILENAME}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
@@ -2138,8 +2140,16 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                     FINAL_FILENAME="${LOCATION_FILENAME}"
                                 else
-                                    if [ ${VERBOSITY} -ge 2 ]; then
-                                        echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                    if [ ${FORCE} -ne 0 ] ; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                        FINAL_FILENAME="${LOCATION_FILENAME}"
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                        fi
                                     fi
                                 fi
                             fi
@@ -2153,8 +2163,16 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                     FINAL_FILENAME="${CONTENT_FILENAME}"
                                 else
-                                    if [ ${VERBOSITY} -ge 2 ]; then
-                                        echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                    if [ ${FORCE} -ne 0 ] ; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                        FINAL_FILENAME="${CONTENT_FILENAME}"
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                        fi
                                     fi
                                 fi
                             fi
@@ -2170,19 +2188,41 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
                                     FINAL_FILENAME="${FILENAME_MDATE}"
                                 else
-                                    if [ ${VERBOSITY} -ge 2 ]; then
-                                        echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
+                                    if [ ${FORCE} -ne 0 ] ; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
+                                        FINAL_FILENAME="${FILENAME_MDATE}"
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
+                                        fi
                                     fi
                                 fi
                             fi
 
                             # Add filename.suffix
-                            if [ ! -z "${FILENAME_SUFFIX+set}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]; then
-                                if [ ${VERBOSITY} -ge 2 ]; then
-                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
+                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]; then
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                    FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                else
+                                    if [ ${FORCE} -ne 0 ] ; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                        fi
+                                        mv -f  "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                        FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "FILENAME CHANGE PREVENTED [ ${FINAL_FILENAME}.${FILENAME_SUFFIX} already exists ]"
+                                        fi
+                                    fi
                                 fi
-                                mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                             fi
 
                             if [ ${NO_PLAYLIST} -eq 0 ]; then
