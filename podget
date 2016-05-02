@@ -546,7 +546,9 @@ TEXT_DEFAULT_CONFIG
 #                                 these common filenames.  This appends the date of the files last change (modification
 #                                 date) as a prefix to the filename in the format of YYYYMMDD_HHhMMm_<common-part>.  This
 #                                 makes the filenames sortable and gives the user something that makes a moderate amount
-#                                 of sense.
+#                                 of sense.  Does not work for all feeds, for some feeds the last modification time for
+#                                 each file is the time of download.  Which may be acceptable in some situations but can
+#                                 cause confusion when downloading more than one item at a time from a feed.
 #
 # Examples:
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
@@ -2130,15 +2132,27 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             # Move URL_FILENAME to MOD_FILENAME
-                            # NOTE: This section does not need a force or prevented copy option because there is no need to rename
-                            # the file if already MOD_FILENAME == FINAL_FILENAME.  Forced updating of the file will have already
-                            # happened.
-                            if [ -n "${MOD_FILENAME}" ] && [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
-                                if [ ${VERBOSITY} -ge 2 ]; then
-                                    echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
+                            # NOTE: if MOD_FILENAME == FINAL_FILENAME no need to rename file.
+                            if [ -n "${MOD_FILENAME}" ] && [ "${FINAL_FILENAME}" != "${MOD_FILENAME}" ]; then
+                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
+                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                    FINAL_FILENAME="${MOD_FILENAME}"
+                                else
+                                    if [ ${FORCE} -ne 0 ]; then
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                        FINAL_FILENAME="${MOD_FILENAME}"
+                                    else
+                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                            echo "FILENAME CHANGE PREVENTED [ ${MOD_FILENAME} already exists ]"
+                                        fi
+                                    fi
                                 fi
-                                mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
-                                FINAL_FILENAME="${MOD_FILENAME}"
                             fi
 
                             # Move filename to that provided by LOCATION_FILENAME
