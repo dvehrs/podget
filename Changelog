@@ -1,6 +1,8 @@
 podget (0.7.14) unstable; urgency=low
 
-  * Thanks to angoongo for submitting a report for an unbound variable error.  
+  * Thanks to angoongo for submitting a report for an unbound variable error.
+  * Thanks to Chris for reporting issue that lead to the development of a
+    function to prefix filenames with their modification dates.
 
 podget (0.7.13) unstable; urgency=low
 
