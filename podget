@@ -538,11 +538,21 @@ TEXT_DEFAULT_CONFIG
 #   OPT_FILENAME_LOCATION       - Some feeds do not have the detailed filename listed in the FEED but rather rename
 #                                 the file on redirection.  This option address that issue by attempting to grab the
 #                                 filename from the last 'Location:' tag in the output of 'wget --server-response'.
+#   OPT_FILENAME_RENAME_MDATE   - For feeds that use a singular filename for each item that is identified by a long
+#                                 somewhat incomprehensible string in the URL.  These feeds were previously fixed
+#                                 with FILENAME_FORMATFIX4 which would append the string to the common filename to
+#                                 produce unique filenames for each item.  However this produced filenames that were
+#                                 not very easy to understand.  This option gives us another method for dealing with
+#                                 these common filenames.  This appends the date of the files last change (modification
+#                                 date) as a prefix to the filename in the format of YYYYMMDD_HHhMMm_<common-part>.  This
+#                                 makes the filenames sortable and gives the user something that makes a moderate amount
+#                                 of sense.
 #
 # Examples:
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION
+#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
 #
 http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
 TEXT_DEFAULT_SERVERLIST
