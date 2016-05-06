@@ -2258,8 +2258,10 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                             # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
                             # continue function can work on later attempts.
-                            if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
-                                rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                            if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                                fi
                             fi
                         fi
                     else
