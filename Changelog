@@ -7,6 +7,9 @@ podget (0.7.14) unstable; urgency=low
   * Modified filename renaming to properly respect the force option (--force),
     this affects OPT_FILENAME_LOCATION, OPT_CONTENT_DISPOSITION,
     OPT_FILENAME_RENAME_MDATE, and FILENAME_SUFFIX.
+  * Restored modified filename handling immediately around the wget download
+    commands.  Fixed a misguided attempt at script cleanup that resulted in
+    an error with iTunes feeds reported by Francois Marier.
 
 podget (0.7.13) unstable; urgency=low
 
