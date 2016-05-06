@@ -1950,9 +1950,29 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             mkdir -p "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}"
                         fi
 
+                        # If FORCE then remove existing files before download.
+                        if [ ${FORCE} -ne 0 ] ; then
+                            if [ -n "${MOD_FILENAME}" ]; then
+                                if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
+                                    if [ ${VERBOSITY} -eq 0 ] ; then
+                                        rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                    else
+                                        rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                    fi
+                                fi
+                            else
+                                if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                                    if [ ${VERBOSITY} -eq 0 ] ; then
+                                        rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                                    else
+                                        rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                                    fi
+                                fi
+                            fi
+                        fi
+
                         if [ ${VERBOSITY} -ge 2 ] ; then
-                            if [ $MODIFY_FILENAME -gt 0 ] || [ "$FILENAME_FORMATFIX" -gt 0 ] ||
-                               [ "$FILENAME_FORMATFIX2" -gt 0 ]; then
+                            if [ -n "${MOD_FILENAME}" ]; then
                                 echo -e "Downloading ${MOD_FILENAME} from ${URL_BASE}"
                             else
                                 echo -e "Downloading ${URL_FILENAME} from ${URL_BASE}"
@@ -1982,9 +2002,20 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                         echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
                                 fi
                             fi
-                            wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                            # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
+                            if [ -n "${MOD_FILENAME}" ]; then
+                                wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                            else
+                                wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                            fi
                         else
-                            wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
+                            # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
+                            #   ( I'm looking at you ITunes..... )
+                            if [ -n "${MOD_FILENAME}" ]; then
+                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
+                            else
+                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
+                            fi
                         fi
 
                         WGET_EXITSTATUS=$?
@@ -2007,7 +2038,12 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
                             # Before filename changes, set FINAL_FILENAME to URL_FILENAME
-                            FINAL_FILENAME="${URL_FILENAME}"
+                            # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
+                            if [ -n "${MOD_FILENAME}" ]; then
+                                FINAL_FILENAME="${MOD_FILENAME}"
+                            else
+                                FINAL_FILENAME="${URL_FILENAME}"
+                            fi
 
                             # if --content-disposition get filename and remove quotes around it.
                             if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
@@ -2114,30 +2150,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 # down to a single time.
                                 if [[ ! -z ${LOCATION_FILENAME+set} ]]; then
                                     LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-                                fi
-                            fi
-
-                            # Move URL_FILENAME to MOD_FILENAME
-                            # NOTE: if MOD_FILENAME == FINAL_FILENAME no need to rename file.
-                            if [ -n "${MOD_FILENAME}" ] && [ "${FINAL_FILENAME}" != "${MOD_FILENAME}" ]; then
-                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
-                                    if [ ${VERBOSITY} -ge 2 ]; then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
-                                    fi
-                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
-                                    FINAL_FILENAME="${MOD_FILENAME}"
-                                else
-                                    if [ ${FORCE} -ne 0 ]; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${MOD_FILENAME}"
-                                        fi
-                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
-                                        FINAL_FILENAME="${MOD_FILENAME}"
-                                    else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
-                                            echo "FILENAME CHANGE PREVENTED [ ${MOD_FILENAME} already exists ]"
-                                        fi
-                                    fi
                                 fi
                             fi
 
