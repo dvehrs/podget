@@ -11,6 +11,8 @@ podget (0.7.14) unstable; urgency=low
     commands.  Fixed a misguided attempt at script cleanup that resulted in
     an error with iTunes feeds reported by Francois Marier.
 
+ -- Dave Vehrs <dvehrs@gmail.com> Tue, 10 May 2016 14:02:23 -0600
+
 podget (0.7.13) unstable; urgency=low
 
   * Thanks to Marcus Stollsteimer for submitting corrections to the man pages
