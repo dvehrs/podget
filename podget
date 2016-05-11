@@ -1860,27 +1860,41 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             trap - ERR
 
             # NOTES:
-            # '<enclosure' tag statements are for RSS feeds.
-            # '<link rel="enclosure"' are for Atom feeds.  These are new and need to be tested (20160510).
             case ${FILETYPE} in
                 'utf8')
-                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}"  | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
-                        sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
-                                     -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
-                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' \
-                                     -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip' | \
-                        sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
-                        sed -e ':a;N;$!ba;s/\n/ /g') ;;
+                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}") ;;
                 'utf16')
-                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8  | \
-                        tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
-                        sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
-                                     -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
-                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' \
-                                     -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip' | \
-                        sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
-                        sed -e ':a;N;$!ba;s/\n/ /g') ;;
+                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8) ;;
             esac
+
+            INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g')
+
+            # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
+            TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
+
+            echo "------ TESTLINE --------"
+            echo "${TESTLINES}"
+            echo "------ TESTLINE --------"
+
+            if grep -q '<rss ' <<< "${TESTLINES}" ;then
+                # if file is RSS then we look for '<enclosure '
+                INDEXFILE=$(echo "${INDEXFILE}" | \
+                            sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                                         -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
+                                         -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
+            elif grep -q '<feed ' <<< "${TESTLINES}"; then
+                # if file is Atom then we look for '<link rel="enclosure" '
+                INDEXFILE=$(echo "${INDEXFILE}" | \
+                            sed -n -e :a -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip')
+            else
+                echo "Feed is neither RSS, or Atom.  Skipping to next feed."
+                continue
+            fi
+
+            # final INDEXFILE cleanup options
+            INDEXFILE=$(echo "${INDEXFILE}" | \
+                        sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                        sed -e ':a;N;$!ba;s/\n/ /g')
 
             # Re-enable pipefail
             set -o pipefail
