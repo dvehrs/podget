@@ -1867,22 +1867,37 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8) ;;
             esac
 
+            # Re-enable pipefail
+            set -o pipefail
+
+            # Re-enable trap
+            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
             INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g')
 
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
-            echo "------ TESTLINE --------"
-            echo "${TESTLINES}"
-            echo "------ TESTLINE --------"
+            if [ ${VERBOSITY} -ge 4 ] ; then
+                echo "------ Check for RSS or Atom feed --------"
+                echo "${TESTLINES}"
+                echo "------ ( first 9 lines of feed --------"
+                echo "------   looking for '<rss '   --------"
+                echo "------   or '<feed ' )         --------"
+                echo
+            fi
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
+                echo "================> RSS FEED"
+#                continue
                 # if file is RSS then we look for '<enclosure '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                          -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
+                echo "================> ATOM FEED"
+#                continue
                 # if file is Atom then we look for '<link rel="enclosure" '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             sed -n -e :a -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip')
@@ -1895,12 +1910,6 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             INDEXFILE=$(echo "${INDEXFILE}" | \
                         sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                         sed -e ':a;N;$!ba;s/\n/ /g')
-
-            # Re-enable pipefail
-            set -o pipefail
-
-            # Re-enable trap
-            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
             if [ -n "${INDEXFILE}" ] ; then
 
