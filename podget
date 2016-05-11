@@ -1859,16 +1859,12 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # Also disable trap for reporting errors.
             trap - ERR
 
-            # NOTES:
-            # '<enclosure' tag statements are for RSS feeds.
-            # '<link rel="enclosure"' are for Atom feeds.  These are new and need to be tested (20160510).
             case ${FILETYPE} in
                 'utf8')
                     INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}"  | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
                         sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                      -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
-                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' \
-                                     -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip' | \
+                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' | \
                         sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                         sed -e ':a;N;$!ba;s/\n/ /g') ;;
                 'utf16')
@@ -1876,8 +1872,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g' | \
                         sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                      -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
-                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' \
-                                     -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip' | \
+                                     -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}' | \
                         sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                         sed -e ':a;N;$!ba;s/\n/ /g') ;;
             esac
