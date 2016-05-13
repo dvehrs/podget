@@ -1914,6 +1914,9 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "================> ATOM FEED"
                 # if file is Atom then we look for '<link\s.*rel="enclosure" '
                 # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
+                #
+                # Needs More Cowbell: We need to add delimiter selection here to be sure that the characters we are
+                # using are not in the string we are filtering.  REMOVE_URL for implementation.
 
                 # Get full enclosure lines to filter on
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e '\_<link\s.*rel="enclosure".*/>_Ip')
