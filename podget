@@ -1717,6 +1717,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
             POST_WGET_RENAME_MDATE=0
 
+            if [ ${VERBOSITY} -ge 2 ] ; then
+                echo "Reset ATOM_FILTER_SIMPLE"
+            fi
+            ATOM_FILTER_SIMPLE=0
+
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
             # Extract PASSWORD from FEED_NAME if found.
@@ -1752,6 +1757,16 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_RENAME_MDATE.*")" -gt 0 ] ; then
                 POST_WGET_RENAME_MDATE=1
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_FILENAME_RENAME_MDATE\(.*$\)/\1\2/')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_SIMPLE.*")" -gt 0 ] ; then
+                ATOM_FILTER_SIMPLE=1
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)ATOM_FILTER_SIMPLE\(.*$\)/\1\2/')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*")" -gt 0 ]; then
+                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | sed -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             # Remove any residual trailing spaces from ${FEED_NAME}
@@ -1889,7 +1904,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
                 echo "================> RSS FEED"
-#                continue
+                continue
                 # if file is RSS then we look for '<enclosure '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
@@ -1897,10 +1912,35 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
                 echo "================> ATOM FEED"
-#                continue
-                # if file is Atom then we look for '<link rel="enclosure" '
-                INDEXFILE=$(echo "${INDEXFILE}" | \
-                            sed -n -e :a -e 's/.*<link\s*rel="enclosure".*href="\([^"]\+\)".*/\1/Ip')
+                # if file is Atom then we look for '<link\s.*rel="enclosure" '
+                # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
+
+                # Get full enclosure lines to filter on
+                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e '\_<link\s.*rel="enclosure".*/>_Ip')
+#                    sed -n -e :a -e 's|.*<link\s.*rel="enclosure".*href="\([^"]\+\)".*type="\([^"]\+"\)\s|\1 \2|Ip')
+                echo
+                echo " --- INDEXFILE ---"
+                echo "${INDEXFILE}"
+                echo " --- INDEXFILE ---"
+
+                # SIMPLE FILTERING: filter down to just audio & video types.
+                if [ ${ATOM_FILTER_SIMPLE} -gt 0 ]; then
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e '\_type="\(audio\|video\)_p')
+                fi
+
+                if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
+                    echo
+                    echo "ATOM_FILTER_TYPE=${ATOM_FILTER_TYPE}"
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\_.*type=\"${ATOM_FILTER_TYPE}\".*_p")
+                fi
+
+                TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e :a -e 's/.*type="\([^"]\+\)".*/\1/Ip' | sort | uniq -c)
+                echo
+                echo " --- TYPECOUNT ---"
+                echo "${TYPECOUNT}"
+                echo " --- TYPECOUNT ---"
+
+                continue
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
                 continue
