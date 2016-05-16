@@ -528,12 +528,12 @@ TEXT_DEFAULT_CONFIG
 #   OPT_CONTENT_DISPOSITION     - Attempt to get filename from the Content-Disposition tag that is part of
 #                                 wget --server-response.
 #   OPT_DISPOSITION_FAIL        - This option works in conjunction with OPT_CONTENT_DISPOSITION by removing
-#                                 any URLs that fail to recieve a filename from the COMPLETED log.  This allows
+#                                 any URLs that fail to receive a filename from the COMPLETED log.  This allows
 #                                 them to be automatically retried the next time a session runs.  If this option
 #                                 is added to a feed that has already been downloaded then the user will need to
 #                                 remove the URLs for the problematic files from the COMPLETED log manually. On
 #                                 one feed this allowed for the improvement of the number of filename problems from
-#                                 appproximately 15% to under 2% over the course of 6 sessions.  Those sessions can
+#                                 approximately 15% to under 2% over the course of 6 sessions.  Those sessions can
 #                                 occur sequentially on one day or as part of your established cron rotation.
 #   OPT_FILENAME_LOCATION       - Some feeds do not have the detailed filename listed in the FEED but rather rename
 #                                 the file on redirection.  This option address that issue by attempting to grab the
