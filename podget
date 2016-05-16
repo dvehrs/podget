@@ -560,6 +560,31 @@ TEXT_DEFAULT_CONFIG
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
 #   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION OPT_FILENAME_RENAME_MDATE
 #
+# Atom Feed Options:  The following options are available for advanced handling of Atom feeds.
+#   ATOM_FILTER_SIMPLE            This option will enable filtering for just audio or video files from a feed.
+#   ATOM_FILTER_TYPE="type"       This option allows more detailed filtering of the variety of types available.  This can
+#                                 limit the files downloaded to one type (example:  "audio/mpeg") or to a few types
+#                                 (example: "(audio|video)/.*" for all audio and video types, OR "audio/.*" for all audio
+#                                 types).
+#   ATOM_FILTER_LANG="language"   If an Atom feed supports multiple languages for enclosures, then you can use this
+#                                 option to filter to only those you desire.  You can limit to one language (example: "en"
+#                                 for just English) or combine several supported languages to get them all (example: "(en|es|fr)"
+#                                 to download files in English, Spanish and French.  How the languages are defined may vary
+#                                 from feed to feed.
+#
+# Note: If you do not enable ANY of the ATOM_FILTER options, when you run podget with "-vv" or higher, for every Atom feed
+#       that supports multiple enclosures per item, Podget will tell you with the count per type or language to help you decide if
+#       you should use the filters to reduce the quantity of your downloads.
+#
+# Examples:
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_SIMPLE
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg"
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/.*"
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="(audio|video)/.*"
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="en"
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="(en|es|fr)"
+#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
+#
 http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
 TEXT_DEFAULT_SERVERLIST
 
@@ -1696,31 +1721,42 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "Serverlist Line --> ${FEED_URL}"
             fi
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
-                echo "Reset WGET_OPTIONS to remove loop specific options"
-                echo " -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo
+                echo "  Reset WGET_OPTIONS to remove loop specific options"
+                echo "   -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
             fi
             WGET_OPTIONS="${WGET_COMMON_OPTIONS}"
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
-                echo "Reset WGET_OPTION_FILENAME_LOCATION"
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
-                echo "Reset WGET_OPTION_DISPOSITION_FAIL"
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Reset WGET_OPTION_DISPOSITION_FAIL"
             fi
             WGET_OPTION_DISPOSITION_FAIL=0
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
-                echo "Reset POST_WGET_RENAME_MDATE"
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Reset POST_WGET_RENAME_MDATE"
             fi
             POST_WGET_RENAME_MDATE=0
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
-                echo "Reset ATOM_FILTER_SIMPLE"
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Reset ATOM_FILTER_SIMPLE"
             fi
             ATOM_FILTER_SIMPLE=0
+
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Reset ATOM_FILTER_TYPE"
+            fi
+            unset ATOM_FILTER_TYPE
+
+            if [ ${VERBOSITY} -ge 3 ] ; then
+                echo "  Reset ATOM_FILTER_LANG"
+            fi
+            unset ATOM_FILTER_LANG
 
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
@@ -1767,6 +1803,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*")" -gt 0 ]; then
                 ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | sed -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
+            fi
+
+            if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*")" -gt 0 ]; then
+                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | sed -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
+                FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             # Remove any residual trailing spaces from ${FEED_NAME}
@@ -1903,47 +1944,88 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
-                echo "================> RSS FEED"
-                continue
                 # if file is RSS then we look for '<enclosure '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                          -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
-                echo "================> ATOM FEED"
                 # if file is Atom then we look for '<link\s.*rel="enclosure" '
                 # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
-                #
-                # Needs More Cowbell: We need to add delimiter selection here to be sure that the characters we are
-                # using are not in the string we are filtering.  REMOVE_URL for implementation.
+
+                # Characters unlikely to appear in an XML document.  Combination of "invalid" characters and those
+                # that have worked well for my testing.
+                TEST_STRING="^{}_~"
+
+                # Find suitable TEST_CHAR to use for sed statements below.
+                for (( i=0; i<${#TEST_STRING}; i++ )); do
+                    TEST_CHAR=${TEST_STRING:$i:1}
+
+                    # grep looks for --fixed-strings so that certain characters are not
+                    # interpreted as regular expressions (like ^ $ or /)
+                    #
+                    # We're looking for a character NOT found in the INDEXFILE so its ! grep
+                    if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<${INDEXFILE}; then
+                        # When a character is not found in the string that we can use, break out of the loop.
+                        break
+                    fi
+                done
 
                 # Get full enclosure lines to filter on
-                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e '\_<link\s.*rel="enclosure".*/>_Ip')
-#                    sed -n -e :a -e 's|.*<link\s.*rel="enclosure".*href="\([^"]\+\)".*type="\([^"]\+"\)\s|\1 \2|Ip')
-                echo
-                echo " --- INDEXFILE ---"
-                echo "${INDEXFILE}"
-                echo " --- INDEXFILE ---"
+                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
 
                 # SIMPLE FILTERING: filter down to just audio & video types.
                 if [ ${ATOM_FILTER_SIMPLE} -gt 0 ]; then
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e '\_type="\(audio\|video\)_p')
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
                 fi
 
                 if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
-                    echo
-                    echo "ATOM_FILTER_TYPE=${ATOM_FILTER_TYPE}"
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\_.*type=\"${ATOM_FILTER_TYPE}\".*_p")
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
                 fi
 
-                TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e :a -e 's/.*type="\([^"]\+\)".*/\1/Ip' | sort | uniq -c)
-                echo
-                echo " --- TYPECOUNT ---"
-                echo "${TYPECOUNT}"
-                echo " --- TYPECOUNT ---"
+                TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
-                continue
+                if [ ${VERBOSITY} -ge 2 ] ; then
+                    # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
+                    # them that more is possible.
+                    if [ ${ATOM_FILTER_SIMPLE} -eq 0 ] && [ -z ${ATOM_FILTER_TYPE+set} ]; then
+                        if [ $(echo "${TYPECOUNT}" | wc -l) -gt 1 ]; then
+                            echo
+                            echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
+                            echo "ATOM_FILTER_TYPE to narrow your selection."
+                            echo
+                            echo "  COUNT | TYPE"
+                            echo "  ------+-------------"
+                            echo "${TYPECOUNT}"
+                            echo
+                        fi
+                    fi
+                fi
+
+                if [[ ! -z ${ATOM_FILTER_LANG+set} ]]; then
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
+                fi
+
+                LANGCOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+
+                if [ ${VERBOSITY} -ge 2 ] ; then
+                    # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
+                    if [ -z ${ATOM_FILTER_LANG+set} ]; then
+                        if [ $(echo "${LANGCOUNT}" | wc -l) -gt 1 ]; then
+                            echo
+                            echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
+                            echo "to narrow your selection."
+                            echo
+                            echo "  COUNT | LANGUAGE"
+                            echo "  ------+-------------"
+                            echo "${LANGCOUNT}"
+                            echo
+                        fi
+                    fi
+                fi
+
+                # Get the URLs from each enclosure after filtering.
+                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
                 continue
