@@ -496,7 +496,7 @@ TEXT_DEFAULT_CONFIG
 #    2. Category Rules:
 #      A.  Must be one word without spaces.
 #      B.  You may use underscores and dashes.
-#      C.  You can insert date substitions.
+#      C.  You can insert date substitutions.
 #          %YY%  ==  Year
 #          %MM%  ==  Month
 #          %DD%  ==  Day
@@ -585,6 +585,8 @@ TEXT_DEFAULT_CONFIG
 #   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="(en|es|fr)"
 #   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
 #
+#FEEDS:
+# ------------------------------------------------------------------------------
 http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
 TEXT_DEFAULT_SERVERLIST
 
