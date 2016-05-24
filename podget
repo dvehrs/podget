@@ -194,7 +194,7 @@ ASX_PLAYLIST=0
 # Enable playlist creation
 NO_PLAYLIST=0
 
-# Default DEBUG Disabled (Enables deletion of temporary files)
+# Default DEBUG Disabled (Deletion of temporary files allowed)
 DEBUG=0
 
      #########################################################################################################################
@@ -1936,14 +1936,14 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
-            if [ ${VERBOSITY} -ge 4 ] ; then
-                echo "------ Check for RSS or Atom feed --------"
-                echo "${TESTLINES}"
-                echo "------ ( first 9 lines of feed --------"
-                echo "------   looking for '<rss '   --------"
-                echo "------   or '<feed ' )         --------"
-                echo
-            fi
+#            if [ ${VERBOSITY} -ge 4 ] ; then
+#                echo "------ Check for RSS or Atom feed --------"
+#                echo "${TESTLINES}"
+#                echo "------ ( first 9 lines of feed --------"
+#                echo "------   looking for '<rss '   --------"
+#                echo "------   or '<feed ' )         --------"
+#                echo
+#            fi
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
                 # if file is RSS then we look for '<enclosure '
