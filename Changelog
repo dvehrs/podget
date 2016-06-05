@@ -1,8 +1,12 @@
+podget (0.8) unstable; urgency=low
+
   * Thanks to hugh-m on Github for reporting Podget's lack of support for Atom
     feeds and for helping to test our first implementation of a few options
     this new feed type.
   * Added support for Atom feeds along with a few serverlist options
     (ATOM_FILTER_SIMPLE, ATOM_FILTER_TYPE, & ATOM_FILTER_LANG)
+
+ -- Dave Vehrs <dvehrs@gmail.com> Sun, 05 Jun 2016 10:43:09 -0600
 
 podget (0.7.14) unstable; urgency=low
 
