@@ -1,3 +1,15 @@
+podget (0.8-1) unstable; urgency=low
+    Added support for Atom feeds.  Format of serverlist remains the same with
+    the addition of a few options for them.  If you'd care to view the
+    possibilities then generate a new serverlist with:
+
+        podget --serverlist [New-List-Name]
+
+    If you'd rather just continue with support for your existing feeds, then
+    no changes are necessary.
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sun, 05 Jun 2016 10:58:31 -0600
+
 podget (0.7.3-1) unstable; urgency=low
 
     Modified configuration file format.  By default, this file is stored in
@@ -20,7 +32,7 @@ podget (0.7.3-1) unstable; urgency=low
            you can delete the old version.
               rm podgetrc.old
 
-    If you run mulitple session of podget with different configurations then you
+    If you run multiple sessions of podget with different configurations then you
     will need to update each configuration file or when you attempt to run
     podget with any old version of the configuration file, it will display the
     need to update and then exit.

@@ -3,7 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Dave Vehrs <dvehrs@gmail.com>
 Build-Depends: debhelper (>= 9)
-Standards-Version: 3.9.7
+Standards-Version: 3.9.8
 Homepage: http://podget.sourceforge.net
 
 Package: podget
@@ -13,7 +13,7 @@ Suggests: libc-bin (>=2.0)
 Description: Podcast aggregrator/downloader optimized for cron
  Podget is a simple podcast aggregator optimized for running as a scheduled
  background job (i.e. cron). It features support for downloading podcasts
- from RSS & XML feeds, for sorting the files into folders &
+ from RSS & ATOM XML feeds, for sorting the files into folders &
  categories, for importing URLs from iTunes PCAST files & OPML lists
  automatic M3U & ASX playlist creation, and automatic cleanup of old files.
  It also features automatic UTF-16 conversion for podcasts hosted on MS
