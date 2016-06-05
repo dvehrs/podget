@@ -1990,7 +1990,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     # them that more is possible.
                     if [ ${ATOM_FILTER_SIMPLE} -eq 0 ] && [ -z ${ATOM_FILTER_TYPE+set} ]; then
-                        if [ $(echo "${TYPECOUNT}" | wc -l) -gt 1 ]; then
+                        if [ "$(echo "${TYPECOUNT}" | wc -l)" -gt 1 ]; then
                             echo
                             echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
                             echo "ATOM_FILTER_TYPE to narrow your selection."
@@ -2012,7 +2012,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 if [ ${VERBOSITY} -ge 2 ] ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     if [ -z ${ATOM_FILTER_LANG+set} ]; then
-                        if [ $(echo "${LANGCOUNT}" | wc -l) -gt 1 ]; then
+                        if [ "$(echo "${LANGCOUNT}" | wc -l)" -gt 1 ]; then
                             echo
                             echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
                             echo "to narrow your selection."
