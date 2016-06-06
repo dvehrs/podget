@@ -1384,15 +1384,13 @@ else
     # get version
     VERSION=$(fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | sed -e 's/.*by version \([0-9.]\)/\1/')
 
-    # Extract BASE from VERSION.  Unneeded for a while, but its here for when we do.
-    # BASE="${VERSION%%.*}"
+    # Split version string into an array by replacing '.' with 'space'
+    VERSION_ARRAY=( ${VERSION//./ } )
 
-    # Two step process.  First remove the MINOR version and then the BASE version.
-    TEMP_MAJOR=${VERSION%.*}
-    MAJOR=${TEMP_MAJOR#*.}
-
-    # Extract MINOR from VERSION
-    MINOR="${VERSION##*.}"
+    # Assign values from array to named variables with a default of '0' if unset.
+    BASE="${VERSION_ARRAY[0]:-0}"
+    MAJOR="${VERSION_ARRAY[1]:-0}"
+    MINOR="${VERSION_ARRAY[2]:-0}"
 
     # echo "BASE: ${BASE}"
     # echo "MAJOR: ${MAJOR}"
