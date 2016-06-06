@@ -1,3 +1,10 @@
+  * Kitcat490 on Github reported that version 0.8 was failing to load new
+    configuration files because the tagged version number was not being parsed
+    correctly.   Turns out the issue was due to the new version having a two
+    number version rather than the three that older versions commonly had.
+    Updated the parsing strings to work with 2, 3 or more sections in the
+    version number.
+
 podget (0.8) unstable; urgency=low
 
   * Thanks to hugh-m on Github for reporting Podget's lack of support for Atom
