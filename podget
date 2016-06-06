@@ -77,6 +77,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Enable extended glob matches.
+shopt -s extglob
+
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Help text and default file formats                                                                                             {{{
@@ -1246,7 +1249,7 @@ set -o errexit
 trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
 if [ ! -z "${VERBOSITY+set}" ] ; then
-    if [ -z ${VERBOSITY##*[!0-9]*} ]; then
+    if [ -z "${VERBOSITY##*[!0-9]*}" ]; then
         echo "Verbosity is not a supported integer value"
         exit 1
     fi
@@ -1425,14 +1428,14 @@ fi
 source "${DIR_CONFIG}"/"${CONFIG_CORE}"
 
 if [ ! -z "${CMDL_SERVERLIST+set}" ]; then
-    if [ ${VERBOSITY} -ge 1 ] ; then
+    if [ "${VERBOSITY}" -ge 1 ] ; then
         echo -e "\t\tServerlist set on command line, overriding value from configuration file."
     fi
     CONFIG_SERVERLIST=${CMDL_SERVERLIST}
 fi
 
 if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
-    if [ ${VERBOSITY} -ge 1 ] ; then
+    if [ "${VERBOSITY}" -ge 1 ] ; then
         echo -e "\t\tNO PLAYLIST set on command line, overriding value from configuration file."
     fi
     NO_PLAYLIST=${CMDL_NOPLAYLIST}
@@ -1493,7 +1496,7 @@ if [ ${VERBOSITY} -ge 3 ] ; then
 fi
 
 if [ ! -z "${CMDL_CLEANUP_DAYS+set}" ] ; then
-    if [ -z ${CMDL_CLEANUP_DAYS##*[!0-9]*} ]; then
+    if [ -z "${CMDL_CLEANUP_DAYS##*[!0-9]*}" ]; then
         echo "Cleanup Days is not a positive integer value"
         CLEANUP_AND_EXIT 1
     fi
@@ -1532,7 +1535,7 @@ if [ "${CMDL_FORCE}" -ne 0 ] ; then
 fi
 
 if [ ! -z "${CMDL_MOSTRECENT+set}" ] ; then
-    if [ -z ${CMDL_MOSTRECENT##*[!0-9]*} ]; then
+    if [ -z "${CMDL_MOSTRECENT##*[!0-9]*}" ]; then
         echo
         echo "Recent is not a positive integer value"
         CLEANUP_AND_EXIT 1
@@ -1741,6 +1744,9 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
 #            WGET_OPTIONS="${WGET_COMMON_OPTIONS}"
 
+            # clear array and reimport
+            unset -v WGET_OPTIONS
+
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
             read -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
@@ -1748,6 +1754,25 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
+
+            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
+                # removing actual --content-disposition option from WGET because it is not used directly
+                # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    if [ "${WGET_OPTIONS[${index}]}" == "--content-disposition" ]; then
+                        unset WGET_OPTIONS[${index}]
+                        WGET_OPTION_DISPOSITION=1
+                        if [ ${VERBOSITY} -ge 3 ] ; then
+                            echo "  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+                        fi
+                    fi
+                done
+            else
+                WGET_OPTION_DISPOSITION=0
+                if [ ${VERBOSITY} -ge 3 ] ; then
+                    echo "  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+                fi
+            fi
 
             if [ ${VERBOSITY} -ge 3 ] ; then
                 echo "  Reset WGET_OPTION_DISPOSITION_FAIL"
@@ -1779,48 +1804,38 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # Extract PASSWORD from FEED_NAME if found.
             if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
                 URL_PASSWORD=$(echo "${FEED_NAME}" | sed -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)PASS:[^ $]\+\(.*$\)/\1\2/')
+                FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
             fi
 
             # Extract USERNAME from FEED_NAME if found.
             if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
                 URL_USERNAME=$(echo "${FEED_NAME}" | sed -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
+                FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
             fi
 
             if [ "$(expr "${FEED_NAME}" : ".*OPT_CONTENT_DISPOSITION.*")" -gt 0 ] ; then
-                # Check to see if --content-disposition was previously set globally for all feeds before adding it.
-#                if [[ "${WGET_OPTIONS}" != *"--content-disposition"* ]]; then
-#                    WGET_OPTIONS="${WGET_OPTIONS} --content-disposition"
-#                fi
-#                echo "WGET OPTIONS: ${WGET_OPTIONS[@]}"
-                # ADD ELEMENT IF NOT FOUND
-                if ! ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
-                    echo "CONTENT DISPOSITION FOUND!"
-                    WGET_OPTIONS+=('--content-disposition')
-                fi
-#                echo "WGET OPTIONS: ${WGET_OPTIONS[@]}"
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_CONTENT_DISPOSITION\(.*$\)/\1\2/')
+                WGET_OPTION_DISPOSITION=1
+                FEED_NAME=${FEED_NAME/OPT_CONTENT_DISPOSITION}
             fi
 
             if [ "$(expr "${FEED_NAME}" : ".*OPT_DISPOSITION_FAIL.*")" -gt 0 ] ; then
                 WGET_OPTION_DISPOSITION_FAIL=1
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_DISPOSITION_FAIL\(.*$\)/\1\2/')
+                FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
             fi
 
             if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*")" -gt 0 ] ; then
                 WGET_OPTION_FILENAME_LOCATION=1
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_FILENAME_LOCATION\(.*$\)/\1\2/')
+                FEED_NAME=${FEED_NAME/OPT_FILENAME_LOCATION}
             fi
 
             if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_RENAME_MDATE.*")" -gt 0 ] ; then
                 POST_WGET_RENAME_MDATE=1
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_FILENAME_RENAME_MDATE\(.*$\)/\1\2/')
+                FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
             fi
 
             if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_SIMPLE.*")" -gt 0 ] ; then
                 ATOM_FILTER_SIMPLE=1
-                FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)ATOM_FILTER_SIMPLE\(.*$\)/\1\2/')
+                FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
             fi
 
             if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*")" -gt 0 ]; then
@@ -1847,12 +1862,10 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
             # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
             if [ ! -z "${URL_USERNAME+set}" ]; then
-#                WGET_OPTIONS="${WGET_OPTIONS} --user=${URL_USERNAME}"
                 WGET_OPTIONS+=("--user=${URL_USERNAME}")
             fi
 
             if [ ! -z "${URL_PASSWORD+set}" ]; then
-#                WGET_OPTIONS="${WGET_OPTIONS} --password=${URL_PASSWORD}"
                 WGET_OPTIONS+=("--password=${URL_PASSWORD}")
             fi
 
@@ -2012,7 +2025,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 if [ ${VERBOSITY} -ge 2 ] ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     # them that more is possible.
-                    if [ ${ATOM_FILTER_SIMPLE} -eq 0 ] && [ -z ${ATOM_FILTER_TYPE+set} ]; then
+                    if [ ${ATOM_FILTER_SIMPLE} -eq 0 ] && [ -z "${ATOM_FILTER_TYPE+set}" ]; then
                         if [ "$(echo "${TYPECOUNT}" | wc -l)" -gt 1 ]; then
                             echo
                             echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
@@ -2026,7 +2039,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     fi
                 fi
 
-                if [[ ! -z ${ATOM_FILTER_LANG+set} ]]; then
+                if [[ ! -z "${ATOM_FILTER_LANG+set}" ]]; then
                     INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
                 fi
 
@@ -2034,7 +2047,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                 if [ ${VERBOSITY} -ge 2 ] ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
-                    if [ -z ${ATOM_FILTER_LANG+set} ]; then
+                    if [ -z "${ATOM_FILTER_LANG+set}" ]; then
                         if [ "$(echo "${LANGCOUNT}" | wc -l)" -gt 1 ]; then
                             echo
                             echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
@@ -2167,22 +2180,10 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # To catch content-disposition flag and mv file
                         # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
 
-#                        if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
-                        if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ]] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
-                            if [ ${VERBOSITY} -ge 2 ] ; then
-                                if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
+                        if [ ${WGET_OPTION_DISPOSITION} -eq 1 ] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
+                            if [ ${VERBOSITY} -ge 3 ] ; then
+                                if [ ${WGET_OPTION_DISPOSITION} -eq 1 ]; then
                                     echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
-                                    # removing actual --content-disposition option from WGET because it is not needed.  It is
-                                    # primarily used as a flag to indicate the mode we're in.
-#                                    WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(^.*\)--content-disposition[^ $]\+\(.*$\)/\1\2/')
-                                    for index in "${!WGET_OPTIONS[@]}"; do
-                                        echo "ELEMENT: ${WGET_OPTIONS[${index}]}"
-                                        if [ "${WGET_OPTIONS[${index}]}" == "--content-dispostion" ]; then
-                                            echo REMOVING
-                                            unset ${WGET_OPTIONS[${index}]}
-                                            index=$((index-1))
-                                        fi
-                                    done
                                 fi
                                 if [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
                                         echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
@@ -2232,8 +2233,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             # if --content-disposition get filename and remove quotes around it.
-#                            if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
-                            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
+                            if [ "${WGET_OPTION_DISPOSITION}" -eq 1 ]; then
+#                            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "CONTENT-DISPOSITION TESTS"
                                 fi
@@ -2697,14 +2698,16 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
         fi
 
         # Remove PASSWORD from FEED_NAME if found.
-        if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
-            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)PASS:[^ $]\+\(.*$\)/\1\2/')
-        fi
+#        if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
+#            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)PASS:[^ $]\+\(.*$\)/\1\2/')
+#        fi
+        FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
 
         # Remove USERNAME from FEED_NAME if found.
-        if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
-            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
-        fi
+#        if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
+#            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
+#        fi
+        FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
 
         # Remove any residual trailing spaces from ${FEED_NAME}
         while [ "$(expr "${FEED_NAME}" : ".*[ ]\+$")" -gt 0 ]; do
@@ -2788,6 +2791,9 @@ fi
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Close session with '0' status and clean up:                                                                                    {{{
+
+# Disable extended glob matches.
+shopt -u extglob
 
 CLEANUP_AND_EXIT 0
 
