@@ -604,6 +604,18 @@ TEXT_ASX_END
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Functions                                                                                                                      {{{
 
+# Functioon: ARRAY_CONTAINS
+# Test if Array contains element.
+# Returns 0 if found, or 1 if not found.
+# ARGUMENTS:
+# ${1} == String to search for
+# ${2} == Array to search within (also called ${@:2})
+ARRAY_CONTAINS() {
+    local element
+    for element in "${@:2}"; do [[ "${element}" == "${1}" ]] && return 0; done
+    return 1
+}
+
 # Function: CLEANUP_AND_EXIT
 # Closes session and removes lock file (if it exists)
 # ARGUMENTS:
@@ -1727,7 +1739,10 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "  Reset WGET_OPTIONS to remove loop specific options"
                 echo "   -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
             fi
-            WGET_OPTIONS="${WGET_COMMON_OPTIONS}"
+#            WGET_OPTIONS="${WGET_COMMON_OPTIONS}"
+
+            # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
+            read -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
             if [ ${VERBOSITY} -ge 3 ] ; then
                 echo "  Reset WGET_OPTION_FILENAME_LOCATION"
@@ -1775,9 +1790,16 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
             if [ "$(expr "${FEED_NAME}" : ".*OPT_CONTENT_DISPOSITION.*")" -gt 0 ] ; then
                 # Check to see if --content-disposition was previously set globally for all feeds before adding it.
-                if [[ "${WGET_OPTIONS}" != *"--content-disposition"* ]]; then
-                    WGET_OPTIONS="${WGET_OPTIONS} --content-disposition"
+#                if [[ "${WGET_OPTIONS}" != *"--content-disposition"* ]]; then
+#                    WGET_OPTIONS="${WGET_OPTIONS} --content-disposition"
+#                fi
+#                echo "WGET OPTIONS: ${WGET_OPTIONS[@]}"
+                # ADD ELEMENT IF NOT FOUND
+                if ! ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
+                    echo "CONTENT DISPOSITION FOUND!"
+                    WGET_OPTIONS+=('--content-disposition')
                 fi
+#                echo "WGET OPTIONS: ${WGET_OPTIONS[@]}"
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)OPT_CONTENT_DISPOSITION\(.*$\)/\1\2/')
             fi
 
@@ -1825,11 +1847,13 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
             # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
             if [ ! -z "${URL_USERNAME+set}" ]; then
-                WGET_OPTIONS="${WGET_OPTIONS} --user=${URL_USERNAME}"
+#                WGET_OPTIONS="${WGET_OPTIONS} --user=${URL_USERNAME}"
+                WGET_OPTIONS+=("--user=${URL_USERNAME}")
             fi
 
             if [ ! -z "${URL_PASSWORD+set}" ]; then
-                WGET_OPTIONS="${WGET_OPTIONS} --password=${URL_PASSWORD}"
+#                WGET_OPTIONS="${WGET_OPTIONS} --password=${URL_PASSWORD}"
+                WGET_OPTIONS+=("--password=${URL_PASSWORD}")
             fi
 
             if [ ${VERBOSITY} -ge 2 ] ; then
@@ -1840,7 +1864,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
 
             if [ ${VERBOSITY} -ge 2 ] ; then
-                echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS}"
+                echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS[*]}"
             fi
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
@@ -1898,7 +1922,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # useful for debugging connection issues.
                         printf '%-30s %-50s\n' "" "Password: ${URL_PASSWORD}"
                     fi
-                    printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS}"
+                    printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
                 fi
                 if [ ${NO_PLAYLIST} -eq 0 ] && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
                     printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
@@ -1918,9 +1942,9 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
             case ${FILETYPE} in
                 'utf8')
-                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}") ;;
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}") ;;
                 'utf16')
-                    INDEXFILE=$(wget ${WGET_OPTIONS} -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8) ;;
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8) ;;
             esac
 
             # Re-enable pipefail
@@ -2143,13 +2167,22 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # To catch content-disposition flag and mv file
                         # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
 
-                        if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
+#                        if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
+                        if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ]] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
                             if [ ${VERBOSITY} -ge 2 ] ; then
-                                if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+                                if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
                                     echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
                                     # removing actual --content-disposition option from WGET because it is not needed.  It is
                                     # primarily used as a flag to indicate the mode we're in.
-                                    WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(^.*\)--content-disposition[^ $]\+\(.*$\)/\1\2/')
+#                                    WGET_OPTIONS=$(echo "${WGET_OPTIONS}" | sed -e 's/\(^.*\)--content-disposition[^ $]\+\(.*$\)/\1\2/')
+                                    for index in "${!WGET_OPTIONS[@]}"; do
+                                        echo "ELEMENT: ${WGET_OPTIONS[${index}]}"
+                                        if [ "${WGET_OPTIONS[${index}]}" == "--content-dispostion" ]; then
+                                            echo REMOVING
+                                            unset ${WGET_OPTIONS[${index}]}
+                                            index=$((index-1))
+                                        fi
+                                    done
                                 fi
                                 if [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
                                         echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
@@ -2157,17 +2190,17 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
                             # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
                             if [ -n "${MOD_FILENAME}" ]; then
-                                wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
                             else
-                                wget ${WGET_OPTIONS} -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
                             fi
                         else
                             # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
                             #   ( I'm looking at you ITunes..... )
                             if [ -n "${MOD_FILENAME}" ]; then
-                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
+                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
                             else
-                                wget ${WGET_OPTIONS} -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
+                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
                             fi
                         fi
 
@@ -2199,7 +2232,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             # if --content-disposition get filename and remove quotes around it.
-                            if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+#                            if [[ "${WGET_OPTIONS}" == *"--content-disposition"* ]]; then
+                            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
                                 if [ ${VERBOSITY} -ge 2 ]; then
                                     echo "CONTENT-DISPOSITION TESTS"
                                 fi
@@ -2578,7 +2612,7 @@ if [ ! -z "${IMPORT_OPML+set}" ] ; then
         if [ ${VERBOSITY} -ge 2 ] ; then
             echo "Getting opml list."
         fi
-        opml_list=$(wget ${WGET_OPTIONS} -O - "${IMPORT_OPML}")
+        opml_list=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_OPML}")
     else
         opml_list=$(cat "${IMPORT_OPML}")
     fi
@@ -2715,7 +2749,7 @@ if [ ! -z "${IMPORT_PCAST+set}" ] ; then
         if [ ${VERBOSITY} -ge 2 ] ; then
             echo "Getting pcast file."
         fi
-        pcast_data=$(wget ${WGET_OPTIONS} -O - "${IMPORT_PCAST}")
+        pcast_data=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_PCAST}")
     else
         pcast_data=$(cat "${IMPORT_PCAST}")
     fi
