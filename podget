@@ -1388,13 +1388,14 @@ else
     VERSION_ARRAY=( ${VERSION//./ } )
 
     # Assign values from array to named variables with a default of '0' if unset.
-    BASE="${VERSION_ARRAY[0]:-0}"
+    # NOTE: BASE is currently commented out because it is currently unused.  It is here if we need it.
+    # BASE="${VERSION_ARRAY[0]:-0}"
     MAJOR="${VERSION_ARRAY[1]:-0}"
     MINOR="${VERSION_ARRAY[2]:-0}"
 
-    # echo "BASE: ${BASE}"
-    # echo "MAJOR: ${MAJOR}"
-    # echo "MINOR: ${MINOR}"
+#    echo "BASE: ${BASE:-0}"
+#    echo "MAJOR: ${MAJOR}"
+#    echo "MINOR: ${MINOR}"
 
     if [[ "${MAJOR}" -lt "7" && "${MINOR}" -lt "19" ]]; then
         echo "${DIR_CONFIG}/${CONFIG_CORE} was created by an older version of podget than is needed by this version."
