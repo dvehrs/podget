@@ -5,7 +5,12 @@ podget (0.8.1) unstable; urgency=low
     correctly.   Turns out the issue was due to the new version having a two
     number version rather than the three that older versions commonly had.
     Updated the parsing strings to work with 2, 3 or more sections.
-  * Cleanup of approximately 25 Shellcheck reported issues.
+  * Cleanup of approximately 28 Shellcheck reported issues.
+  * Attempt to make script more readable by replacing use of test '[]' for
+    arithmetic comparisons with shell built-in '(())'.
+  * Enabled Extended Pattern Matching (shopt -s extglob)
+  * Some cleanup of output text.
+
 
 podget (0.8) unstable; urgency=low
 

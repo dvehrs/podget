@@ -888,7 +888,7 @@ FILENAME_CHECK() {
                 [4-7])
                     COUNT=$((COUNT+1))
                     echo "  ${COUNT}. Remove leading or trailing period from ${TEST_STRING}"
-                    if [ "${TEST_FAIL}" -gt 1 ]; then
+                    if (( TEST_FAIL > 1 )); then
                         TEST_FAIL=$((TEST_FAIL-4))
                     fi
                     ;;
@@ -964,8 +964,8 @@ filenameFixFormat() {
     # FILENAME_FORMATFIX4 is not part of this function and is called immediately after this function ends.
 
     # Filename format fix for podcasts hosted on http://lbc.audioagain.com.
-    if [ ! -z "${FILENAME_FORMATFIX2+set}" ] && [ "${FILENAME_FORMATFIX2}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX2+set}" ] && (( FILENAME_FORMATFIX2 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
@@ -974,8 +974,8 @@ filenameFixFormat() {
     fi
 
     # Filename format fix for podcasts hosted on http://www.catradio.cat
-    if [ ! -z "${FILENAME_FORMATFIX3+set}" ] && [ "${FILENAME_FORMATFIX3}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX3+set}" ] && (( FILENAME_FORMATFIX3 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
@@ -984,8 +984,8 @@ filenameFixFormat() {
     fi
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
-    if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  [ "${FILENAME_FORMATFIX5}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  (( FILENAME_FORMATFIX5 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
@@ -994,8 +994,8 @@ filenameFixFormat() {
     fi
 
     # ZDF podcast filename fix
-    if [ ! -z "${FILENAME_FORMATFIX6+set}" ] && [ "${FILENAME_FORMATFIX6}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX6+set}" ] && (( FILENAME_FORMATFIX6 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
@@ -1011,8 +1011,8 @@ filenameFixFormat() {
     # Filename consists of: numbers, letters, dashes, underscore, plus, percent, equals, question mark, ampersand, and period
     # with extended regex and buffers limited
     # wget -O - http://radiofrance-podcast.net/podcast09/rss_12036.xml | grep enclosure | sed -ru 's/.*(media_url=.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/'
-    if [ ! -z "${FILENAME_FORMATFIX7+set}" ] && [ "${FILENAME_FORMATFIX7}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX7+set}" ] && (( FILENAME_FORMATFIX7 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
@@ -1028,8 +1028,8 @@ filenameFixFormat() {
     # filename and so FILENAME_FORMATFIX4 must also be enabled.  This can potentially affect other feeds and so it may be desirable
     # to separate these feeds to their own configuration and serverlist files.  They can then be loaded by using the -c and
     # --serverlist flags on the command line.
-    if [ ! -z "${FILENAME_FORMATFIX8+set}" ] && [ "${FILENAME_FORMATFIX8}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX8+set}" ] && (( FILENAME_FORMATFIX8 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
@@ -1038,10 +1038,10 @@ filenameFixFormat() {
     fi
 
     # Audioboo Filename Cleanup.
-    # Enclosure URLs hav "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
+    # Enclosure URLs have "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
     # It should work for Audioboo podcasts and others with similar formating.
-    if [ ! -z "${FILENAME_FORMATFIX9+set}" ] && [ "${FILENAME_FORMATFIX9}" -gt 0 ]; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX9+set}" ] && (( FILENAME_FORMATFIX9 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
@@ -1052,8 +1052,8 @@ filenameFixFormat() {
     # MP3 on Apple ITunes
     # Filenames are generally long strings of numbers and letters, with the actual episode name being defined after the '?'
     # This extracts the episode name and uses it for the filename.
-    if [ ! -z "${FILENAME_FORMATFIX10+set}" ] && [ "${FILENAME_FORMATFIX10}" -gt 0 ]; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX10+set}" ] && (( FILENAME_FORMATFIX10 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
@@ -1062,8 +1062,8 @@ filenameFixFormat() {
     fi
 
     # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
-    if [ ! -z "${FILENAME_FORMATFIX+set}" ] && [ "${FILENAME_FORMATFIX}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$")" -gt 0 ] ; then
+    if [ ! -z "${FILENAME_FORMATFIX+set}" ] && (( FILENAME_FORMATFIX > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
@@ -1073,7 +1073,7 @@ filenameFixFormat() {
 
 
     # Test for filename modifications.
-    if [ ! -z "${MODIFY_FILENAME}" ] && [ "${MODIFY_FILENAME}" -gt 0 ] ; then
+    if [ ! -z "${MODIFY_FILENAME}" ] && (( MODIFY_FILENAME > 0 )); then
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
          # down to a single time.
          MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
@@ -1213,7 +1213,7 @@ set +o errexit
 # Also disable trap for reporting errors on non-zero exit statuses.
 trap - ERR
 
-while [ $# -ge 1 ] ; do
+while (( $# >= 1 )); do
 	case ${1} in
         -c | --config               ) CONFIG_CORE=${2:-NONE}                            ; shift ; shift           ;;
              --create-config        ) CONFIG_CORE=${2:-NONE}; CMDL_CREATECONFIG=1       ; shift ; shift           ;;
@@ -1412,7 +1412,7 @@ else
 #    echo "MAJOR: ${MAJOR}"
 #    echo "MINOR: ${MINOR}"
 
-    if [[ "${MAJOR}" -lt "7" && "${MINOR}" -lt "19" ]]; then
+    if (( MAJOR < 7 && MINOR < 19 )); then
         echo "${DIR_CONFIG}/${CONFIG_CORE} was created by an older version of podget than is needed by this version."
         echo
         echo "This version of podget requires a configuration produced for version 0.7.0 or newer.  This configuration"
@@ -1441,7 +1441,7 @@ if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
     NO_PLAYLIST=${CMDL_NOPLAYLIST}
 fi
 
-if [ ${INSTALL_SESSION} -gt 0 ] ; then
+if (( INSTALL_SESSION > 0 )); then
     echo "  Downloading a single item from each default server to test configuration."
     echo
     MOST_RECENT=1
@@ -1500,7 +1500,7 @@ if [ ! -z "${CMDL_CLEANUP_DAYS+set}" ] ; then
         echo "Cleanup Days is not a positive integer value"
         CLEANUP_AND_EXIT 1
     fi
-    if [ "${CMDL_CLEANUP_DAYS}" -gt 0 ] ; then
+    if (( CMDL_CLEANUP_DAYS > 0 )); then
         CLEANUP_DAYS=${CMDL_CLEANUP_DAYS}
     fi
 fi
@@ -1607,6 +1607,7 @@ while read -d $'\0' FILE ; do
             echo "Session FILE found: ${FILE} (that my user owns)"
         fi
         TEST_SESSION=1
+        # shellcheck disable=SC2094
         while read LINE ; do
             TEST_Index=$(expr "${LINE}" : "^[Cc]onfig\sfile:")
             if [ "A${TEST_Index}" != "A" ]; then
@@ -1633,7 +1634,7 @@ while read -d $'\0' FILE ; do
 done < <(find "${DIR_SESSION}" -maxdepth 1 -type f -name "podget.[0-9]*" -print0)
 
 if (( VERBOSITY >= 2 )) ; then
-    if [ ${TEST_SESSION} -gt 0 ] ; then
+    if (( TEST_SESSION > 0 )) ; then
         echo "  Old Session file(s) found and removed.  Creating new one."
     else
         echo "Session file not found.  Creating podget.$$ ."
@@ -1802,59 +1803,59 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
             # Extract PASSWORD from FEED_NAME if found.
-            if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*") > 0 )); then
                 URL_PASSWORD=$(echo "${FEED_NAME}" | sed -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
                 FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
             fi
 
             # Extract USERNAME from FEED_NAME if found.
-            if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*") > 0 )); then
                 URL_USERNAME=$(echo "${FEED_NAME}" | sed -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
                 FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*OPT_CONTENT_DISPOSITION.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*OPT_CONTENT_DISPOSITION.*") > 0 )); then
                 WGET_OPTION_DISPOSITION=1
                 FEED_NAME=${FEED_NAME/OPT_CONTENT_DISPOSITION}
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*OPT_DISPOSITION_FAIL.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
                 WGET_OPTION_DISPOSITION_FAIL=1
                 FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
                 WGET_OPTION_FILENAME_LOCATION=1
                 FEED_NAME=${FEED_NAME/OPT_FILENAME_LOCATION}
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*OPT_FILENAME_RENAME_MDATE.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*OPT_FILENAME_RENAME_MDATE.*") > 0 )); then
                 POST_WGET_RENAME_MDATE=1
                 FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_SIMPLE.*")" -gt 0 ] ; then
+            if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_SIMPLE.*") > 0 )); then
                 ATOM_FILTER_SIMPLE=1
                 FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*")" -gt 0 ]; then
+            if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
                 ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | sed -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
             fi
 
-            if [ "$(expr "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*")" -gt 0 ]; then
+            if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
                 ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | sed -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             # Remove any residual trailing spaces from ${FEED_NAME}
-            while [ "$(expr "${FEED_NAME}" : ".*[ ]\+$")" -gt 0 ]; do
+            while (( $(expr "${FEED_NAME}" : ".*[ ]\+$") > 0 )); do
                 FEED_NAME=${FEED_NAME%[ ]*}
             done
 
             # Remove any residual leading spaces from ${FEED_NAME}
-            while [ "$(expr "${FEED_NAME}" : "[ ]\+.*$")" -gt 0 ]; do
+            while (( $(expr "${FEED_NAME}" : "[ ]\+.*$") > 0 )); do
                 FEED_NAME=${FEED_NAME#[ ]*}
             done
 
@@ -1877,7 +1878,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             fi
 
             if (( VERBOSITY >= 2 )) ; then
-                echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS[*]}"
+                printf '%-30s %-s\n' "" "Loop WGET_OPTIONS: ${WGET_OPTIONS[*]}"
             fi
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
@@ -2012,7 +2013,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
 
                 # SIMPLE FILTERING: filter down to just audio & video types.
-                if [ ${ATOM_FILTER_SIMPLE} -gt 0 ]; then
+                if (( ATOM_FILTER_SIMPLE > 0 )); then
                     INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
                 fi
 
@@ -2025,8 +2026,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     # them that more is possible.
-                    if [ ${ATOM_FILTER_SIMPLE} -eq 0 ] && [ -z "${ATOM_FILTER_TYPE+set}" ]; then
-                        if [ "$(echo "${TYPECOUNT}" | wc -l)" -gt 1 ]; then
+                    if (( ATOM_FILTER_SIMPLE == 0 )) && [ -z "${ATOM_FILTER_TYPE+set}" ]; then
+                        if (( $(echo "${TYPECOUNT}" | wc -l) > 1 )); then
                             echo
                             echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
                             echo "ATOM_FILTER_TYPE to narrow your selection."
@@ -2047,8 +2048,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
-                    if [ -z "${ATOM_FILTER_LANG+set}" ]; then
-                        if [ "$(echo "${LANGCOUNT}" | wc -l)" -gt 1 ]; then
+                    if [[ -z "${ATOM_FILTER_LANG+set}" ]]; then
+                        if (( $(echo "${LANGCOUNT}" | wc -l) > 1 )); then
                             echo
                             echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
                             echo "to narrow your selection."
@@ -2079,13 +2080,13 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
 
-                if [ "${MOST_RECENT}" -gt 0 ] ; then
+                if (( MOST_RECENT > 0 )) ; then
                     FULLINDEXFILE="${INDEXFILE}"
                     INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
                 fi
 
                 if (( VERBOSITY >= 4 )) ; then
-                    if [ "${MOST_RECENT}" -gt 0 ] ; then
+                    if (( MOST_RECENT > 0 )) ; then
                         echo -e "Modified Index List:\n${INDEXFILE}"
                         echo -e "Full Index List:\n${FULLINDEXFILE}"
                     else
@@ -2111,7 +2112,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                         # Test for available space on library partition
                         AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
-                        if [ "${AVAIL_SPACE}" -le ${MIN_SPACE} ] ; then
+                        if (( AVAIL_SPACE < MIN_SPACE )); then
                             echo -e "\nAvailable space on Library partition has dropped below allowed.\nStopping Session." 1>&2
                             CLEANUP_AND_EXIT ${ERR_LIBLOWSPACE}
                         fi
@@ -2123,7 +2124,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                         # Fix where filename part of URI is constant
                         # This fix is known to cause issues with in filenames when it is not needed.  Disabled by default.
-                        if [ ! -z "${FILENAME_FORMATFIX4+set}" ] && [ "${FILENAME_FORMATFIX4}" -gt 0 ] ; then
+                        if [ ! -z "${FILENAME_FORMATFIX4+set}" ] && (( FILENAME_FORMATFIX4 > 0 )); then
                             if [ -z "${MOD_FILENAME}" ] ; then
                                 MOD_FILENAME="${URL_FILENAME}"
                             fi
@@ -2263,7 +2264,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                         # if variable is effectively blank, we can unset it
                                         unset CONTENT_FILENAME
 
-                                        if [ ${WGET_OPTION_DISPOSITION_FAIL} -gt 0 ]; then
+                                        if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
                                             if (( VERBOSITY >= 2 )); then
                                                 echo "  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
                                             fi
@@ -2292,7 +2293,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 fi
                             fi
 
-                            if [ ${WGET_OPTION_FILENAME_LOCATION} -gt 0 ]; then
+                            if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
                                 if (( VERBOSITY >= 2 )); then
                                     echo "FILENAME LOCATION TESTS"
                                 fi
@@ -2506,7 +2507,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
                     # If doing individual playlists for each podcast, Create ASX Playlist
-                    if [ ${ASX_PLAYLIST} -gt 0 ] ; then
+                    if (( ASX_PLAYLIST > 0 )); then
                         PLAYLIST_ConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
                     fi
 
@@ -2535,7 +2536,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
             # If doing one combined playlist for all podcasts, Create ASX Playlist
-            if [ ${ASX_PLAYLIST} -gt 0 ] ; then
+            if (( ASX_PLAYLIST > 0 )); then
                 PLAYLIST_ConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
             fi
         fi
@@ -2551,7 +2552,7 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
 
     if [ ${CLEANUP} -ne 0 ] || [ ${CLEANUP_ONLY} -ne 0 ] ; then
         if (( VERBOSITY >= 2 )) ; then
-            if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+            if (( CLEANUP_SIMULATE > 0 )); then
                 echo "Simulating cleanup, the following files will be removed when you run cleanup."
             else
                 echo -e "\n-------------------------------------------------\nCleanup old tracks."
@@ -2564,7 +2565,7 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
             fi
             while read LINE ; do
                 if [ -f "${DIR_LIBRARY}"/"${LINE}" ]; then
-                    if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                    if (( CLEANUP_SIMULATE > 0 )); then
                         echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
                     else
                         if (( VERBOSITY >= 2 )) ; then
@@ -2574,12 +2575,12 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
                         fi
                     fi
                 else
-                    if (( VERBOSITY >= 2 )) || [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                    if (( VERBOSITY >= 2 || CLEANUP_SIMULATE > 0 )) ; then
                         echo "File not found:  ${DIR_LIBRARY}/${LINE}"
                     fi
                 fi
             done < "${FILE}"
-            if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+            if (( CLEANUP_SIMULATE > 0 )); then
                 echo "Playlist to remove: ${FILE}"
             else
                 if (( VERBOSITY == 0 )) ; then
@@ -2704,12 +2705,12 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
         FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
 
         # Remove any residual trailing spaces from ${FEED_NAME}
-        while [ "$(expr "${FEED_NAME}" : ".*[ ]\+$")" -gt 0 ]; do
+        while (( $(expr "${FEED_NAME}" : ".*[ ]\+$") > 0 )); do
             FEED_NAME=${FEED_NAME%[ ]*}
         done
 
         # Remove any residual leading spaces from ${FEED_NAME}
-        while [ "$(expr "${FEED_NAME}" : "[ ]\+.*$")" -gt 0 ]; do
+        while (( $(expr "${FEED_NAME}" : "[ ]\+.*$") > 0 )); do
             FEED_NAME=${FEED_NAME#[ ]*}
         done
 
