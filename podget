@@ -626,15 +626,15 @@ ARRAY_CONTAINS() {
 CLEANUP_AND_EXIT() {
     local EXITSTATUS=${1}
 
-    if [ ${VERBOSITY} -ge 2 ] ; then
+    if (( VERBOSITY >= 2 )) ; then
         echo -en "\nClosing session"
     fi
     if [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
         if [ "${DEBUG}" -eq 0 ]; then
-            if [ ${VERBOSITY} -ge 2 ] ; then
+            if (( VERBOSITY >= 2 )) ; then
                 echo -n " and removing lock file"
             fi
-            if [ ${VERBOSITY} -ge 4 ] ; then
+            if (( VERBOSITY >= 4 )) ; then
                 echo
                 rm -fv "${DIR_SESSION}"/podget.$$
             else
@@ -645,9 +645,9 @@ CLEANUP_AND_EXIT() {
             echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/podget.$$"
         fi
     fi
-    if [ ${VERBOSITY} -ge 2 ] && [ ${VERBOSITY} -le 3 ]; then
+    if (( VERBOSITY >= 2 )) && (( VERBOSITY <= 3 )); then
         echo "."
-    elif [ ${VERBOSITY} -eq 1 ] || [ ${VERBOSITY} -gt 3 ]; then
+    elif (( VERBOSITY == 1 )) || (( VERBOSITY > 3 )); then
             echo
     fi
 
@@ -947,7 +947,7 @@ filenameFixFormat() {
        [ ! -z "${FILENAME_FORMATFIX4+set}" ] || [ ! -z "${FILENAME_FORMATFIX5+set}" ] || [ ! -z "${FILENAME_FORMATFIX6+set}" ] ||
        [ ! -z "${FILENAME_FORMATFIX7+set}" ] || [ ! -z "${FILENAME_FORMATFIX8+set}" ] || [ ! -z "${FILENAME_FORMATFIX9+set}" ] ||
        [ ! -z "${FILENAME_FORMATFIX10+set}" ]; then
-        if [ ${VERBOSITY} -ge 3 ] ; then
+        if (( VERBOSITY >= 3 )) ; then
            echo -e "ORIGINAL FILENAME:\t${MODIFIED_FILENAME}"
         fi
     fi
@@ -967,7 +967,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX2+set}" ] && [ "${FILENAME_FORMATFIX2}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -977,7 +977,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX3+set}" ] && [ "${FILENAME_FORMATFIX3}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -987,7 +987,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  [ "${FILENAME_FORMATFIX5}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -997,7 +997,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX6+set}" ] && [ "${FILENAME_FORMATFIX6}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -1014,7 +1014,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX7+set}" ] && [ "${FILENAME_FORMATFIX7}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -1031,7 +1031,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX8+set}" ] && [ "${FILENAME_FORMATFIX8}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -1043,7 +1043,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX9+set}" ] && [ "${FILENAME_FORMATFIX9}" -gt 0 ]; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -1055,7 +1055,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX10+set}" ] && [ "${FILENAME_FORMATFIX10}" -gt 0 ]; then
         if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -1065,7 +1065,7 @@ filenameFixFormat() {
     if [ ! -z "${FILENAME_FORMATFIX+set}" ] && [ "${FILENAME_FORMATFIX}" -gt 0 ] ; then
         if [ "$(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
@@ -1077,7 +1077,7 @@ filenameFixFormat() {
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
          # down to a single time.
          MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-        if [ ${VERBOSITY} -ge 3 ] ; then
+        if (( VERBOSITY >= 3 )) ; then
             echo -e "MODIFIED FILENAME:\t${MODIFIED_FILENAME}"
         fi
     fi
@@ -1263,7 +1263,7 @@ if [ ! -z "${CMDL_SERVERLIST+set}" ] ; then
     CONFIG_SERVERLIST=${CMDL_SERVERLIST}
 fi
 
-if [ "${VERBOSITY}" -ge 2 ] ; then
+if (( VERBOSITY >= 2 )) ; then
     echo "podget"
 fi
 
@@ -1282,7 +1282,7 @@ if [ "${DIR_CONFIG}" == "NONE" ]; then
     CLEANUP_AND_EXIT 1
 fi
 
-if [ "${VERBOSITY}" -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     echo
     echo "Parsing Config file."
     echo -e "Config directory:\t\t${DIR_CONFIG}"
@@ -1302,7 +1302,7 @@ fi
 #CLEANUP_AND_EXIT 0
 
 # Test filename for CONFIG_CORE, CMDL/CONFIG_SERVERLIST and directory for DIR_CONFIG
-if [ "${VERBOSITY}" -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     echo
     echo "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
 fi
@@ -1315,7 +1315,7 @@ fi
 
 DIRECTORY_CHECK DIR_CONFIG
 
-if [ "${VERBOSITY}" -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     echo "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
     echo
 fi
@@ -1428,14 +1428,14 @@ fi
 source "${DIR_CONFIG}"/"${CONFIG_CORE}"
 
 if [ ! -z "${CMDL_SERVERLIST+set}" ]; then
-    if [ "${VERBOSITY}" -ge 1 ] ; then
+    if (( VERBOSITY >= 1 )) ; then
         echo -e "\t\tServerlist set on command line, overriding value from configuration file."
     fi
     CONFIG_SERVERLIST=${CMDL_SERVERLIST}
 fi
 
 if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
-    if [ "${VERBOSITY}" -ge 1 ] ; then
+    if (( VERBOSITY >= 1 )) ; then
         echo -e "\t\tNO PLAYLIST set on command line, overriding value from configuration file."
     fi
     NO_PLAYLIST=${CMDL_NOPLAYLIST}
@@ -1453,13 +1453,13 @@ if [ ! -z "${CMDL_LIBRARY+set}" ] ; then
         echo "Unset directory to store podcast library"
         CLEANUP_AND_EXIT 1
     fi
-    if [ ${VERBOSITY} -ge 3 ] ; then
+    if (( VERBOSITY >= 3 )) ; then
         echo -e "\t\tOverriding Library Directory specified in configuration file."
     fi
     DIR_LIBRARY=${CMDL_LIBRARY}
 fi
 
-if [ ${VERBOSITY} -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     echo -e "Library Directory:\t\t${DIR_LIBRARY}"
 fi
 
@@ -1491,7 +1491,7 @@ if [ ! -z "${DIR_SESSION+set}" ]; then
     DIRECTORY_CHECK DIR_SESSION
 fi
 
-if [ ${VERBOSITY} -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     echo -e "Session Directory:\t\t${DIR_SESSION}"
 fi
 
@@ -1515,7 +1515,7 @@ fi
 
 DIRECTORY_CHECK DIR_LOG
 
-if [ ${VERBOSITY} -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     echo -e "Log Directory:\t\t\t${DIR_LOG}"
 fi
 
@@ -1545,17 +1545,17 @@ if [ ! -z "${CMDL_MOSTRECENT+set}" ] ; then
     fi
 fi
 
-if [ ${VERBOSITY} -le 1 ] ; then
+if (( VERBOSITY <= 1 )) ; then
         WGET_COMMON_OPTIONS="-q ${WGET_BASEOPTS}"
-elif [ ${VERBOSITY} -eq 2 ] ; then
+elif (( VERBOSITY == 2 )) ; then
     WGET_COMMON_OPTIONS="-nv ${WGET_BASEOPTS}"
-elif [ ${VERBOSITY} -eq 3 ] ; then
+elif (( VERBOSITY == 3 )) ; then
     WGET_COMMON_OPTIONS="${WGET_BASEOPTS} --progress=dot:mega"
 else
     WGET_COMMON_OPTIONS="${WGET_BASEOPTS} --progress=bar"
 fi
 
-if [ ${VERBOSITY} -ge 3 ]; then
+if (( VERBOSITY >= 3 )); then
     echo -e "WGet options:\t\t\t${WGET_COMMON_OPTIONS}"
 fi
 
@@ -1563,7 +1563,7 @@ if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
     # make sure backslash is escaped.
     FILENAME_BADCHARS="${FILENAME_BADCHARS/\\/\\\\}"
 
-    if [ ${VERBOSITY} -ge 3 ] ; then
+    if (( VERBOSITY >= 3 )) ; then
         echo -e "Filename Bad Characters:\t${FILENAME_BADCHARS}"
         echo -e "Filename Replace Character:\t${FILENAME_REPLACECHAR}"
     fi
@@ -1571,7 +1571,7 @@ if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
     MODIFY_FILENAME=1
 fi
 
-if [ ${VERBOSITY} -ge 3 ] ; then
+if (( VERBOSITY >= 3 )) ; then
     if [ "${DEBUG}" -eq 0 ]; then
         echo -e "Debug\t\t\t\tDisabled - Delete temp files."
     else
@@ -1579,7 +1579,7 @@ if [ ${VERBOSITY} -ge 3 ] ; then
     fi
 fi
 
-if [ ${VERBOSITY} -ge 1 ] ; then
+if (( VERBOSITY >= 1 )) ; then
     echo
 fi
 
@@ -1590,7 +1590,7 @@ fi
 
 # Test that session directory exists (useful when placed on a tmpfs filesystem).
 if [ ! -d "${DIR_SESSION}" ]; then
-    if [ ${VERBOSITY} -ge 2 ] ; then
+    if (( VERBOSITY >= 2 )) ; then
         echo -e "\nSession directory not found, creating"
     fi
     mkdir -p "${DIR_SESSION}"
@@ -1603,7 +1603,7 @@ fi
 TEST_SESSION=0
 while read -d $'\0' FILE ; do
     if [ "$(stat -c %u "${FILE}")" == "${UID}" ]; then
-        if [ ${VERBOSITY} -ge 2 ] ; then
+        if (( VERBOSITY >= 2 )) ; then
             echo "Session FILE found: ${FILE} (that my user owns)"
         fi
         TEST_SESSION=1
@@ -1613,7 +1613,7 @@ while read -d $'\0' FILE ; do
                 TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
                 if [ "${TEST_File}" == "${CONFIG_CORE}" ] ; then
                     SESSION_PID=$(echo "${FILE}" | sed -n -e 's/.*podget.\([0-9]*\)$/\1/p')
-                    if [ ${VERBOSITY} -ge 2 ] ; then
+                    if (( VERBOSITY >= 2 )) ; then
                         echo "  Testing PID ${SESSION_PID} to determine if its still running."
                     fi
 
@@ -1621,7 +1621,7 @@ while read -d $'\0' FILE ; do
                         echo "Another session with config file ${CONFIG_CORE} found running.  Killing session." 1>&2
                         CLEANUP_AND_EXIT ${ERR_RUNNINGSESSION}
                     else
-                        if [ ${VERBOSITY} -ge 2 ] ; then
+                        if (( VERBOSITY >= 2 )) ; then
                             echo "  Session PID ${SESSION_PID} is not running, removing lock file"
                         fi
                         rm -f "${FILE}"
@@ -1632,7 +1632,7 @@ while read -d $'\0' FILE ; do
     fi
 done < <(find "${DIR_SESSION}" -maxdepth 1 -type f -name "podget.[0-9]*" -print0)
 
-if [ ${VERBOSITY} -ge 2 ] ; then
+if (( VERBOSITY >= 2 )) ; then
     if [ ${TEST_SESSION} -gt 0 ] ; then
         echo "  Old Session file(s) found and removed.  Creating new one."
     else
@@ -1652,7 +1652,7 @@ echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 # Loop over servers on list                                                                                                      {{{
 
 if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ] && [ -z "${IMPORT_PCAST+set}" ] ; then
-    if [ ${VERBOSITY} -ge 3 ] ; then
+    if (( VERBOSITY >= 3 )) ; then
         echo -e "\nMain loop."
         echo "SERVER LIST FILE: $CONFIG_SERVERLIST"
         echo "WGET OPTIONS: ${WGET_COMMON_OPTIONS}"
@@ -1680,14 +1680,14 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             COUNTER=$((COUNTER+1))
         done
 
-        if [ ${VERBOSITY} -ge 3 ]; then
+        if (( VERBOSITY >= 3 )); then
             echo "Playlist name: ${PLAYLIST_NAME}"
         fi
     fi
 
     # UTF-8/16 handling
     for FILETYPE in utf8 utf16 ; do
-        if [ ${VERBOSITY} -ge 3 ] ; then
+        if (( VERBOSITY >= 3 )) ; then
             echo
             case ${FILETYPE} in
                 'utf8')
@@ -1711,33 +1711,33 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 echo "Unknown Filetype: ${FILETYPE}"
         esac
         if [ ! -f "${CURRENT_SERVERLIST}" ] ; then
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "No config file found, exiting loop."
             fi
             continue
         fi
 
         while read FEED_URL FEED_CATEGORY FEED_NAME ; do
-            if [ ${VERBOSITY} -ge 3 ] ; then
-                if [ ${VERBOSITY} -ge 4 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
+                if (( VERBOSITY >= 4 )) ; then
                     echo
                 fi
                 echo "Serverlist Line --> ${FEED_URL}"
             fi
 
             if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
-                if [ ${VERBOSITY} -ge 4 ] ; then
+                if (( VERBOSITY >= 4 )) ; then
                     echo "  Discarding (comment or blank line)."
                 fi
                 continue
             fi
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
+            if (( VERBOSITY >= 2 )) ; then
                 echo
                 echo "Serverlist Line --> ${FEED_URL}"
             fi
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo
                 echo "  Reset WGET_OPTIONS to remove loop specific options"
                 echo "   -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
@@ -1750,7 +1750,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
             read -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
@@ -1762,39 +1762,39 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     if [ "${WGET_OPTIONS[${index}]}" == "--content-disposition" ]; then
                         unset WGET_OPTIONS[${index}]
                         WGET_OPTION_DISPOSITION=1
-                        if [ ${VERBOSITY} -ge 3 ] ; then
+                        if (( VERBOSITY >= 3 )) ; then
                             echo "  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
                         fi
                     fi
                 done
             else
                 WGET_OPTION_DISPOSITION=0
-                if [ ${VERBOSITY} -ge 3 ] ; then
+                if (( VERBOSITY >= 3 )) ; then
                     echo "  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
                 fi
             fi
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Reset WGET_OPTION_DISPOSITION_FAIL"
             fi
             WGET_OPTION_DISPOSITION_FAIL=0
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Reset POST_WGET_RENAME_MDATE"
             fi
             POST_WGET_RENAME_MDATE=0
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Reset ATOM_FILTER_SIMPLE"
             fi
             ATOM_FILTER_SIMPLE=0
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Reset ATOM_FILTER_TYPE"
             fi
             unset ATOM_FILTER_TYPE
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Reset ATOM_FILTER_LANG"
             fi
             unset ATOM_FILTER_LANG
@@ -1869,14 +1869,14 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 WGET_OPTIONS+=("--password=${URL_PASSWORD}")
             fi
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
+            if (( VERBOSITY >= 2 )) ; then
                 echo -e "\n-------------------------------------------------"
             fi
-            if [ ${VERBOSITY} -ge 1 ] ; then
+            if (( VERBOSITY >= 1 )) ; then
                 printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
             fi
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
+            if (( VERBOSITY >= 2 )) ; then
                 echo "Loop Specific WGET_OPTIONS: ${WGET_OPTIONS[*]}"
             fi
 
@@ -1925,11 +1925,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 done
             fi
 
-            if [ ${VERBOSITY} -ge 2 ] ; then
+            if (( VERBOSITY >= 2 )) ; then
                 if [ ! -z "${URL_USERNAME+set}" ]; then
                     printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
                 fi
-                if [ ${VERBOSITY} -ge 4 ] ; then
+                if (( VERBOSITY >= 4 )) ; then
                     if [ ! -z "${URL_PASSWORD+set}" ]; then
                         # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
                         # useful for debugging connection issues.
@@ -1971,7 +1971,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
-#            if [ ${VERBOSITY} -ge 4 ] ; then
+#            if (( VERBOSITY >= 4 )) ; then
 #                echo "------ Check for RSS or Atom feed --------"
 #                echo "${TESTLINES}"
 #                echo "------ ( first 9 lines of feed --------"
@@ -2022,7 +2022,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                 TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
-                if [ ${VERBOSITY} -ge 2 ] ; then
+                if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     # them that more is possible.
                     if [ ${ATOM_FILTER_SIMPLE} -eq 0 ] && [ -z "${ATOM_FILTER_TYPE+set}" ]; then
@@ -2045,7 +2045,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                 LANGCOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
-                if [ ${VERBOSITY} -ge 2 ] ; then
+                if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     if [ -z "${ATOM_FILTER_LANG+set}" ]; then
                         if [ "$(echo "${LANGCOUNT}" | wc -l)" -gt 1 ]; then
@@ -2084,7 +2084,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
                 fi
 
-                if [ ${VERBOSITY} -ge 4 ] ; then
+                if (( VERBOSITY >= 4 )) ; then
                     if [ "${MOST_RECENT}" -gt 0 ] ; then
                         echo -e "Modified Index List:\n${INDEXFILE}"
                         echo -e "Full Index List:\n${FULLINDEXFILE}"
@@ -2098,7 +2098,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                     if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || [ ${FORCE} -ne 0 ] ; then
 
-                        if [ ${VERBOSITY} -ge 2 ] ; then
+                        if (( VERBOSITY >= 2 )) ; then
                             echo
                         fi
 
@@ -2130,7 +2130,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             MOD_PREFIX="${URL_BASE%%/}"
                             MOD_PREFIX="${MOD_PREFIX##*/}"
                             MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
-                            if [ ${VERBOSITY} -ge 3 ] ; then
+                            if (( VERBOSITY >= 3 )) ; then
                                 echo "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
                             fi
                         fi
@@ -2144,7 +2144,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         if [ ${FORCE} -ne 0 ] ; then
                             if [ -n "${MOD_FILENAME}" ]; then
                                 if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
-                                    if [ ${VERBOSITY} -eq 0 ] ; then
+                                    if (( VERBOSITY == 0 )) ; then
                                         rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
                                     else
                                         rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
@@ -2152,7 +2152,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 fi
                             else
                                 if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
-                                    if [ ${VERBOSITY} -eq 0 ] ; then
+                                    if (( VERBOSITY == 0 )) ; then
                                         rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
                                     else
                                         rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
@@ -2161,7 +2161,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
                         fi
 
-                        if [ ${VERBOSITY} -ge 2 ] ; then
+                        if (( VERBOSITY >= 2 )) ; then
                             if [ -n "${MOD_FILENAME}" ]; then
                                 echo -e "Downloading ${MOD_FILENAME} from ${URL_BASE}"
                             else
@@ -2181,7 +2181,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
 
                         if [ ${WGET_OPTION_DISPOSITION} -eq 1 ] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
-                            if [ ${VERBOSITY} -ge 3 ] ; then
+                            if (( VERBOSITY >= 3 )) ; then
                                 if [ ${WGET_OPTION_DISPOSITION} -eq 1 ]; then
                                     echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
                                 fi
@@ -2235,11 +2235,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             # if --content-disposition get filename and remove quotes around it.
                             if [ "${WGET_OPTION_DISPOSITION}" -eq 1 ]; then
 #                            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
-                                if [ ${VERBOSITY} -ge 2 ]; then
+                                if (( VERBOSITY >= 2 )); then
                                     echo "CONTENT-DISPOSITION TESTS"
                                 fi
                                 if [ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
-                                    if [ ${VERBOSITY} -ge 4 ]; then
+                                    if (( VERBOSITY >= 4 )); then
                                         echo "SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
 
@@ -2253,18 +2253,18 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [ -n "${CONTENT_FILENAME}" ] && [[ ! -z "${CONTENT_FILENAME// }" ]]; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
                                         fi
                                     else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "SERVER RESPONSE FILE - No Content-Disposition Tag"
                                         fi
                                         # if variable is effectively blank, we can unset it
                                         unset CONTENT_FILENAME
 
                                         if [ ${WGET_OPTION_DISPOSITION_FAIL} -gt 0 ]; then
-                                            if [ ${VERBOSITY} -ge 2 ]; then
+                                            if (( VERBOSITY >= 2 )); then
                                                 echo "  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
                                             fi
 
@@ -2279,7 +2279,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     # Re-enable trap
                                     trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
                                 else
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                     fi
                                 fi
@@ -2293,11 +2293,11 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             if [ ${WGET_OPTION_FILENAME_LOCATION} -gt 0 ]; then
-                                if [ ${VERBOSITY} -ge 2 ]; then
+                                if (( VERBOSITY >= 2 )); then
                                     echo "FILENAME LOCATION TESTS"
                                 fi
                                 if [ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
-                                    if [ ${VERBOSITY} -ge 4 ]; then
+                                    if (( VERBOSITY >= 4 )); then
                                         echo "SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
 
@@ -2311,7 +2311,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                                     LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
 
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
                                         if [ -n "${LOCATION_FILENAME}" ]  && [[ ! -z "${LOCATION_FILENAME// }" ]]; then
                                             echo "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
@@ -2328,7 +2328,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                     # Re-enable trap
                                     trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
                                 else
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                     fi
                                 fi
@@ -2344,20 +2344,20 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             # Move filename to that provided by content-disposition
                             if [ ! -z "${CONTENT_FILENAME+set}" ] && [ -n "${CONTENT_FILENAME}" ]; then
                                 if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]; then
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                     fi
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                     FINAL_FILENAME="${CONTENT_FILENAME}"
                                 else
                                     if [ ${FORCE} -ne 0 ] ; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                         fi
                                         mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                         FINAL_FILENAME="${CONTENT_FILENAME}"
                                     else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
                                         fi
                                     fi
@@ -2367,20 +2367,20 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             # Move filename to that provided by LOCATION_FILENAME
                             if [ ! -z "${LOCATION_FILENAME+set}" ] && [ -n "${LOCATION_FILENAME}" ]; then
                                 if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]; then
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                     fi
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                     FINAL_FILENAME="${LOCATION_FILENAME}"
                                 else
                                     if [ ${FORCE} -ne 0 ] ; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                         fi
                                         mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                         FINAL_FILENAME="${LOCATION_FILENAME}"
                                     else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
                                         fi
                                     fi
@@ -2392,20 +2392,20 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
                                 FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
                                 if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]; then
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
                                     fi
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
                                     FINAL_FILENAME="${FILENAME_MDATE}"
                                 else
                                     if [ ${FORCE} -ne 0 ] ; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
                                         fi
                                         mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
                                         FINAL_FILENAME="${FILENAME_MDATE}"
                                     else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
                                         fi
                                     fi
@@ -2415,20 +2415,20 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             # Add filename.suffix
                             if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
                                 if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]; then
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     fi
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                 else
                                     if [ ${FORCE} -ne 0 ] ; then
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                         fi
                                         mv -f  "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                         FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     else
-                                        if [ ${VERBOSITY} -ge 2 ]; then
+                                        if (( VERBOSITY >= 2 )); then
                                             echo "FILENAME CHANGE PREVENTED [ ${FINAL_FILENAME}.${FILENAME_SUFFIX} already exists ]"
                                         fi
                                     fi
@@ -2440,7 +2440,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 # Suggested fix from https://sourceforge.net/tracker/?func=detail&aid=2170298&group_id=133382&atid=727035
                                 if [ ! -z "${PLAYLIST_NAME+set}" ] ; then
                                     echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-                                    if [ ${VERBOSITY} -ge 2 ]; then
+                                    if (( VERBOSITY >= 2 )); then
                                         echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
                                     fi
                                 fi
@@ -2468,8 +2468,8 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # Remove any error log entries for the URL if it failed before
                         REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
-                        if [ ${VERBOSITY} -ge 2 ] ; then
-                            if [ ${VERBOSITY} -ge 4 ] ; then echo ; fi
+                        if (( VERBOSITY >= 2 )) ; then
+                            if (( VERBOSITY >= 4 )) ; then echo ; fi
                             echo "Already downloaded ${URL}."
                         fi
                     fi
@@ -2480,20 +2480,20 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     else
-                        if [ ! -z "${URL_FILENAME+set}" ] && [ ${VERBOSITY} -ge 2 ] ; then
+                        if [ ! -z "${URL_FILENAME+set}" ] && (( VERBOSITY >= 2 )) ; then
                             echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     fi
                 done
 
-                if [ ${VERBOSITY} -ge 3 ] ; then echo; fi
+                if (( VERBOSITY >= 3 )) ; then echo; fi
 
                 if [ "${MOST_RECENT}" -ne 0 -a $INSTALL_SESSION -eq 0 ] ; then
                     for URL in ${FULLINDEXFILE}
                     do
                         if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
                             URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
-                            if [ ${VERBOSITY} -ge 2 ] ; then
+                            if (( VERBOSITY >= 2 )) ; then
                                     echo "Marking as already downloaded ${URL_FILENAME}."
                             fi
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
@@ -2514,14 +2514,14 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     unset PLAYLIST_NAME
                 fi
 
-                if [ ${VERBOSITY} -ge 4 ] ; then
+                if (( VERBOSITY >= 4 )) ; then
                     echo
                     echo "Cleanup Loop vars:"
                 fi
                 unset URL_USERNAME
                 unset URL_PASSWORD
             else
-                if [ ${VERBOSITY} -ge 1 ] ; then
+                if (( VERBOSITY >= 1 )) ; then
                     echo "  No enclosures in feed: ${FEED_URL}"
                 fi
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
@@ -2550,7 +2550,7 @@ fi
 if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT_PCAST+set}" ] ; then
 
     if [ ${CLEANUP} -ne 0 ] || [ ${CLEANUP_ONLY} -ne 0 ] ; then
-        if [ ${VERBOSITY} -ge 2 ] ; then
+        if (( VERBOSITY >= 2 )) ; then
             if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
                 echo "Simulating cleanup, the following files will be removed when you run cleanup."
             else
@@ -2559,7 +2559,7 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
         fi
         FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u" -mtime +"${CLEANUP_DAYS}")
         for FILE in ${FILELIST} ; do
-            if [ ${VERBOSITY} -ge 2 ] ; then
+            if (( VERBOSITY >= 2 )) ; then
                 echo "Deleting tracks from ${FILE}:"
             fi
             while read LINE ; do
@@ -2567,14 +2567,14 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
                     if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
                         echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
                     else
-                        if [ ${VERBOSITY} -ge 2 ] ; then
+                        if (( VERBOSITY >= 2 )) ; then
                             rm -v "${DIR_LIBRARY}/${LINE}"
                         else
                             rm -f "${DIR_LIBRARY}/${LINE}"
                         fi
                     fi
                 else
-                    if [ ${VERBOSITY} -ge 2 ] || [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
+                    if (( VERBOSITY >= 2 )) || [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
                         echo "File not found:  ${DIR_LIBRARY}/${LINE}"
                     fi
                 fi
@@ -2582,7 +2582,7 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
             if [ ${CLEANUP_SIMULATE} -gt 0 ] ; then
                 echo "Playlist to remove: ${FILE}"
             else
-                if [ ${VERBOSITY} -eq 0 ] ; then
+                if (( VERBOSITY == 0 )) ; then
                     rm -f "${FILE}"
                 else
                     rm -fv "${FILE}"
@@ -2603,14 +2603,14 @@ if [ ! -z "${IMPORT_OPML+set}" ] ; then
         CLEANUP_AND_EXIT 1
     fi
 
-    if [ ${VERBOSITY} -ge 2 ] ; then
+    if (( VERBOSITY >= 2 )) ; then
         echo -e "\nImport servers from OPML file: ${IMPORT_OPML}"
     fi
 
     new_category="OPML_Import_$(date ${DATE_FORMAT})"
 
     if [[ ${IMPORT_OPML} == http:* ]] || [[ ${IMPORT_OPML} == ftp:* ]] ; then
-        if [ ${VERBOSITY} -ge 2 ] ; then
+        if (( VERBOSITY >= 2 )) ; then
             echo "Getting opml list."
         fi
         opml_list=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_OPML}")
@@ -2626,14 +2626,14 @@ if [ ! -z "${IMPORT_OPML+set}" ] ; then
         IFS=$'\n'
 
         for data in ${new_list} ; do
-            if [ ${VERBOSITY} -ge 1 ] ; then
+            if (( VERBOSITY >= 1 )) ; then
                 echo -e "\n---------------"
             fi
 
             new_label=$(echo "${data}" | sed -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | sed -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
             new_url=$(echo "${data}" | sed -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | sed -e 's/ /%20/g')
 
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "LABEL:  ${new_label}"
                 echo "URL:    ${new_url}"
             fi
@@ -2653,14 +2653,14 @@ if [ ! -z "${IMPORT_OPML+set}" ] ; then
 
             if [ -z "$test" ] ; then
                 echo "${new_url} ${new_category} ${new_label}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-            elif [ ${VERBOSITY} -ge 2 ] ; then
+            elif (( VERBOSITY >= 2 )) ; then
                 echo "Feed ${new_label} is already in the serverlist"
             fi
         done
 
         IFS=$OLD_IFS
     else
-        if [ ${VERBOSITY} -ge 2 ] ; then
+        if (( VERBOSITY >= 2 )) ; then
             echo "  OPML Import Error ${IMPORT_OPML}" 1>&2
         fi
         echo "OPML Import Error: ${IMPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
@@ -2679,7 +2679,7 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
         CLEANUP_AND_EXIT 1
     fi
 
-    if [ ${VERBOSITY} -ge 2 ] ; then
+    if (( VERBOSITY >= 2 )) ; then
         echo -e "\nExport serverlist to OPML file: ${EXPORT_OPML}"
     fi
 
@@ -2691,7 +2691,7 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
 
 	while read FEED_URL FEED_CATEGORY FEED_NAME ; do
         if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
-            if [ ${VERBOSITY} -ge 3 ] ; then
+            if (( VERBOSITY >= 3 )) ; then
                 echo "  Discarding line (comment or blank line)."
             fi
             continue
@@ -2719,7 +2719,7 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
             FEED_NAME=${FEED_NAME#[ ]*}
         done
 
-	    if [ ${VERBOSITY} -ge 3 ] ; then
+	    if (( VERBOSITY >= 3 )) ; then
 	             echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
 	    fi
         echo '<outline text="'"${FEED_CATEGORY}"'"><outline text="'"${FEED_NAME}"'" type="rss" xmlUrl="'"${FEED_URL}"'" /></outline>' >> "${EXPORT_OPML}"
@@ -2744,12 +2744,12 @@ if [ ! -z "${IMPORT_PCAST+set}" ] ; then
         CLEANUP_AND_EXIT 1
     fi
 
-    if [ ${VERBOSITY} -ge 2 ] ; then
+    if (( VERBOSITY >= 2 )) ; then
         echo -e "\nImport server from PCAST file: ${IMPORT_PCAST}"
     fi
 
     if [[ ${IMPORT_PCAST} == http:* ]] || [[ ${IMPORT_PCAST} == ftp:* ]] ; then
-        if [ ${VERBOSITY} -ge 2 ] ; then
+        if (( VERBOSITY >= 2 )) ; then
             echo "Getting pcast file."
         fi
         pcast_data=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_PCAST}")
@@ -2761,7 +2761,7 @@ if [ ! -z "${IMPORT_PCAST+set}" ] ; then
     new_category=$(echo "${pcast_data}" | sed -n -e 's/.*<category>\([^<]\+\)<.*/\1/Ip' | sed -e 's/ /_/g;s/\&quot;/\&/g;s/\&amp;/\&/g')
     new_title=$(echo "${pcast_data}" | sed -n -e 's/.*<title>\([^<]\+\)<.*/\1/Ip')
 
-    if [ ${VERBOSITY} -ge 2 ] ; then
+    if (( VERBOSITY >= 2 )) ; then
         echo "LINK: ${new_link}"
         echo "CATEGORY: ${new_category}"
         echo "TITLE: ${new_title}"
@@ -2782,7 +2782,7 @@ if [ ! -z "${IMPORT_PCAST+set}" ] ; then
 
     if [ -z "$test" ] ; then
         echo "${new_link} ${new_category} ${new_title}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-    elif [ ${VERBOSITY} -ge 2 ] ; then
+    elif (( VERBOSITY >= 2 )) ; then
         echo "Feed ${new_title} is already in the serverlist"
     fi
 fi
