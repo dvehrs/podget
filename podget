@@ -985,7 +985,7 @@ filenameFixFormat() {
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  [ "${FILENAME_FORMATFIX5}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -GT 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -gt 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
