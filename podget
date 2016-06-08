@@ -713,26 +713,26 @@ DIRECTORY_CHECK() {
         TEST_FAIL=$((TEST_FAIL+8))
     fi
 
-    if [ ${TEST_FAIL} -ne 0 ]; then
+    if (( TEST_FAIL != 0 )); then
         echo "DIRECTORY CHECK ERROR: ${TEST_VARIABLE} = ${TEST_STRING}"
 
         echo
         echo "Suggestion(s):"
         local COUNT=0
-        while [ "${TEST_FAIL}" -ne 0 ]; do
+        while (( TEST_FAIL != 0 )); do
             if ((8<=TEST_FAIL && TEST_FAIL<=15)); then
                 COUNT=$((COUNT+1))
                 echo "  ${COUNT}. '\000' cannot be used in directory names as mkdir expects"
                 echo "     to get a null terminated string and '\000' is considered 'end of string'."
 
-                if [ "${TEST_FAIL}" -ge 8 ]; then
+                if (( TEST_FAIL >= 8 )); then
                     TEST_FAIL=$((TEST_FAIL-8))
                 fi
             elif ((4<=TEST_FAIL && TEST_FAIL<=7)); then
                 COUNT=$((COUNT+1))
                 echo "  ${COUNT}. The asterisk should not be used in directories as they are commonly used"
                 echo "     to designate a wild card for expansion in Bash variables."
-                if [ "${TEST_FAIL}" -ge 4 ]; then
+                if (( TEST_FAIL >= 4 )); then
                     TEST_FAIL=$((TEST_FAIL-4))
                 fi
             elif ((2<=TEST_FAIL && TEST_FAIL<=3)); then
@@ -742,7 +742,7 @@ DIRECTORY_CHECK() {
                 echo "     defined by this podgetrc, the proper solution is to create a second podgetrc"
                 echo "     with the new library location defined and to run podget with the --config"
                 echo "     command line option to designate the podgetrc file to use."
-                if [ "${TEST_FAIL}" -ge 2 ]; then
+                if (( TEST_FAIL >= 2 )); then
                     TEST_FAIL=$((TEST_FAIL-2))
                 fi
             elif ((1==TEST_FAIL)); then
@@ -752,7 +752,7 @@ DIRECTORY_CHECK() {
                 echo "     or FILENAME_BADCHARS."
                 echo "       Configured characters not allowed:  ${FILENAME_BADCHARS}"
                 echo "       Offending character(s):             ${OFFENDING_CHARS}"
-                if [ "${TEST_FAIL}" -ge 1 ]; then
+                if (( TEST_FAIL >= 1 )); then
                     TEST_FAIL=$((TEST_FAIL-1))
                 fi
             fi
@@ -907,7 +907,7 @@ FILENAME_CHECK() {
                             ;;
                     esac
 
-                    if [ "${TEST_FAIL}" -ge 2 ]; then
+                    if (( TEST_FAIL >= 2 )); then
                         TEST_FAIL=$((TEST_FAIL-2))
                     fi
                     ;;
@@ -918,7 +918,7 @@ FILENAME_CHECK() {
                     echo "     or FILENAME_BADCHARS."
                     echo "       Configured characters not allowed:  ${FILENAME_BADCHARS}"
                     echo "       Offending character(s):             ${OFFENDING_CHARS}"
-                    if [ "${TEST_FAIL}" -ge 1 ]; then
+                    if (( TEST_FAIL >= 1 )); then
                         TEST_FAIL=$((TEST_FAIL-1))
                     fi
                     ;;
