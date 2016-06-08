@@ -1,4 +1,4 @@
-podget (0.8-1) unstable; urgency=low
+podget (0.8-1) unstable; urgency=medium
     Added support for Atom feeds.  Format of serverlist remains the same with
     the addition of a few options for them.  If you'd care to view the
     possibilities then generate a new serverlist with:
