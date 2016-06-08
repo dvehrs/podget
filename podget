@@ -630,7 +630,7 @@ CLEANUP_AND_EXIT() {
         echo -en "\nClosing session"
     fi
     if [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
-        if [ "${DEBUG}" -eq 0 ]; then
+        if (( DEBUG == 0 )); then
             if (( VERBOSITY >= 2 )) ; then
                 echo -n " and removing lock file"
             fi
@@ -1267,7 +1267,7 @@ if (( VERBOSITY >= 2 )) ; then
     echo "podget"
 fi
 
-if [ ${REPORT_VERSION} -eq 1 ]; then
+if (( REPORT_VERSION == 1 )); then
     echo "Version: ${VERSION}"
     CLEANUP_AND_EXIT 0
 fi
@@ -1338,7 +1338,7 @@ fi
 
 # Exit if set to --create-config
 if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
-    if [ ${CMDL_CREATECONFIG} -eq 1 ]; then
+    if (( CMDL_CREATECONFIG == 1 )); then
         if [ -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
             echo "  Configuration file ${DIR_CONFIG}/${CONFIG_CORE} already exists."
             echo "    If you would like to reuse this name, then the old file needs"
@@ -1376,7 +1376,7 @@ fi
 
 # Exit if set to --create-config
 if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
-    if [ ${CMDL_CREATECONFIG} -eq 1 ]; then
+    if (( CMDL_CREATECONFIG == 1 )); then
         CLEANUP_AND_EXIT 0
     fi
 fi
@@ -1572,7 +1572,7 @@ if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
 fi
 
 if (( VERBOSITY >= 3 )) ; then
-    if [ "${DEBUG}" -eq 0 ]; then
+    if (( DEBUG == 0 )); then
         echo -e "Debug\t\t\t\tDisabled - Delete temp files."
     else
         echo -e "Debug\t\t\t\tEnabled - Do not delete temp files."
@@ -1652,12 +1652,12 @@ echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Loop over servers on list                                                                                                      {{{
 
-if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ] && [ -z "${IMPORT_PCAST+set}" ] ; then
+if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ] && [ -z "${IMPORT_PCAST+set}" ] ; then
     if (( VERBOSITY >= 3 )) ; then
         echo -e "\nMain loop."
         echo "SERVER LIST FILE: $CONFIG_SERVERLIST"
         echo "WGET OPTIONS: ${WGET_COMMON_OPTIONS}"
-        if [ ${NO_PLAYLIST} -eq 0 ]; then
+        if (( NO_PLAYLIST == 0 )); then
             echo "Playlist Creation Enabled."
         else
             echo "Playlist Creation Disabled."
@@ -1672,7 +1672,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
     FILENAME_CHECK LOG_COMPLETE
     touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
 
-    if [ ${NO_PLAYLIST} -eq 0 ] && [ -z "${PLAYLIST_PERPODCAST+set}" ]; then
+    if (( NO_PLAYLIST == 0 )) && [ -z "${PLAYLIST_PERPODCAST+set}" ]; then
         PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
 
         COUNTER=2
@@ -1916,7 +1916,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
             # If configured to create individual playlists for each podcast, set playlist name here.
             # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
-            if [ ${NO_PLAYLIST} -eq 0 ] && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+            if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
                 PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').m3u"
 
                 COUNTER=2
@@ -1938,7 +1938,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     fi
                     printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
                 fi
-                if [ ${NO_PLAYLIST} -eq 0 ] && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
                     printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
                 fi
 
@@ -2181,12 +2181,12 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # To catch content-disposition flag and mv file
                         # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
 
-                        if [ ${WGET_OPTION_DISPOSITION} -eq 1 ] || [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
+                        if (( WGET_OPTION_DISPOSITION == 1 || WGET_OPTION_FILENAME_LOCATION == 1 )); then
                             if (( VERBOSITY >= 3 )) ; then
-                                if [ ${WGET_OPTION_DISPOSITION} -eq 1 ]; then
+                                if (( WGET_OPTION_DISPOSITION == 1 )); then
                                     echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
                                 fi
-                                if [ ${WGET_OPTION_FILENAME_LOCATION} -eq 1 ]; then
+                                if (( WGET_OPTION_FILENAME_LOCATION == 1 )); then
                                         echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
                                 fi
                             fi
@@ -2214,7 +2214,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                         # Re-enable trap
                         trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
-                        if [ ${WGET_EXITSTATUS} -eq 0  ] ; then
+                        if (( WGET_EXITSTATUS == 0 )); then
                             # make sure CONTENT_FILENAME hasn't been used before
                             unset CONTENT_FILENAME
                             unset LOCATION_FILENAME
@@ -2234,7 +2234,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                             fi
 
                             # if --content-disposition get filename and remove quotes around it.
-                            if [ "${WGET_OPTION_DISPOSITION}" -eq 1 ]; then
+                            if (( WGET_OPTION_DISPOSITION == 1 )); then
 #                            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
                                 if (( VERBOSITY >= 2 )); then
                                     echo "CONTENT-DISPOSITION TESTS"
@@ -2436,7 +2436,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                                 fi
                             fi
 
-                            if [ ${NO_PLAYLIST} -eq 0 ]; then
+                            if (( NO_PLAYLIST == 0 )); then
                                 # if creating playlists, then add to file.
                                 # Suggested fix from https://sourceforge.net/tracker/?func=detail&aid=2170298&group_id=133382&atid=727035
                                 if [ ! -z "${PLAYLIST_NAME+set}" ] ; then
@@ -2476,7 +2476,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                     fi
 
                     # Remove server response file as it's no longer needed
-                    if [ "${DEBUG}" -eq 0 ]; then
+                    if (( DEBUG == 0 )); then
                         if [ ! -z "${URL_FILENAME+set}" ] && [ -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
                             rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
@@ -2489,7 +2489,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
 
-                if [ "${MOST_RECENT}" -ne 0 -a $INSTALL_SESSION -eq 0 ] ; then
+                if (( MOST_RECENT != 0 && INSTALL_SESSION == 0 )); then
                     for URL in ${FULLINDEXFILE}
                     do
                         if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
@@ -2503,7 +2503,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
                 fi
 
                 # If doing individual playlists for each podcast Sort new playlist
-                if [ "${NO_PLAYLIST}" -eq 0 ] && [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]  && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                if (( NO_PLAYLIST == 0 )) && [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]  && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
                     PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
                     # If doing individual playlists for each podcast, Create ASX Playlist
@@ -2531,7 +2531,7 @@ if [ ${CLEANUP_ONLY} -eq 0 ] && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OP
     done
 
     # If doing one combined playlist for all podcasts, Sort new playlist
-    if [ "${NO_PLAYLIST}" -eq 0 ] && [ ! -z "${PLAYLIST_NAME+set}" ]; then
+    if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_NAME+set}" ]; then
         if [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ] ; then
             PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
