@@ -1,9 +1,11 @@
+podget (0.8.1) unstable; urgency=low
+
   * Kitcat490 on Github reported that version 0.8 was failing to load new
     configuration files because the tagged version number was not being parsed
     correctly.   Turns out the issue was due to the new version having a two
     number version rather than the three that older versions commonly had.
-    Updated the parsing strings to work with 2, 3 or more sections in the
-    version number.
+    Updated the parsing strings to work with 2, 3 or more sections.
+  * Cleanup of approximately 25 Shellcheck reported issues.
 
 podget (0.8) unstable; urgency=low
 
