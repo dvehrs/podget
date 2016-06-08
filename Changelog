@@ -9,8 +9,9 @@ podget (0.8.1) unstable; urgency=low
   * Attempt to make script more readable by replacing use of test '[]' for
     arithmetic comparisons with shell built-in '(())'.
   * Enabled Extended Pattern Matching (shopt -s extglob)
-  * Some cleanup of output text.
+  * Small cleanup of output text.
 
+ -- Dave Vehrs <dvehrs@gmail.com> Wed, 08 Jun 2016 11:01:53 -0600
 
 podget (0.8) unstable; urgency=low
 
