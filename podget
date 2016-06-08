@@ -985,7 +985,7 @@ filenameFixFormat() {
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  [ "${FILENAME_FORMATFIX5}" -gt 0 ] ; then
-        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -gt 0 ] ; then
+        if [ "$(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss")" -GT 0 ] ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
             if (( VERBOSITY >= 3 )) ; then
                 echo "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
@@ -2698,15 +2698,9 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
         fi
 
         # Remove PASSWORD from FEED_NAME if found.
-#        if [ "$(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*")" -gt 0 ] ; then
-#            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)PASS:[^ $]\+\(.*$\)/\1\2/')
-#        fi
         FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
 
         # Remove USERNAME from FEED_NAME if found.
-#        if [ "$(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*")" -gt 0 ] ; then
-#            FEED_NAME=$(echo "${FEED_NAME}" | sed -e 's/\(^.*\)USER:[^ $]\+\(.*$\)/\1\2/')
-#        fi
         FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
 
         # Remove any residual trailing spaces from ${FEED_NAME}
