@@ -1760,7 +1760,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 # removing actual --content-disposition option from WGET because it is not used directly
                 # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
                 for index in "${!WGET_OPTIONS[@]}"; do
-                    if [ "${WGET_OPTIONS[${index}]}" == "--content-disposition" ]; then
+                    if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
                         unset WGET_OPTIONS[${index}]
                         WGET_OPTION_DISPOSITION=1
                         if (( VERBOSITY >= 3 )) ; then
@@ -1862,11 +1862,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             # Add Username and Password to wget options if found.
             # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
             # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
-            if [ ! -z "${URL_USERNAME+set}" ]; then
+            if [[ -n ${URL_USERNAME+set} ]]; then
                 WGET_OPTIONS+=("--user=${URL_USERNAME}")
             fi
 
-            if [ ! -z "${URL_PASSWORD+set}" ]; then
+            if [[ -n ${URL_PASSWORD+set} ]]; then
                 WGET_OPTIONS+=("--password=${URL_PASSWORD}")
             fi
 
@@ -1927,11 +1927,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             if (( VERBOSITY >= 2 )) ; then
-                if [ ! -z "${URL_USERNAME+set}" ]; then
+                if [[ -n ${URL_USERNAME+set} ]]; then
                     printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
                 fi
                 if (( VERBOSITY >= 4 )) ; then
-                    if [ ! -z "${URL_PASSWORD+set}" ]; then
+                    if [[ -n ${URL_PASSWORD+set} ]]; then
                         # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
                         # useful for debugging connection issues.
                         printf '%-30s %-50s\n' "" "Password: ${URL_PASSWORD}"
@@ -2074,7 +2074,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                         sed -e ':a;N;$!ba;s/\n/ /g')
 
-            if [ -n "${INDEXFILE}" ] ; then
+            if [[ -n ${INDEXFILE} ]]; then
 
                 # Remove any error log entries for the FEED_URL if it failed before
                 REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
@@ -2124,8 +2124,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                         # Fix where filename part of URI is constant
                         # This fix is known to cause issues with in filenames when it is not needed.  Disabled by default.
-                        if [ ! -z "${FILENAME_FORMATFIX4+set}" ] && (( FILENAME_FORMATFIX4 > 0 )); then
-                            if [ -z "${MOD_FILENAME}" ] ; then
+                        if [[ -n ${FILENAME_FORMATFIX4+set} ]] && (( FILENAME_FORMATFIX4 > 0 )); then
+                            if [[ -z ${MOD_FILENAME} ]] ; then
                                 MOD_FILENAME="${URL_FILENAME}"
                             fi
                             MOD_PREFIX="${URL_BASE%%/}"
@@ -2137,14 +2137,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         fi
 
                         # If directories do not exist, then create them.
-                        if [ ! -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]; then
+                        if [[ ! -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]]; then
                             mkdir -p "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}"
                         fi
 
                         # If FORCE then remove existing files before download.
                         if (( FORCE != 0 )); then
-                            if [ -n "${MOD_FILENAME}" ]; then
-                                if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]]; then
                                     if (( VERBOSITY == 0 )) ; then
                                         rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
                                     else
@@ -2152,7 +2152,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     fi
                                 fi
                             else
-                                if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                                if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
                                     if (( VERBOSITY == 0 )) ; then
                                         rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
                                     else
@@ -2163,7 +2163,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         fi
 
                         if (( VERBOSITY >= 2 )) ; then
-                            if [ -n "${MOD_FILENAME}" ]; then
+                            if [[ -n ${MOD_FILENAME} ]]; then
                                 echo -e "Downloading ${MOD_FILENAME} from ${URL_BASE}"
                             else
                                 echo -e "Downloading ${URL_FILENAME} from ${URL_BASE}"
@@ -2191,7 +2191,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 fi
                             fi
                             # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
-                            if [ -n "${MOD_FILENAME}" ]; then
+                            if [[ -n ${MOD_FILENAME} ]]; then
                                 wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
                             else
                                 wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
@@ -2199,7 +2199,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         else
                             # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
                             #   ( I'm looking at you ITunes..... )
-                            if [ -n "${MOD_FILENAME}" ]; then
+                            if [[ -n ${MOD_FILENAME} ]]; then
                                 wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
                             else
                                 wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
@@ -2227,7 +2227,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                             # Before filename changes, set FINAL_FILENAME to URL_FILENAME
                             # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
-                            if [ -n "${MOD_FILENAME}" ]; then
+                            if [[ -n ${MOD_FILENAME} ]]; then
                                 FINAL_FILENAME="${MOD_FILENAME}"
                             else
                                 FINAL_FILENAME="${URL_FILENAME}"
@@ -2239,7 +2239,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 if (( VERBOSITY >= 2 )); then
                                     echo "CONTENT-DISPOSITION TESTS"
                                 fi
-                                if [ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
+                                if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
                                     if (( VERBOSITY >= 4 )); then
                                         echo "SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
