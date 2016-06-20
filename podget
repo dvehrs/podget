@@ -1877,7 +1877,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                 printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
             fi
 
-            if (( VERBOSITY >= 2 )) ; then
+            if (( VERBOSITY >= 3 )) ; then
                 printf '%-30s %-s\n' "" "Loop WGET_OPTIONS: ${WGET_OPTIONS[*]}"
             fi
 
