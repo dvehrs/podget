@@ -1337,7 +1337,7 @@ if [[ ! -d ${DIR_CONFIG} ]] ; then
 fi
 
 # Exit if set to --create-config
-if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
+if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
     if (( CMDL_CREATECONFIG == 1 )); then
         if [ -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
             echo "  Configuration file ${DIR_CONFIG}/${CONFIG_CORE} already exists."
@@ -1348,7 +1348,7 @@ if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
     fi
 fi
 
-if [ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
+if [[ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ]] ; then
 
     echo "  Installing default user configuration file in ${DIR_CONFIG}/${CONFIG_CORE}"
     sed --silent -e '/TEXT_DEFAULT_CONFIG$/,/^TEXT_DEFAULT_CONFIG/p' "$0" |
@@ -1362,7 +1362,7 @@ if [ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
     INSTALL_SESSION=1
 fi
 
-if [ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ] ; then
+if [[ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ]] ; then
     echo "  Installing default server list configuration."
     sed --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
         sed -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
@@ -1375,7 +1375,7 @@ if [ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ] ; then
 fi
 
 # Exit if set to --create-config
-if [ ! -z "${CMDL_CREATECONFIG+set}" ]; then
+if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
     if (( CMDL_CREATECONFIG == 1 )); then
         CLEANUP_AND_EXIT 0
     fi
@@ -1427,14 +1427,14 @@ fi
 
 source "${DIR_CONFIG}"/"${CONFIG_CORE}"
 
-if [ ! -z "${CMDL_SERVERLIST+set}" ]; then
+if [[ -n ${CMDL_SERVERLIST+set} ]]; then
     if (( VERBOSITY >= 1 )) ; then
         echo -e "\t\tServerlist set on command line, overriding value from configuration file."
     fi
     CONFIG_SERVERLIST=${CMDL_SERVERLIST}
 fi
 
-if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
+if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
     if (( VERBOSITY >= 1 )) ; then
         echo -e "\t\tNO PLAYLIST set on command line, overriding value from configuration file."
     fi
@@ -1448,7 +1448,7 @@ if (( INSTALL_SESSION > 0 )); then
     VERBOSITY=3
 fi
 
-if [ ! -z "${CMDL_LIBRARY+set}" ] ; then
+if [[ -n ${CMDL_LIBRARY+set} ]] ; then
     if [ "${CMDL_LIBRARY}" == "NONE" ]; then
         echo "Unset directory to store podcast library"
         CLEANUP_AND_EXIT 1
@@ -1463,15 +1463,15 @@ if (( VERBOSITY >= 3 )) ; then
     echo -e "Library Directory:\t\t${DIR_LIBRARY}"
 fi
 
-if [ -z "${DIR_LIBRARY}" ] ; then
+if [[ -z ${DIR_LIBRARY} ]] ; then
     echo "ERROR - Library directory not defined." 1>&2
     CLEANUP_AND_EXIT ${ERR_LIBNOTDEF}
 else
     DIRECTORY_CHECK DIR_LIBRARY
 fi
 
-if [ ! -z "${CMDL_SESSION+set}" ] ; then
-    if [ "${CMDL_SESSION}" == "NONE" ]; then
+if [[ -n ${CMDL_SESSION+set} ]] ; then
+    if [[ ${CMDL_SESSION} == "NONE" ]]; then
         echo "Unset directory to store session files."
         CLEANUP_AND_EXIT 1
     fi
@@ -1479,15 +1479,15 @@ if [ ! -z "${CMDL_SESSION+set}" ] ; then
 fi
 
 # Added so old configuration files (that were created before this option was added) still work.
-if [ -z "${DIR_SESSION+set}" ] ; then
-    if [ ! -z "${TMPDIR+set}" ]; then
+if [[ -z ${DIR_SESSION+set} ]] ; then
+    if [[ -n ${TMPDIR+set} ]]; then
         DIR_SESSION=${TMPDIR}/podget
     else
         DIR_SESSION=/tmp/podget
     fi
 fi
 
-if [ ! -z "${DIR_SESSION+set}" ]; then
+if [[ -n ${DIR_SESSION+set} ]]; then
     DIRECTORY_CHECK DIR_SESSION
 fi
 
@@ -1495,8 +1495,8 @@ if (( VERBOSITY >= 3 )) ; then
     echo -e "Session Directory:\t\t${DIR_SESSION}"
 fi
 
-if [ ! -z "${CMDL_CLEANUP_DAYS+set}" ] ; then
-    if [ -z "${CMDL_CLEANUP_DAYS##*[!0-9]*}" ]; then
+if [[ -n ${CMDL_CLEANUP_DAYS+set} ]] ; then
+    if [[ -z ${CMDL_CLEANUP_DAYS##*[!0-9]*} ]]; then
         echo "Cleanup Days is not a positive integer value"
         CLEANUP_AND_EXIT 1
     fi
@@ -1505,11 +1505,11 @@ if [ ! -z "${CMDL_CLEANUP_DAYS+set}" ] ; then
     fi
 fi
 
-if [ ! -z "${CMDL_CLEANUP_SIMULATE}" ] ; then
+if [[ -n ${CMDL_CLEANUP_SIMULATE} ]] ; then
     CLEANUP_SIMULATE=${CMDL_CLEANUP_SIMULATE}
 fi
 
-if [ -z "${DIR_LOG+set}" ] ; then
+if [[ -z ${DIR_LOG+set} ]] ; then
     DIR_LOG=${DIR_LIBRARY}/.LOG
 fi
 
@@ -1519,11 +1519,11 @@ if (( VERBOSITY >= 3 )) ; then
     echo -e "Log Directory:\t\t\t${DIR_LOG}"
 fi
 
-if [ ! -z "${CMDL_ASX+set}" ]; then
+if [[ -n ${CMDL_ASX+set} ]]; then
     ASX_PLAYLIST=${CMDL_ASX}
 fi
 
-if [ ! -z "${CMDL_PLAYLISTPERPODCAST+set}" ]; then
+if [[ -n ${CMDL_PLAYLISTPERPODCAST+set} ]]; then
     PLAYLIST_PERPODCAST=1
 fi
 
@@ -1534,8 +1534,8 @@ if (( CMDL_FORCE != 0 )); then
     WGET_BASEOPTS="${WGET_BASEOPTS/-c /}"
 fi
 
-if [ ! -z "${CMDL_MOSTRECENT+set}" ] ; then
-    if [ -z "${CMDL_MOSTRECENT##*[!0-9]*}" ]; then
+if [[ -n ${CMDL_MOSTRECENT+set} ]] ; then
+    if [[ -z ${CMDL_MOSTRECENT##*[!0-9]*} ]]; then
         echo
         echo "Recent is not a positive integer value"
         CLEANUP_AND_EXIT 1
@@ -1559,7 +1559,7 @@ if (( VERBOSITY >= 3 )); then
     echo -e "WGet options:\t\t\t${WGET_COMMON_OPTIONS}"
 fi
 
-if [ ! -z "${FILENAME_BADCHARS+set}" ] ; then
+if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
     # make sure backslash is escaped.
     FILENAME_BADCHARS="${FILENAME_BADCHARS/\\/\\\\}"
 
@@ -1589,7 +1589,7 @@ fi
 # Moved below the configuration reading so that the DIR_SESSION could be configurable.
 
 # Test that session directory exists (useful when placed on a tmpfs filesystem).
-if [ ! -d "${DIR_SESSION}" ]; then
+if [[ ! -d ${DIR_SESSION} ]]; then
     if (( VERBOSITY >= 2 )) ; then
         echo -e "\nSession directory not found, creating"
     fi
@@ -1602,7 +1602,7 @@ fi
 
 TEST_SESSION=0
 while read -d $'\0' FILE ; do
-    if [ "$(stat -c %u "${FILE}")" == "${UID}" ]; then
+    if [[ $(stat -c %u "${FILE}") == "${UID}" ]]; then
         if (( VERBOSITY >= 2 )) ; then
             echo "Session FILE found: ${FILE} (that my user owns)"
         fi
@@ -1610,9 +1610,9 @@ while read -d $'\0' FILE ; do
         # shellcheck disable=SC2094
         while read LINE ; do
             TEST_Index=$(expr "${LINE}" : "^[Cc]onfig\sfile:")
-            if [ "A${TEST_Index}" != "A" ]; then
+            if [[ "A${TEST_Index}" != "A" ]]; then
                 TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
-                if [ "${TEST_File}" == "${CONFIG_CORE}" ] ; then
+                if [[ ${TEST_File} == "${CONFIG_CORE}" ]] ; then
                     SESSION_PID=$(echo "${FILE}" | sed -n -e 's/.*podget.\([0-9]*\)$/\1/p')
                     if (( VERBOSITY >= 2 )) ; then
                         echo "  Testing PID ${SESSION_PID} to determine if its still running."
@@ -1652,7 +1652,7 @@ echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Loop over servers on list                                                                                                      {{{
 
-if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ] && [ -z "${IMPORT_PCAST+set}" ] ; then
+if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
     if (( VERBOSITY >= 3 )) ; then
         echo -e "\nMain loop."
         echo "SERVER LIST FILE: $CONFIG_SERVERLIST"
@@ -1662,7 +1662,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
         else
             echo "Playlist Creation Disabled."
         fi
-        if [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+        if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
             echo "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
         fi
     fi
@@ -1672,7 +1672,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
     FILENAME_CHECK LOG_COMPLETE
     touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
 
-    if (( NO_PLAYLIST == 0 )) && [ -z "${PLAYLIST_PERPODCAST+set}" ]; then
+    if (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
         PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
 
         COUNTER=2
@@ -1711,7 +1711,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
             *)
                 echo "Unknown Filetype: ${FILETYPE}"
         esac
-        if [ ! -f "${CURRENT_SERVERLIST}" ] ; then
+        if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
             if (( VERBOSITY >= 3 )) ; then
                 echo "No config file found, exiting loop."
             fi
@@ -1726,7 +1726,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                 echo "Serverlist Line --> ${FEED_URL}"
             fi
 
-            if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
+            if   [[ "${FEED_URL:0:1}" == "#" || "${FEED_URL}" == "" ]] ; then
                 if (( VERBOSITY >= 4 )) ; then
                     echo "  Discarding (comment or blank line)."
                 fi
