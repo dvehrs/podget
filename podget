@@ -629,7 +629,7 @@ CLEANUP_AND_EXIT() {
     if (( VERBOSITY >= 2 )) ; then
         echo -en "\nClosing session"
     fi
-    if [ ! -z "${DIR_SESSION+set}" ] && [ -f "${DIR_SESSION}"/podget.$$ ]; then
+    if [[ -n ${DIR_SESSION+set} && -f ${DIR_SESSION}/podget.$$ ]]; then
         if (( DEBUG == 0 )); then
             if (( VERBOSITY >= 2 )) ; then
                 echo -n " and removing lock file"
@@ -674,14 +674,14 @@ DIRECTORY_CHECK() {
     local TEST_FAIL=0
     local OFFENDING_CHARS=""
 
-    if [ "${TEST_STRING}" == "UNCONFigured" ]; then
+    if [[ ${TEST_STRING} == "UNCONFigured" ]]; then
         echo "Improperly formated call to DIRECTORY_CHECK."
         return 1
     fi
 
     # Test if FILENAME_BADCHARS is configured, if it is then check filenames to
     # prevent the use of disallowed characters.
-    if [ ! -z "${FILENAME_BADCHARS+set}" ]; then
+    if [[ -n ${FILENAME_BADCHARS+set} ]]; then
         for (( i=0; i<${#FILENAME_BADCHARS}; i++ )); do
             local TEST_CHAR=${FILENAME_BADCHARS:$i:1}
 
@@ -757,7 +757,7 @@ DIRECTORY_CHECK() {
                 fi
             fi
         done
-        if [ "${TEST_VARIABLE}" == "FEED_NAME" ] || [ "${TEST_VARIABLE}" == "FEED_CATEGORY" ]; then
+        if [[ ${TEST_VARIABLE} == "FEED_NAME" || ${TEST_VARIABLE} == "FEED_CATEGORY" ]]; then
             return 1
         else
             CLEANUP_AND_EXIT 1
@@ -810,14 +810,14 @@ FILENAME_CHECK() {
     local TEST_FAIL=0
     local OFFENDING_CHARS=""
 
-    if [ "${TEST_STRING}" == "UNCONFigured" ]; then
+    if [[ ${TEST_STRING} == "UNCONFigured" ]]; then
         echo "Improperly formated call to DIRECTORY_CHECK."
         return 1
     fi
 
     # Test if FILENAME_BADCHARS is configured, if it is then check filenames to
     # prevent the use of disallowed characters.
-    if [ ! -z "${FILENAME_BADCHARS+set}" ]; then
+    if [[ -n ${FILENAME_BADCHARS+set} ]]; then
         for (( i=0; i<${#FILENAME_BADCHARS}; i++ )); do
             local TEST_CHAR=${FILENAME_BADCHARS:$i:1}
 
@@ -834,12 +834,12 @@ FILENAME_CHECK() {
         done
     fi
 
-    if [ -z "${TEST_STRING##*/*}" ]; then
+    if [[ -z ${TEST_STRING##*/*} ]]; then
         # First test remove PATH from TEST_FILENAME variable.
         local TEST_DIRECTORY="${TEST_STRING%/*}"
         local TEST_FILENAME="${TEST_STRING##*/}"
 
-        if [  -n "${TEST_DIRECTORY}" ]; then
+        if [[ -n "${TEST_DIRECTORY}" ]]; then
             TEST_FAIL=$((TEST_FAIL+2))
         fi
 
@@ -849,12 +849,12 @@ FILENAME_CHECK() {
 
     # Configuration files should not be hidden by leading periods and trailing periods can cause issues on some file systems or
     # operating systems.  Test if filename begins or ends with a period (.)
-    if [ "${TEST_STRING:0:1}" == "." ] || [ "${TEST_STRING:(-1):1}" == "." ]; then
+    if [[ ${TEST_STRING:0:1} == "." || ${TEST_STRING:(-1):1} == "." ]]; then
         TEST_FAIL=$((TEST_FAIL+4))
     fi
 
 
-    if [ "${TEST_FAIL}" -ne 0 ]; then
+    if (( TEST_FAIL != 0 )); then
         echo
 
         case "${TEST_VARIABLE}" in
@@ -881,7 +881,7 @@ FILENAME_CHECK() {
         echo
         echo "Suggestion(s):"
         COUNT=0
-        while [ "${TEST_FAIL}" -ne 0 ]; do
+        while (( TEST_FAIL != 0 )); do
             case ${TEST_FAIL} in
                 # Included as an example of how other errors could be added with
                 # a binary progression for the values they add to TEST_FAIL.
@@ -943,10 +943,10 @@ filenameFixFormat() {
     local MODIFIED_FILENAME=${2}
 
 
-    if [ ! -z "${FILENAME_FORMATFIX+set}" ] || [ ! -z "${FILENAME_FORMATFIX2+set}" ] || [ ! -z "${FILENAME_FORMATFIX3+set}" ] ||
-       [ ! -z "${FILENAME_FORMATFIX4+set}" ] || [ ! -z "${FILENAME_FORMATFIX5+set}" ] || [ ! -z "${FILENAME_FORMATFIX6+set}" ] ||
-       [ ! -z "${FILENAME_FORMATFIX7+set}" ] || [ ! -z "${FILENAME_FORMATFIX8+set}" ] || [ ! -z "${FILENAME_FORMATFIX9+set}" ] ||
-       [ ! -z "${FILENAME_FORMATFIX10+set}" ]; then
+    if [[ -n ${FILENAME_FORMATFIX+set}  || -n ${FILENAME_FORMATFIX2+set} || -n ${FILENAME_FORMATFIX3+set} ||
+          -n ${FILENAME_FORMATFIX4+set} || -n ${FILENAME_FORMATFIX5+set} || -n ${FILENAME_FORMATFIX6+set} ||
+          -n ${FILENAME_FORMATFIX7+set} || -n ${FILENAME_FORMATFIX8+set} || -n ${FILENAME_FORMATFIX9+set} ||
+          -n ${FILENAME_FORMATFIX10+set} ]]; then
         if (( VERBOSITY >= 3 )) ; then
            echo -e "ORIGINAL FILENAME:\t${MODIFIED_FILENAME}"
         fi
@@ -964,7 +964,7 @@ filenameFixFormat() {
     # FILENAME_FORMATFIX4 is not part of this function and is called immediately after this function ends.
 
     # Filename format fix for podcasts hosted on http://lbc.audioagain.com.
-    if [ ! -z "${FILENAME_FORMATFIX2+set}" ] && (( FILENAME_FORMATFIX2 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX2+set} ]] && (( FILENAME_FORMATFIX2 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
             if (( VERBOSITY >= 3 )) ; then
@@ -974,7 +974,7 @@ filenameFixFormat() {
     fi
 
     # Filename format fix for podcasts hosted on http://www.catradio.cat
-    if [ ! -z "${FILENAME_FORMATFIX3+set}" ] && (( FILENAME_FORMATFIX3 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             if (( VERBOSITY >= 3 )) ; then
@@ -984,7 +984,7 @@ filenameFixFormat() {
     fi
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
-    if [ ! -z "${FILENAME_FORMATFIX5+set}" ] &&  (( FILENAME_FORMATFIX5 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
             if (( VERBOSITY >= 3 )) ; then
@@ -994,7 +994,7 @@ filenameFixFormat() {
     fi
 
     # ZDF podcast filename fix
-    if [ ! -z "${FILENAME_FORMATFIX6+set}" ] && (( FILENAME_FORMATFIX6 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
             if (( VERBOSITY >= 3 )) ; then
@@ -1011,7 +1011,7 @@ filenameFixFormat() {
     # Filename consists of: numbers, letters, dashes, underscore, plus, percent, equals, question mark, ampersand, and period
     # with extended regex and buffers limited
     # wget -O - http://radiofrance-podcast.net/podcast09/rss_12036.xml | grep enclosure | sed -ru 's/.*(media_url=.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/'
-    if [ ! -z "${FILENAME_FORMATFIX7+set}" ] && (( FILENAME_FORMATFIX7 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX7+set} ]] && (( FILENAME_FORMATFIX7 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
             if (( VERBOSITY >= 3 )) ; then
@@ -1028,7 +1028,7 @@ filenameFixFormat() {
     # filename and so FILENAME_FORMATFIX4 must also be enabled.  This can potentially affect other feeds and so it may be desirable
     # to separate these feeds to their own configuration and serverlist files.  They can then be loaded by using the -c and
     # --serverlist flags on the command line.
-    if [ ! -z "${FILENAME_FORMATFIX8+set}" ] && (( FILENAME_FORMATFIX8 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX8+set} ]] && (( FILENAME_FORMATFIX8 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
             if (( VERBOSITY >= 3 )) ; then
@@ -1040,7 +1040,7 @@ filenameFixFormat() {
     # Audioboo Filename Cleanup.
     # Enclosure URLs have "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
     # It should work for Audioboo podcasts and others with similar formating.
-    if [ ! -z "${FILENAME_FORMATFIX9+set}" ] && (( FILENAME_FORMATFIX9 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
             if (( VERBOSITY >= 3 )) ; then
@@ -1052,7 +1052,7 @@ filenameFixFormat() {
     # MP3 on Apple ITunes
     # Filenames are generally long strings of numbers and letters, with the actual episode name being defined after the '?'
     # This extracts the episode name and uses it for the filename.
-    if [ ! -z "${FILENAME_FORMATFIX10+set}" ] && (( FILENAME_FORMATFIX10 > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX10+set} ]] && (( FILENAME_FORMATFIX10 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
             if (( VERBOSITY >= 3 )) ; then
@@ -1062,7 +1062,7 @@ filenameFixFormat() {
     fi
 
     # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
-    if [ ! -z "${FILENAME_FORMATFIX+set}" ] && (( FILENAME_FORMATFIX > 0 )); then
+    if [[ -n ${FILENAME_FORMATFIX+set} ]] && (( FILENAME_FORMATFIX > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
             if (( VERBOSITY >= 3 )) ; then
@@ -1073,7 +1073,7 @@ filenameFixFormat() {
 
 
     # Test for filename modifications.
-    if [ ! -z "${MODIFY_FILENAME}" ] && (( MODIFY_FILENAME > 0 )); then
+    if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
          # down to a single time.
          MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
@@ -1248,15 +1248,15 @@ set -o errexit
 # Re-enable trap
 trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
-if [ ! -z "${VERBOSITY+set}" ] ; then
-    if [ -z "${VERBOSITY##*[!0-9]*}" ]; then
+if [[ -n ${VERBOSITY+set} ]] ; then
+    if [[ -z ${VERBOSITY##*[!0-9]*} ]]; then
         echo "Verbosity is not a supported integer value"
         exit 1
     fi
 fi
 
-if [ ! -z "${CMDL_SERVERLIST+set}" ] ; then
-    if [ "${CMDL_SERVERLIST}" == "NONE" ]; then
+if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
+    if [[ ${CMDL_SERVERLIST} == "NONE" ]]; then
         echo "Unset filename for server list"
         CLEANUP_AND_EXIT 1
     fi
@@ -1272,12 +1272,12 @@ if (( REPORT_VERSION == 1 )); then
     CLEANUP_AND_EXIT 0
 fi
 
-if [ "${CONFIG_CORE}" == "NONE" ]; then
+if [[ ${CONFIG_CORE} == "NONE" ]]; then
     echo "Unset filename for configuration"
     CLEANUP_AND_EXIT 1
 fi
 
-if [ "${DIR_CONFIG}" == "NONE" ]; then
+if [[ ${DIR_CONFIG} == "NONE" ]]; then
     echo "Unset directory to store configuration"
     CLEANUP_AND_EXIT 1
 fi
@@ -1290,8 +1290,8 @@ if (( VERBOSITY >= 3 )) ; then
     echo -e "Server List:\t\t\t${CONFIG_SERVERLIST}"
 fi
 
-if [ ! -z "${CMDL_NOPLAYLIST+set}" ]; then
-    if [ ! -z "${CMDL_ASX+set}" ]; then
+if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
+    if [[ -n ${CMDL_ASX+set} ]]; then
         echo "Conflicting playlist options."
         CLEANUP_AND_EXIT 1
     fi
@@ -1307,7 +1307,7 @@ if (( VERBOSITY >= 3 )) ; then
     echo "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
 fi
 FILENAME_CHECK CONFIG_CORE
-if [ ! -z "${CMDL_SERVERLIST+set}" ] ; then
+if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
     FILENAME_CHECK CMDL_SERVERLIST
 else
     FILENAME_CHECK CONFIG_SERVERLIST
@@ -1325,11 +1325,11 @@ unset FILENAME_BADCHARS
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Test for existing configuration directory, if missing install it.                                                              {{{
 
-if [ ! -d "${DIR_CONFIG}" ] ; then
+if [[ ! -d ${DIR_CONFIG} ]] ; then
     echo "  Configuration directory not found.  Creating \"${DIR_CONFIG}\""
     mkdir "${DIR_CONFIG}"
     EXITSTATUS=$?
-    if [ ${EXITSTATUS} -ne 0 ]; then
+    if (( EXITSTATUS != 0 )); then
         echo "  Failed to create \"${DIR_CONFIG}\""
         CLEANUP_AND_EXIT 1
     fi
@@ -1355,7 +1355,7 @@ if [ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
         sed -e '/TEXT_DEFAULT_CONFIG/d' |
         sed -e "s|@HOME@|${HOME}|" -e "s/@VERSION@/${VERSION}/" -e "s/@SERVERLIST@/${CONFIG_SERVERLIST}/"> "${DIR_CONFIG}"/"${CONFIG_CORE}"
     EXITSTATUS=$?
-    if [ ${EXITSTATUS} -ne 0 ]; then
+    if (( EXITSTATUS != 0 )); then
         echo "  Failed to create \"${DIR_CONFIG}/${CONFIG_CORE}\""
         CLEANUP_AND_EXIT 1
     fi
@@ -1367,7 +1367,7 @@ if [ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ] ; then
     sed --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
         sed -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
     EXITSTATUS=$?
-    if [ ${EXITSTATUS} -ne 0 ]; then
+    if (( EXITSTATUS != 0 )); then
         echo "  Failed to install \"${DIR_CONFIG}/${CONFIG_SERVERLIST}\""
         CLEANUP_AND_EXIT 1
     fi
@@ -1527,7 +1527,7 @@ if [ ! -z "${CMDL_PLAYLISTPERPODCAST+set}" ]; then
     PLAYLIST_PERPODCAST=1
 fi
 
-if [ "${CMDL_FORCE}" -ne 0 ] ; then
+if (( CMDL_FORCE != 0 )); then
     FORCE=${CMDL_FORCE}
 #    WGET_BASEOPTS=$(echo "${WGET_BASEOPTS}" | sed -e 's/-c //')
 #    Change to ${variable/search/replace} format.
@@ -1540,7 +1540,7 @@ if [ ! -z "${CMDL_MOSTRECENT+set}" ] ; then
         echo "Recent is not a positive integer value"
         CLEANUP_AND_EXIT 1
     fi
-    if [ "${CMDL_MOSTRECENT}" -ne 0 ] ; then
+    if (( CMDL_MOSTRECENT != 0 )); then
         MOST_RECENT=${CMDL_MOSTRECENT}
     fi
 fi
@@ -1899,7 +1899,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
 
                 EXITSTATUS=$?
 
-                if [ ${EXITSTATUS} -ne 0 ]; then
+                if (( EXITSTATUS != 0 )); then
                     echo
                     echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
                     echo
@@ -2097,7 +2097,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                 for URL in ${INDEXFILE}
                 do
 
-                    if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || [ ${FORCE} -ne 0 ] ; then
+                    if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
 
                         if (( VERBOSITY >= 2 )) ; then
                             echo
@@ -2142,7 +2142,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                         fi
 
                         # If FORCE then remove existing files before download.
-                        if [ ${FORCE} -ne 0 ] ; then
+                        if (( FORCE != 0 )); then
                             if [ -n "${MOD_FILENAME}" ]; then
                                 if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]; then
                                     if (( VERBOSITY == 0 )) ; then
@@ -2351,7 +2351,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                     FINAL_FILENAME="${CONTENT_FILENAME}"
                                 else
-                                    if [ ${FORCE} -ne 0 ] ; then
+                                    if (( FORCE != 0 )); then
                                         if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                         fi
@@ -2374,7 +2374,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                     FINAL_FILENAME="${LOCATION_FILENAME}"
                                 else
-                                    if [ ${FORCE} -ne 0 ] ; then
+                                    if (( FORCE != 0 )); then
                                         if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                         fi
@@ -2399,7 +2399,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
                                     FINAL_FILENAME="${FILENAME_MDATE}"
                                 else
-                                    if [ ${FORCE} -ne 0 ] ; then
+                                    if (( FORCE != 0 )); then
                                         if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
                                         fi
@@ -2422,7 +2422,7 @@ if (( CLEANUP_ONLY == 0 )) && [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                 else
-                                    if [ ${FORCE} -ne 0 ] ; then
+                                    if (( FORCE != 0 )); then
                                         if (( VERBOSITY >= 2 )); then
                                             echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                         fi
@@ -2550,7 +2550,7 @@ fi
 
 if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT_PCAST+set}" ] ; then
 
-    if [ ${CLEANUP} -ne 0 ] || [ ${CLEANUP_ONLY} -ne 0 ] ; then
+    if (( CLEANUP != 0 || CLEANUP_ONLY != 0 )) ; then
         if (( VERBOSITY >= 2 )) ; then
             if (( CLEANUP_SIMULATE > 0 )); then
                 echo "Simulating cleanup, the following files will be removed when you run cleanup."
