@@ -1,3 +1,7 @@
+  * Completed replacement of arithmetic comparison to shell built-in '(())'
+  * Replace use of test '[]' with shell built-in new test '[[]]'
+
+
 podget (0.8.1) unstable; urgency=low
 
   * Kitcat490 on Github reported that version 0.8 was failing to load new
