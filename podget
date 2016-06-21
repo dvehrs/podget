@@ -2253,7 +2253,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
-                                    if [ -n "${CONTENT_FILENAME}" ] && [[ ! -z "${CONTENT_FILENAME// }" ]]; then
+                                    if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
                                         if (( VERBOSITY >= 2 )); then
                                             echo "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
                                         fi
@@ -2297,7 +2297,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 if (( VERBOSITY >= 2 )); then
                                     echo "FILENAME LOCATION TESTS"
                                 fi
-                                if [ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
+                                if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
                                     if (( VERBOSITY >= 4 )); then
                                         echo "SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
@@ -2314,7 +2314,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                                     if (( VERBOSITY >= 2 )); then
                                         # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
-                                        if [ -n "${LOCATION_FILENAME}" ]  && [[ ! -z "${LOCATION_FILENAME// }" ]]; then
+                                        if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
                                             echo "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
                                         else
                                             echo "SERVER RESPONSE FILE - No Location Tag"
