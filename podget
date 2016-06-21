@@ -782,7 +782,7 @@ EXIT_ERROR() {
   # Function line only appears if it has been set to value other than the
   # default.  Works on the assumption that "Unconfigured" is not likely to be
   # chosen as a function name.
-  if [ "${FUNCTION}" != "Unconfigured" ]; then
+  if [[ ${FUNCTION} != "Unconfigured" ]]; then
       echo -e "\tFunction:\t${FUNCTION}"
   fi
 
@@ -1339,7 +1339,7 @@ fi
 # Exit if set to --create-config
 if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
     if (( CMDL_CREATECONFIG == 1 )); then
-        if [ -f "${DIR_CONFIG}/${CONFIG_CORE}" ] ; then
+        if [[ -f "${DIR_CONFIG}/${CONFIG_CORE}" ]]; then
             echo "  Configuration file ${DIR_CONFIG}/${CONFIG_CORE} already exists."
             echo "    If you would like to reuse this name, then the old file needs"
             echo "    to be deleted first. Or you need to pick a new name."
@@ -1449,7 +1449,7 @@ if (( INSTALL_SESSION > 0 )); then
 fi
 
 if [[ -n ${CMDL_LIBRARY+set} ]] ; then
-    if [ "${CMDL_LIBRARY}" == "NONE" ]; then
+    if [[ ${CMDL_LIBRARY} == "NONE" ]]; then
         echo "Unset directory to store podcast library"
         CLEANUP_AND_EXIT 1
     fi
@@ -1890,7 +1890,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             for i in FEED_CATEGORY FEED_NAME; do
                 # FEED_NAME can be blank, if it is then we skip the DIRECTORY_CHECK
-                if [ "${i}" == "FEED_NAME" ] && [ -z "${!i}" ]; then
+                if [[ ${i} == "FEED_NAME" && -z "${!i}" ]]; then
                     # we use continue rather than break here in case the variables are in a different order.
                     continue
                 fi
@@ -2343,8 +2343,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             # Move filename to that provided by content-disposition
-                            if [ ! -z "${CONTENT_FILENAME+set}" ] && [ -n "${CONTENT_FILENAME}" ]; then
-                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]; then
+                            if [[ -n ${CONTENT_FILENAME+set} && -n ${CONTENT_FILENAME} ]]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]]; then
                                     if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                     fi
@@ -2366,8 +2366,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             # Move filename to that provided by LOCATION_FILENAME
-                            if [ ! -z "${LOCATION_FILENAME+set}" ] && [ -n "${LOCATION_FILENAME}" ]; then
-                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]; then
+                            if [[ -n ${LOCATION_FILENAME+set} && -n ${LOCATION_FILENAME} ]]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]]; then
                                     if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                     fi
@@ -2389,10 +2389,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             # Rename file to start from modification date
-                            if [ $POST_WGET_RENAME_MDATE == 1 ]; then
+                            if (( POST_WGET_RENAME_MDATE == 1 )); then
                                 FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
                                 FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
-                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]]; then
                                     if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
                                     fi
@@ -2414,8 +2414,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             # Add filename.suffix
-                            if [ ! -z "${FILENAME_SUFFIX+set}" ]; then
-                                if [ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]; then
+                            if [[ -n ${FILENAME_SUFFIX+set} ]]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]]; then
                                     if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     fi
@@ -2439,7 +2439,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             if (( NO_PLAYLIST == 0 )); then
                                 # if creating playlists, then add to file.
                                 # Suggested fix from https://sourceforge.net/tracker/?func=detail&aid=2170298&group_id=133382&atid=727035
-                                if [ ! -z "${PLAYLIST_NAME+set}" ] ; then
+                                if [[ -n ${PLAYLIST_NAME+set} ]] ; then
                                     echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
                                     if (( VERBOSITY >= 2 )); then
                                         echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
@@ -2448,10 +2448,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
-                            if [ ! -z "${CONTENT_FILENAME+set}" ] ; then
+                            if [[ -n ${CONTENT_FILENAME+set} ]] ; then
                                 unset CONTENT_FILENAME
                             fi
-                            if [ ! -z "${FINAL_FILENAME+set}" ] ; then
+                            if [[ -n ${FINAL_FILENAME+set} ]] ; then
                                 unset FINAL_FILENAME
                             fi
                         else
@@ -2459,8 +2459,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                             # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
                             # continue function can work on later attempts.
-                            if [ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
-                                if [ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]; then
+                            if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
+                                if [[ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
                                     rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
                                 fi
                             fi
@@ -2477,11 +2477,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                     # Remove server response file as it's no longer needed
                     if (( DEBUG == 0 )); then
-                        if [ ! -z "${URL_FILENAME+set}" ] && [ -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]; then
+                        if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
                             rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     else
-                        if [ ! -z "${URL_FILENAME+set}" ] && (( VERBOSITY >= 2 )) ; then
+                        if [[ -n ${URL_FILENAME+set} ]] && (( VERBOSITY >= 2 )) ; then
                             echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     fi
@@ -2532,7 +2532,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
     # If doing one combined playlist for all podcasts, Sort new playlist
     if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_NAME+set}" ]; then
-        if [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ] ; then
+        if [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]]; then
             PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
             # If doing one combined playlist for all podcasts, Create ASX Playlist
@@ -2548,7 +2548,7 @@ fi
 # CLEANUP loop                                                                                                                   {{{
 
 
-if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT_PCAST+set}" ] ; then
+if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
 
     if (( CLEANUP != 0 || CLEANUP_ONLY != 0 )) ; then
         if (( VERBOSITY >= 2 )) ; then
@@ -2564,7 +2564,7 @@ if [ -z "${IMPORT_OPML+set}" ] && [ -z "${EXPORT_OPML+set}" ]  && [ -z "${IMPORT
                 echo "Deleting tracks from ${FILE}:"
             fi
             while read LINE ; do
-                if [ -f "${DIR_LIBRARY}"/"${LINE}" ]; then
+                if [[ -f "${DIR_LIBRARY}/${LINE}" ]]; then
                     if (( CLEANUP_SIMULATE > 0 )); then
                         echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
                     else
@@ -2597,8 +2597,8 @@ fi
 # ----------------------------------------------------------------------------------------------------------------------------------
 # OPML import loop:                                                                                                              {{{
 
-if [ ! -z "${IMPORT_OPML+set}" ] ; then
-    if [ "${IMPORT_OPML}" == "NONE" ]; then
+if [[ -n ${IMPORT_OPML+set} ]]; then
+    if [[ ${IMPORT_OPML} == "NONE" ]]; then
         echo
         echo "unset FILE or URL to import from."
         CLEANUP_AND_EXIT 1
@@ -2621,7 +2621,7 @@ if [ ! -z "${IMPORT_OPML+set}" ] ; then
 
     new_list=$(echo "${opml_list}" | sed -e 's/\(\/>\)/\1\n/g' | sed -e :a -n -e 's/<outline\([^>]\+\)\/>/\1/Ip;/<outline/{N;s/\n\s*/ /;ba;}')
 
-    if [ -n "$new_list" ] ; then
+    if [[ -n "$new_list" ]]; then
 
         OLD_IFS=$IFS
         IFS=$'\n'
@@ -2652,7 +2652,7 @@ if [ ! -z "${IMPORT_OPML+set}" ] ; then
             # Re-enable trap
             trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
-            if [ -z "$test" ] ; then
+            if [[ -z "$test" ]]; then
                 echo "${new_url} ${new_category} ${new_label}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
             elif (( VERBOSITY >= 2 )) ; then
                 echo "Feed ${new_label} is already in the serverlist"
@@ -2673,8 +2673,8 @@ fi
 # ----------------------------------------------------------------------------------------------------------------------------------
 # OPML export loop:                                                                                                              {{{
 
-if [ ! -z "${EXPORT_OPML+set}" ] ; then
-    if [ "${EXPORT_OPML}" == "NONE" ]; then
+if [[ -n ${EXPORT_OPML+set} ]]; then
+    if [[ ${EXPORT_OPML} == "NONE" ]]; then
         echo
         echo "unset FILE to import to."
         CLEANUP_AND_EXIT 1
@@ -2684,7 +2684,7 @@ if [ ! -z "${EXPORT_OPML+set}" ] ; then
         echo -e "\nExport serverlist to OPML file: ${EXPORT_OPML}"
     fi
 
-    if [ ! -e "${EXPORT_OPML}" ]; then
+    if [[ ! -e ${EXPORT_OPML} ]]; then
         echo '<?xml version="1.0" encoding="utf-8" ?>
 <opml version="1.0">
 <head/>
@@ -2732,8 +2732,8 @@ fi
 # ----------------------------------------------------------------------------------------------------------------------------------
 # PCAST import:                                                                                                                  {{{
 
-if [ ! -z "${IMPORT_PCAST+set}" ] ; then
-    if [ "${IMPORT_PCAST}" == "NONE" ]; then
+if [[ -n ${IMPORT_PCAST+set} ]] ; then
+    if [[ ${IMPORT_PCAST} == "NONE" ]]; then
         echo
         echo "unset FILE or URL to import from."
         CLEANUP_AND_EXIT 1
@@ -2775,7 +2775,7 @@ if [ ! -z "${IMPORT_PCAST+set}" ] ; then
     # Re-enable trap
     trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
-    if [ -z "$test" ] ; then
+    if [[ -z "$test" ]]; then
         echo "${new_link} ${new_category} ${new_title}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
     elif (( VERBOSITY >= 2 )) ; then
         echo "Feed ${new_title} is already in the serverlist"
