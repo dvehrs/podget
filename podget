@@ -200,6 +200,9 @@ NO_PLAYLIST=0
 # Default DEBUG Disabled (Deletion of temporary files allowed)
 DEBUG=0
 
+# Default DEBUG string leader
+DEBUG_LEADER="DEBUG --"
+
      #########################################################################################################################
      ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
      #########################################################################################################################
@@ -478,7 +481,9 @@ FILENAME_FORMATFIX10=1
 # ----------------------------------------------------------------------------------------------------------------------------------
 # DEBUG
 #
-# Enabling debug will stop podget from automatically deleting some temporary files in DIR_SESSION.
+# Enabling debug will:
+#   1. Stop podget from automatically deleting some temporary files in DIR_SESSION.
+#   2. Enable additional messages to track progress.
 #
 # 0 == disabled (default)
 # 1 == enabled
@@ -642,7 +647,7 @@ CLEANUP_AND_EXIT() {
             fi
         else
             echo
-            echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/podget.$$"
+            echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/podget.$$"
         fi
     fi
     if (( (VERBOSITY >= 2) && (VERBOSITY <= 3) )); then
@@ -967,8 +972,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX2+set} ]] && (( FILENAME_FORMATFIX2 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -977,8 +982,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -987,8 +992,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -997,8 +1002,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -1014,8 +1019,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX7+set} ]] && (( FILENAME_FORMATFIX7 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -1031,8 +1036,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX8+set} ]] && (( FILENAME_FORMATFIX8 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -1043,8 +1048,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -1055,8 +1060,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX10+set} ]] && (( FILENAME_FORMATFIX10 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -1065,8 +1070,8 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX+set} ]] && (( FILENAME_FORMATFIX > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
-            if (( VERBOSITY >= 3 )) ; then
-                echo "FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
@@ -1282,12 +1287,12 @@ if [[ ${DIR_CONFIG} == "NONE" ]]; then
     CLEANUP_AND_EXIT 1
 fi
 
-if (( VERBOSITY >= 3 )) ; then
+if (( DEBUG == 1 )) ; then
     echo
-    echo "Parsing Config file."
-    echo -e "Config directory:\t\t${DIR_CONFIG}"
-    echo -e "Config file:\t\t\t${CONFIG_CORE}"
-    echo -e "Server List:\t\t\t${CONFIG_SERVERLIST}"
+    echo "${DEBUG_LEADER} Parsing Config file."
+    echo -e "${DEBUG_LEADER} Config directory:\t\t${DIR_CONFIG}"
+    echo -e "${DEBUG_LEADER} Config file:\t\t\t${CONFIG_CORE}"
+    echo -e "${DEBUG_LEADER} Server List:\t\t\t${CONFIG_SERVERLIST}"
 fi
 
 if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
@@ -1302,9 +1307,9 @@ fi
 #CLEANUP_AND_EXIT 0
 
 # Test filename for CONFIG_CORE, CMDL/CONFIG_SERVERLIST and directory for DIR_CONFIG
-if (( VERBOSITY >= 3 )) ; then
+if (( DEBUG == 1 )) ; then
     echo
-    echo "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
+    echo "${DEBUG_LEADER} Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
 fi
 FILENAME_CHECK CONFIG_CORE
 if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
@@ -1315,8 +1320,8 @@ fi
 
 DIRECTORY_CHECK DIR_CONFIG
 
-if (( VERBOSITY >= 3 )) ; then
-    echo "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
+if (( DEBUG == 1 )) ; then
+    echo "${DEBUG_LEADER} Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
     echo
 fi
 unset FILENAME_BADCHARS
@@ -1555,7 +1560,7 @@ else
     WGET_COMMON_OPTIONS="${WGET_BASEOPTS} --progress=bar"
 fi
 
-if (( VERBOSITY >= 3 )); then
+if (( DEBUG == 1 )) ; then
     echo -e "WGet options:\t\t\t${WGET_COMMON_OPTIONS}"
 fi
 
@@ -1563,7 +1568,7 @@ if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
     # make sure backslash is escaped.
     FILENAME_BADCHARS="${FILENAME_BADCHARS/\\/\\\\}"
 
-    if (( VERBOSITY >= 3 )) ; then
+    if (( DEBUG == 1 )) ; then
         echo -e "Filename Bad Characters:\t${FILENAME_BADCHARS}"
         echo -e "Filename Replace Character:\t${FILENAME_REPLACECHAR}"
     fi
@@ -1573,9 +1578,9 @@ fi
 
 if (( VERBOSITY >= 3 )) ; then
     if (( DEBUG == 0 )); then
-        echo -e "Debug\t\t\t\tDisabled - Delete temp files."
+        echo -e "Debug\t\t\t\tDisabled - Delete temp files and reduced progress messages."
     else
-        echo -e "Debug\t\t\t\tEnabled - Do not delete temp files."
+        echo -e "Debug\t\t\t\tEnabled - Do not delete temp files and increased progress messages."
     fi
 fi
 
@@ -1590,7 +1595,7 @@ fi
 
 # Test that session directory exists (useful when placed on a tmpfs filesystem).
 if [[ ! -d ${DIR_SESSION} ]]; then
-    if (( VERBOSITY >= 2 )) ; then
+    if (( DEBUG == 1 )) ; then
         echo -e "\nSession directory not found, creating"
     fi
     mkdir -p "${DIR_SESSION}"
@@ -1603,8 +1608,8 @@ fi
 TEST_SESSION=0
 while read -d $'\0' FILE ; do
     if [[ $(stat -c %u "${FILE}") == "${UID}" ]]; then
-        if (( VERBOSITY >= 2 )) ; then
-            echo "Session FILE found: ${FILE} (that my user owns)"
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} Session FILE found: ${FILE} (that my user owns)"
         fi
         TEST_SESSION=1
         # shellcheck disable=SC2094
@@ -1614,16 +1619,16 @@ while read -d $'\0' FILE ; do
                 TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
                 if [[ ${TEST_File} == "${CONFIG_CORE}" ]] ; then
                     SESSION_PID=$(echo "${FILE}" | sed -n -e 's/.*podget.\([0-9]*\)$/\1/p')
-                    if (( VERBOSITY >= 2 )) ; then
-                        echo "  Testing PID ${SESSION_PID} to determine if its still running."
+                    if (( DEBUG == 1 )) ; then
+                        echo "${DEBUG_LEADER}  Testing PID ${SESSION_PID} to determine if its still running."
                     fi
 
                     if ps --pid "${SESSION_PID}" &>/dev/null; then
                         echo "Another session with config file ${CONFIG_CORE} found running.  Killing session." 1>&2
                         CLEANUP_AND_EXIT ${ERR_RUNNINGSESSION}
                     else
-                        if (( VERBOSITY >= 2 )) ; then
-                            echo "  Session PID ${SESSION_PID} is not running, removing lock file"
+                        if (( DEBUG == 1 )) ; then
+                            echo "${DEBUG_LEADER}  Session PID ${SESSION_PID} is not running, removing lock file"
                         fi
                         rm -f "${FILE}"
                     fi
@@ -1653,17 +1658,17 @@ echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 # Loop over servers on list                                                                                                      {{{
 
 if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
-    if (( VERBOSITY >= 3 )) ; then
-        echo -e "\nMain loop."
-        echo "SERVER LIST FILE: $CONFIG_SERVERLIST"
-        echo "WGET OPTIONS: ${WGET_COMMON_OPTIONS}"
+    if (( DEBUG == 1 )) ; then
+        echo -e "\n${DEBUG_LEADER} Main loop:"
+        echo "${DEBUG_LEADER} SERVER LIST FILE: $CONFIG_SERVERLIST"
+        echo "${DEBUG_LEADER} WGET OPTIONS: ${WGET_COMMON_OPTIONS}"
         if (( NO_PLAYLIST == 0 )); then
-            echo "Playlist Creation Enabled."
+            echo "${DEBUG_LEADER} Playlist Creation Enabled."
         else
-            echo "Playlist Creation Disabled."
+            echo "${DEBUG_LEADER} Playlist Creation Disabled."
         fi
         if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-            echo "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
+            echo "${DEBUG_LEADER} PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
         fi
     fi
 
@@ -1719,31 +1724,33 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
         fi
 
         while read FEED_URL FEED_CATEGORY FEED_NAME ; do
-            if (( VERBOSITY >= 3 )) ; then
-                if (( VERBOSITY >= 4 )) ; then
-                    echo
-                fi
-                echo "Serverlist Line --> ${FEED_URL}"
+            if (( DEBUG == 1 )) ; then
+                echo
+                echo "${DEBUG_LEADER} ============================================================"
+                echo "${DEBUG_LEADER} Server Loop:"
+                echo "${DEBUG_LEADER} Serverlist Line --> ${FEED_URL:-} ${FEED_CATEGORY:-} ${FEED_NAME:-}"
             fi
 
             if   [[ "${FEED_URL:0:1}" == "#" || "${FEED_URL}" == "" ]] ; then
-                if (( VERBOSITY >= 4 )) ; then
-                    echo "  Discarding (comment or blank line)."
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER} Discarding (comment or blank line)."
+                fi
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER} Clear Server Loop vars"
+                    unset FEED_URL
+                    unset FEED_CATEGORY
+                    unset FEED_NAME
+                    unset URL_USERNAME
+                    unset URL_PASSWORD
                 fi
                 continue
             fi
 
-            if (( VERBOSITY >= 2 )) ; then
+            if (( DEBUG == 1 )) ; then
                 echo
-                echo "Serverlist Line --> ${FEED_URL}"
+                echo "${DEBUG_LEADER} Reset WGET_OPTIONS to remove loop specific options"
+                echo "${DEBUG_LEADER}    -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
             fi
-
-            if (( VERBOSITY >= 3 )) ; then
-                echo
-                echo "  Reset WGET_OPTIONS to remove loop specific options"
-                echo "   -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
-            fi
-#            WGET_OPTIONS="${WGET_COMMON_OPTIONS}"
 
             # clear array and reimport
             unset -v WGET_OPTIONS
@@ -1751,8 +1758,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
             read -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Reset WGET_OPTION_FILENAME_LOCATION"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
 
@@ -1763,40 +1770,40 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
                         unset WGET_OPTIONS[${index}]
                         WGET_OPTION_DISPOSITION=1
-                        if (( VERBOSITY >= 3 )) ; then
-                            echo "  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+                        if (( DEBUG == 1 )) ; then
+                            echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
                         fi
                     fi
                 done
             else
                 WGET_OPTION_DISPOSITION=0
-                if (( VERBOSITY >= 3 )) ; then
-                    echo "  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
                 fi
             fi
 
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Reset WGET_OPTION_DISPOSITION_FAIL"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION_FAIL"
             fi
             WGET_OPTION_DISPOSITION_FAIL=0
 
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Reset POST_WGET_RENAME_MDATE"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_MDATE"
             fi
             POST_WGET_RENAME_MDATE=0
 
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Reset ATOM_FILTER_SIMPLE"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset ATOM_FILTER_SIMPLE"
             fi
             ATOM_FILTER_SIMPLE=0
 
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Reset ATOM_FILTER_TYPE"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset ATOM_FILTER_TYPE"
             fi
             unset ATOM_FILTER_TYPE
 
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Reset ATOM_FILTER_LANG"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset ATOM_FILTER_LANG"
             fi
             unset ATOM_FILTER_LANG
 
@@ -1877,8 +1884,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
             fi
 
-            if (( VERBOSITY >= 3 )) ; then
-                printf '%-30s %-s\n' "" "Loop WGET_OPTIONS: ${WGET_OPTIONS[*]}"
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} Loop WGET_OPTIONS: ${WGET_OPTIONS[*]}"
             fi
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
@@ -1930,12 +1937,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if [[ -n ${URL_USERNAME+set} ]]; then
                     printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
                 fi
+                if [[ -n ${URL_PASSWORD+set} ]] && (( DEBUG == 1 )); then
+                    # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
+                    # useful for debugging connection issues.
+                    echo "${DEBUG_LEADER} Password: ${URL_PASSWORD}"
+                fi
                 if (( VERBOSITY >= 4 )) ; then
-                    if [[ -n ${URL_PASSWORD+set} ]]; then
-                        # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
-                        # useful for debugging connection issues.
-                        printf '%-30s %-50s\n' "" "Password: ${URL_PASSWORD}"
-                    fi
                     printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
                 fi
                 if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
@@ -2085,12 +2092,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
                 fi
 
-                if (( VERBOSITY >= 4 )) ; then
+                if (( DEBUG == 1 )) ; then
                     if (( MOST_RECENT > 0 )) ; then
-                        echo -e "Modified Index List:\n${INDEXFILE}"
-                        echo -e "Full Index List:\n${FULLINDEXFILE}"
+                        echo -e "${DEBUG_LEADER} Modified Index List:\n${INDEXFILE}"
+                        echo -e "${DEBUG_LEADER} Full Index List:\n${FULLINDEXFILE}"
                     else
-                        echo -e "Index List:\n${INDEXFILE}"
+                        echo -e "${DEBUG_LEADER} Index List:\n${INDEXFILE}"
                     fi
                 fi
 
@@ -2131,8 +2138,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             MOD_PREFIX="${URL_BASE%%/}"
                             MOD_PREFIX="${MOD_PREFIX##*/}"
                             MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
-                            if (( VERBOSITY >= 3 )) ; then
-                                echo "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
+                            if (( DEBUG == 1 )) ; then
+                                echo "${DEBUG_LEADER} FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
                             fi
                         fi
 
@@ -2235,13 +2242,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                             # if --content-disposition get filename and remove quotes around it.
                             if (( WGET_OPTION_DISPOSITION == 1 )); then
-#                            if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
-                                if (( VERBOSITY >= 2 )); then
-                                    echo "CONTENT-DISPOSITION TESTS"
+                                if (( DEBUG == 1 )) ; then
+                                    echo "${DEBUG_LEADER} CONTENT-DISPOSITION TESTS"
                                 fi
                                 if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                    if (( VERBOSITY >= 4 )); then
-                                        echo "SERVER RESPONSE FILE NONZERO SIZE"
+                                    if (( DEBUG == 1 )) ; then
+                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
 
                                     # Grep exits non-zero if match isn't found.
@@ -2254,19 +2260,19 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
+                                        if (( DEBUG == 1 )) ; then
+                                            echo "${DEBUG_LEADER} CONTENT_FILENAME: '${CONTENT_FILENAME}'"
                                         fi
                                     else
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "SERVER RESPONSE FILE - No Content-Disposition Tag"
+                                        if (( DEBUG == 1 )) ; then
+                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Content-Disposition Tag"
                                         fi
                                         # if variable is effectively blank, we can unset it
                                         unset CONTENT_FILENAME
 
                                         if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
+                                            if (( DEBUG == 1 )) ; then
+                                                echo "${DEBUG_LEADER}  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
                                             fi
 
                                             # Remove any COMPLETE log entries to allow it to retry next session.
@@ -2280,8 +2286,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     # Re-enable trap
                                     trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
                                 else
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                    if (( DEBUG == 1 )) ; then
+                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                     fi
                                 fi
 
@@ -2294,12 +2300,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
-                                if (( VERBOSITY >= 2 )); then
-                                    echo "FILENAME LOCATION TESTS"
+                                if (( DEBUG == 1 )) ; then
+                                    echo "${DEBUG_LEADER} FILENAME LOCATION TESTS"
                                 fi
                                 if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                    if (( VERBOSITY >= 4 )); then
-                                        echo "SERVER RESPONSE FILE NONZERO SIZE"
+                                    if (( DEBUG == 1 )) ; then
+                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
 
                                     # Grep exits non-zero if match isn't found.
@@ -2315,9 +2321,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     if (( VERBOSITY >= 2 )); then
                                         # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
                                         if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
-                                            echo "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
+                                            if (( DEBUG == 1 )) ; then
+                                                echo "${DEBUG_LEADER} LOCATION_FILENAME: '${LOCATION_FILENAME}'"
+                                            fi
                                         else
-                                            echo "SERVER RESPONSE FILE - No Location Tag"
+                                            if (( DEBUG == 1 )) ; then
+                                                echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Location Tag"
+                                            fi
                                             # If LOCATION_FILENAME is effectively blank we can unset it
                                             unset LOCATION_FILENAME
                                         fi
@@ -2329,8 +2339,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     # Re-enable trap
                                     trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
                                 else
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                    if (( DEBUG == 1 )) ; then
+                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                     fi
                                 fi
 
@@ -2481,8 +2491,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     else
-                        if [[ -n ${URL_FILENAME+set} ]] && (( VERBOSITY >= 2 )) ; then
-                            echo "DEBUG ENABLED - Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
+                        if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]] && (( DEBUG == 1 )) ; then
+                            echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     fi
                 done
@@ -2503,7 +2513,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 # If doing individual playlists for each podcast Sort new playlist
-                if (( NO_PLAYLIST == 0 )) && [ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]  && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                if (( NO_PLAYLIST == 0 )) && [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" && ! -z "${PLAYLIST_PERPODCAST+set}" ]]; then
                     PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
                     # If doing individual playlists for each podcast, Create ASX Playlist
@@ -2514,18 +2524,20 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     # Done with playlist, unset name.
                     unset PLAYLIST_NAME
                 fi
-
-                if (( VERBOSITY >= 4 )) ; then
-                    echo
-                    echo "Cleanup Loop vars:"
-                fi
-                unset URL_USERNAME
-                unset URL_PASSWORD
             else
                 if (( VERBOSITY >= 1 )) ; then
                     echo "  No enclosures in feed: ${FEED_URL}"
                 fi
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+            fi
+
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} Clear Server Loop vars"
+                unset FEED_URL
+                unset FEED_CATEGORY
+                unset FEED_NAME
+                unset URL_USERNAME
+                unset URL_PASSWORD
             fi
         done < "${CURRENT_SERVERLIST}"
     done
