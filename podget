@@ -1923,7 +1923,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # If configured to create individual playlists for each podcast, set playlist name here.
             # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
-            if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+            if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
                 PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').m3u"
 
                 COUNTER=2
@@ -1945,7 +1945,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if (( VERBOSITY >= 4 )) ; then
                     printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
                 fi
-                if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_PERPODCAST+set}" ]; then
+                if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
                     printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
                 fi
 
@@ -2033,7 +2033,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
                     # them that more is possible.
-                    if (( ATOM_FILTER_SIMPLE == 0 )) && [ -z "${ATOM_FILTER_TYPE+set}" ]; then
+                    if (( ATOM_FILTER_SIMPLE == 0 )) && [[ -z ${ATOM_FILTER_TYPE+set} ]]; then
                         if (( $(echo "${TYPECOUNT}" | wc -l) > 1 )); then
                             echo
                             echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
@@ -2543,7 +2543,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
     done
 
     # If doing one combined playlist for all podcasts, Sort new playlist
-    if (( NO_PLAYLIST == 0 )) && [ ! -z "${PLAYLIST_NAME+set}" ]; then
+    if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_NAME+set} ]]; then
         if [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]]; then
             PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
