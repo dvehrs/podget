@@ -1270,6 +1270,7 @@ fi
 
 if (( VERBOSITY >= 2 )) ; then
     echo "podget"
+    echo
 fi
 
 if (( REPORT_VERSION == 1 )); then
@@ -1561,7 +1562,7 @@ else
 fi
 
 if (( DEBUG == 1 )) ; then
-    echo -e "WGet options:\t\t\t${WGET_COMMON_OPTIONS}"
+    echo -e "WGet Options:\t\t\t${WGET_COMMON_OPTIONS}"
 fi
 
 if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
@@ -1578,9 +1579,9 @@ fi
 
 if (( VERBOSITY >= 3 )) ; then
     if (( DEBUG == 0 )); then
-        echo -e "Debug\t\t\t\tDisabled - Delete temp files and reduced progress messages."
+        echo -e "Debug:\t\t\t\tDisabled - Delete temp files and reduced progress messages."
     else
-        echo -e "Debug\t\t\t\tEnabled - Do not delete temp files and increased progress messages."
+        echo -e "Debug:\t\t\t\tEnabled - Do not delete temp files and increased progress messages."
     fi
 fi
 
@@ -1639,10 +1640,11 @@ while read -d $'\0' FILE ; do
 done < <(find "${DIR_SESSION}" -maxdepth 1 -type f -name "podget.[0-9]*" -print0)
 
 if (( VERBOSITY >= 2 )) ; then
+    if (( DEBUG == 1 )); then echo; fi
     if (( TEST_SESSION > 0 )) ; then
-        echo "  Old Session file(s) found and removed.  Creating new one."
+        echo "Old Session file(s) found and removed.  Creating new one."
     else
-        echo "Session file not found.  Creating podget.$$ ."
+        echo "Session file not found.  Creating podget.$$"
     fi
 fi
 
@@ -1687,6 +1689,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
         done
 
         if (( VERBOSITY >= 3 )); then
+            echo
             echo "Playlist name: ${PLAYLIST_NAME}"
         fi
     fi
@@ -1748,8 +1751,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             if (( DEBUG == 1 )) ; then
                 echo
-                echo "${DEBUG_LEADER} Reset WGET_OPTIONS to remove loop specific options"
-                echo "${DEBUG_LEADER}    -- WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
+                echo "${DEBUG_LEADER} Reset options to allow loop specific options"
+                echo "${DEBUG_LEADER}  WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
             fi
 
             # clear array and reimport
@@ -2103,7 +2106,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                 for URL in ${INDEXFILE}
                 do
-
                     if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
 
                         if (( VERBOSITY >= 2 )) ; then
@@ -2495,6 +2497,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     fi
+
+                    if (( DEBUG == 1 )) ; then
+                        echo "${DEBUG_LEADER} Clear File Vars"
+                    fi
+                    unset URL_FILENAME
                 done
 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
@@ -2532,13 +2539,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} Clear Server Loop vars"
-                unset FEED_URL
-                unset FEED_CATEGORY
-                unset FEED_NAME
-                unset URL_USERNAME
-                unset URL_PASSWORD
+                echo "${DEBUG_LEADER} Clear Server Loop Vars"
             fi
+            unset FEED_URL
+            unset FEED_CATEGORY
+            unset FEED_NAME
+            unset URL_FILENAME
+            unset URL_USERNAME
+            unset URL_PASSWORD
         done < "${CURRENT_SERVERLIST}"
     done
 
