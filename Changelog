@@ -1,5 +1,7 @@
   * Completed replacement of arithmetic comparison to shell built-in '(())'
   * Replace use of test '[]' with shell built-in new test '[[]]'
+  * Added replacement of spaces in URLs with '%20' to address bug submitted by 
+    Piyush Purushothaman.
 
 
 podget (0.8.1) unstable; urgency=low

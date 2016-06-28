@@ -2081,7 +2081,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # final INDEXFILE cleanup options
             INDEXFILE=$(echo "${INDEXFILE}" | \
-                        sed -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                        sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                         sed -e ':a;N;$!ba;s/\n/ /g')
 
             if [[ -n ${INDEXFILE} ]]; then
