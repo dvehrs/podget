@@ -2,6 +2,9 @@
   * Replace use of test '[]' with shell built-in new test '[[]]'
   * Added replacement of spaces in URLs with '%20' to address bug submitted by 
     Piyush Purushothaman.
+  * Thanks to Kevin Wisher for reporting an conflict between errexit being 
+    enabled and WGet exiting with a 403 error.  Modified function to capture
+	the exit status and determine how to proceed based on it.
 
 
 podget (0.8.1) unstable; urgency=low

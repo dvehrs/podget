@@ -1435,7 +1435,7 @@ source "${DIR_CONFIG}"/"${CONFIG_CORE}"
 
 if [[ -n ${CMDL_SERVERLIST+set} ]]; then
     if (( VERBOSITY >= 1 )) ; then
-        echo -e "\t\tServerlist set on command line, overriding value from configuration file."
+        echo "Serverlist set on command line, overriding value from configuration file."
     fi
     CONFIG_SERVERLIST=${CMDL_SERVERLIST}
 fi
@@ -1956,23 +1956,39 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "Downloading feed index from ${FEED_URL}"
             fi
 
-            # Wget returns a non-zero exit status if the file is not found.  This will cause the 'pipefail' attribute to cause the
-            # script to exit and report an error.  To avoid this issue, we disable 'pipefail' for these commands but re-enable it
+            # UTF-8 FEEDS:
+            # Wget returns a non-zero exit status if the file is not found.  This will cause the 'errexit' attribute to cause the
+            # script to exit and report an error.  To avoid this issue, we disable 'errexit' for these commands but re-enable it
             # afterwards.
+            #
+            # UTF-16 FEEDS:
+            # For UTF-16 feeds, we need to disable both 'errexit' and 'pipefail'.
             set +o pipefail
+            set +o errexit
 
             # Also disable trap for reporting errors.
             trap - ERR
 
             case ${FILETYPE} in
                 'utf8')
-                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}") ;;
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}")
+                    EXITSTATUS=$?
+                    ;;
                 'utf16')
-                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8) ;;
+                    # Slight gymnastics to report the exit status of WGET and not ICONV.
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit ${PIPESTATUS[0]})
+                    EXITSTATUS=$?
+                    ;;
             esac
 
-            # Re-enable pipefail
+            if (( EXITSTATUS != 0 )); then
+                echo "ERROR Downloading Feed:  ${FEED_NAME}"
+                continue
+            fi
+
+            # Re-enable pipefail and errexit
             set -o pipefail
+            set -o errexit
 
             # Re-enable trap
             trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
