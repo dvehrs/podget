@@ -1982,7 +1982,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             esac
 
             if (( EXITSTATUS != 0 )); then
-                echo "ERROR Downloading Feed:  ${FEED_NAME}"
+                if (( VERBOSITY >= 1 )); then
+                    printf '%-30s %-50s\n' "" "Error Downloading Feed."
+                else
+                    echo "ERROR Downloading Feed:  ${FEED_NAME}"
+                fi
                 continue
             fi
 
