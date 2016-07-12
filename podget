@@ -1976,7 +1976,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     ;;
                 'utf16')
                     # Slight gymnastics to report the exit status of WGET and not ICONV.
-                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit ${PIPESTATUS[0]})
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit "${PIPESTATUS[0]}")
                     EXITSTATUS=$?
                     ;;
             esac
@@ -1987,6 +1987,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 else
                     echo "ERROR Downloading Feed:  ${FEED_NAME}"
                 fi
+                # if downloaded failed, add URL to LOG_FAIL
+                echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                 continue
             fi
 
@@ -2096,6 +2098,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
+                # if Feed is neither RSS or Atom, add URL to LOG_FAIL
+                echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                 continue
             fi
 
