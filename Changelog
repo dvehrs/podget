@@ -1,11 +1,14 @@
+podget (0.8.2) unstable; urgency=low
+
   * Completed replacement of arithmetic comparison to shell built-in '(())'
   * Replace use of test '[]' with shell built-in new test '[[]]'
-  * Added replacement of spaces in URLs with '%20' to address bug submitted by 
+  * Added replacement of spaces in URLs with '%20' to address bug submitted by
     Piyush Purushothaman.
-  * Thanks to Kevin Wisher for reporting an conflict between errexit being 
+  * Thanks to Kevin Wisher for reporting an conflict between errexit being
     enabled and WGet exiting with a 403 error.  Modified function to capture
 	the exit status and determine how to proceed based on it.
 
+ -- Dave Vehrs <dvehrs@gmail.com> Tue, 12 Jul 2016 09:10:17 -0600
 
 podget (0.8.1) unstable; urgency=low
 
