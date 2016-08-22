@@ -1,3 +1,9 @@
+
+  * Improved feed handling to allow for correct handling of feeds with either
+    descending sort order (newest to oldest [DEFAULT]) or ascending  sort
+    order (oldest to newest).  Ascending enabled with OPT_FEED_ORDER_ASCENDING
+    tag in the serverlist file for the feed.
+
 podget (0.8.2) unstable; urgency=low
 
   * Completed replacement of arithmetic comparison to shell built-in '(())'
@@ -40,7 +46,7 @@ podget (0.7.14) unstable; urgency=low
   * Thanks to angoongo for submitting a report for an unbound variable error.
   * Thanks to Chris for reporting issue that lead to the development of a
     function to prefix filenames with their modification dates
-    (OPT_FILENAME_RENAME_MADATE).
+    (OPT_FILENAME_RENAME_MDATE).
   * Modified filename renaming to properly respect the force option (--force),
     this affects OPT_FILENAME_LOCATION, OPT_CONTENT_DISPOSITION,
     OPT_FILENAME_RENAME_MDATE, and FILENAME_SUFFIX.

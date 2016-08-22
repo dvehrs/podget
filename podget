@@ -203,6 +203,10 @@ DEBUG=0
 # Default DEBUG string leader
 DEBUG_LEADER="DEBUG --"
 
+# Order that items appear in feed.
+# Default: DESCENDING - Newest items appear first, oldest last.
+FEED_SORT_ORDER="DESCENDING"
+
      #########################################################################################################################
      ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
      #########################################################################################################################
@@ -557,16 +561,22 @@ TEXT_DEFAULT_CONFIG
 #                                 of sense.  Does not work for all feeds, for some feeds the last modification time for
 #                                 each file is the time of download.  Which may be acceptable in some situations but can
 #                                 cause confusion when downloading more than one item at a time from a feed.
+#   OPT_FEED_ORDER_ASCENDING   -  By default, Podget assumes that items in a feed will be listed from newest to oldest
+#                                 (descending order).  This option will modify Podget's handling of the feed for those
+#                                 that are listed from oldest to newest.  This option will not have any noticible effect
+#                                 for feeds where you want to download every item.  It will have an effect for new feeds
+#                                 when combined with the --recent [COUNT] option.
 #
-# Note:  It is possible to use more than one option per feed, this will combine the effects of the options in order from
-#        top to bottom as they are listed here.
+#     Note:  It is possible to use more than one option per feed, this will combine the effects of the options in order from
+#            top to bottom as they are listed here.
 #
-# Examples:
-#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
-#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
-#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION
-#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
-#   http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION OPT_FILENAME_RENAME_MDATE
+#     Examples:
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION OPT_FILENAME_RENAME_MDATE
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_ORDER_ASCENDING
 #
 # Atom Feed Options:  The following options are available for advanced handling of Atom feeds.
 #   ATOM_FILTER_SIMPLE            This option will enable filtering for just audio or video files from a feed.
@@ -580,18 +590,18 @@ TEXT_DEFAULT_CONFIG
 #                                 to download files in English, Spanish and French.  How the languages are defined may vary
 #                                 from feed to feed.
 #
-# Note: If you do not enable ANY of the ATOM_FILTER options, when you run podget with "-vv" or higher, for every Atom feed
-#       that supports multiple enclosures per item, Podget will tell you with the count per type or language to help you decide if
-#       you should use the filters to reduce the quantity of your downloads.
+#     Note: If you do not enable ANY of the ATOM_FILTER options, when you run podget with "-vv" or higher, for every Atom feed
+#           that supports multiple enclosures per item, Podget will tell you with the count per type or language to help you decide
+#           if you should use the filters to reduce the quantity of your downloads.
 #
-# Examples:
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_SIMPLE
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg"
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/.*"
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="(audio|video)/.*"
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="en"
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="(en|es|fr)"
-#   http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
+#     Examples:
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_SIMPLE
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg"
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/.*"
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="(audio|video)/.*"
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="en"
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_LANG="(en|es|fr)"
+#       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
 #
 #FEEDS:
 # ------------------------------------------------------------------------------
@@ -1762,6 +1772,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             read -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
             if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset FEED_SORT_ORDER=DESCENDING"
+            fi
+            FEED_SORT_ORDER="DESCENDING"
+
+            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
@@ -1832,6 +1847,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             if (( $(expr "${FEED_NAME}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
                 WGET_OPTION_DISPOSITION_FAIL=1
                 FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
+            fi
+
+            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
+                FEED_SORT_ORDER="ASCENDING"
+                FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
@@ -2114,9 +2134,30 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
 
+                # TODO:  Add choice here to get most recent from beginning or end of INDEXFILE
+                #        Possibly with -> echo ${INDEXFILE} | rev | cut -d \  -f -"${MOST_RECENT}" | rev
+                #        PROBLEM: This would require added 'util-linux' to the dependencies.
+                #
+                #        Option just in Bash:
+                #          Temp move to array
+                #            IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
+                #          Move back to Index
+                #            INDEXFILE="${TEMP_ARRAY[@]: -${MOST_RECENT}}"
                 if (( MOST_RECENT > 0 )) ; then
-                    FULLINDEXFILE="${INDEXFILE}"
-                    INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
+                    if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
+                        if (( DEBUG == 1 )) ; then
+                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
+                        fi
+                        FULLINDEXFILE="${INDEXFILE}"
+                        IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
+                        INDEXFILE="${TEMP_ARRAY[@]: -${MOST_RECENT}}"
+                    else
+                        if (( DEBUG == 1 )) ; then
+                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
+                        fi
+                        FULLINDEXFILE="${INDEXFILE}"
+                        INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
+                    fi
                 fi
 
                 if (( DEBUG == 1 )) ; then
