@@ -702,7 +702,7 @@ DIRECTORY_CHECK() {
 
             # Grep looks for --fixed-strings so that certain characters are not
             # interpreted as regular expressions (like ^ $ or /)
-            if grep --quiet --fixed-strings "${TEST_CHAR}" <<<${TEST_STRING}; then
+            if grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${TEST_STRING}"; then
                 OFFENDING_CHARS="${OFFENDING_CHARS}${TEST_CHAR}"
                 # This test must come first because it will set TEST_FAIL to 1 regardless
                 # of how many offending characters are found.  Given that this test can be
@@ -838,7 +838,7 @@ FILENAME_CHECK() {
 
             # Grep looks for --fixed-strings so that certain characters are not
             # interpreted as regular expressions (like ^ $ or /)
-            if grep --quiet --fixed-strings "${TEST_CHAR}" <<<${TEST_STRING}; then
+            if grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${TEST_STRING}"; then
                 OFFENDING_CHARS="${OFFENDING_CHARS}${TEST_CHAR}"
                 # This test must come first because it will set TEST_FAIL to 1 regardless
                 # of how many offending characters are found.  Given that this test can be
@@ -1112,7 +1112,7 @@ PLAYLIST_ConvertToASX() {
     sed --silent -e '/TEXT_ASX_BEGINNING$/,/^TEXT_ASX_BEGINNING/p' "$0" |
       sed -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 
-    while read line ; do
+    while read -r line ; do
 #      local FIXED_ENTRY=$(echo "${line}" | sed 's/\//\\/g')
       local FIXED_ENTRY="${line//\//\\}"
       {
@@ -1179,7 +1179,7 @@ REMOVE_URL() {
         # interpreted as regular expressions (like ^ $ or /)
         #
         # We're looking for a character NOT found in the string so its ! grep
-        if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<${URL_INPUT}; then
+        if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${URL_INPUT}"; then
             # When a character is not found in the string that we can use, break out of the loop.
             break
         fi
@@ -1441,6 +1441,8 @@ else
     fi
 fi
 
+# SHELLCHECK SC1090
+# shellcheck source=/dev/null
 source "${DIR_CONFIG}"/"${CONFIG_CORE}"
 
 if [[ -n ${CMDL_SERVERLIST+set} ]]; then
@@ -1617,14 +1619,14 @@ fi
 # bad).  This procedures main purpose is to prevent concurrent sessions for running on the same configuration file.
 
 TEST_SESSION=0
-while read -d $'\0' FILE ; do
+while read -r -d $'\0' FILE ; do
     if [[ $(stat -c %u "${FILE}") == "${UID}" ]]; then
         if (( DEBUG == 1 )) ; then
             echo "${DEBUG_LEADER} Session FILE found: ${FILE} (that my user owns)"
         fi
         TEST_SESSION=1
         # shellcheck disable=SC2094
-        while read LINE ; do
+        while read -r LINE ; do
             TEST_Index=$(expr "${LINE}" : "^[Cc]onfig\sfile:")
             if [[ "A${TEST_Index}" != "A" ]]; then
                 TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
@@ -1736,7 +1738,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             continue
         fi
 
-        while read FEED_URL FEED_CATEGORY FEED_NAME ; do
+        while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
             if (( DEBUG == 1 )) ; then
                 echo
                 echo "${DEBUG_LEADER} ============================================================"
@@ -1769,7 +1771,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset -v WGET_OPTIONS
 
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
-            read -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
+            read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset FEED_SORT_ORDER=DESCENDING"
@@ -1786,7 +1788,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
                 for index in "${!WGET_OPTIONS[@]}"; do
                     if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
-                        unset WGET_OPTIONS[${index}]
+                        unset WGET_OPTIONS["${index}"]
                         WGET_OPTION_DISPOSITION=1
                         if (( DEBUG == 1 )) ; then
                             echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
@@ -2055,7 +2057,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     # interpreted as regular expressions (like ^ $ or /)
                     #
                     # We're looking for a character NOT found in the INDEXFILE so its ! grep
-                    if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<${INDEXFILE}; then
+                    if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${INDEXFILE}"; then
                         # When a character is not found in the string that we can use, break out of the loop.
                         break
                     fi
@@ -2150,7 +2152,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
                         IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
-                        INDEXFILE="${TEMP_ARRAY[@]: -${MOST_RECENT}}"
+                        INDEXFILE="${TEMP_ARRAY[*]: -${MOST_RECENT}}"
                     else
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
@@ -2648,7 +2650,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             if (( VERBOSITY >= 2 )) ; then
                 echo "Deleting tracks from ${FILE}:"
             fi
-            while read LINE ; do
+            while read -r LINE ; do
                 if [[ -f "${DIR_LIBRARY}/${LINE}" ]]; then
                     if (( CLEANUP_SIMULATE > 0 )); then
                         echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
@@ -2775,7 +2777,7 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
 <head/>
 <body>' > "${EXPORT_OPML}"
 
-	while read FEED_URL FEED_CATEGORY FEED_NAME ; do
+	while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
         if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
             if (( VERBOSITY >= 3 )) ; then
                 echo "  Discarding line (comment or blank line)."
