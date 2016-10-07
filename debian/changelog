@@ -1,3 +1,9 @@
+podget (0.8.3-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri, 07 Oct 2016 10:32:26 -0600
+
 podget (0.8.2-1) unstable; urgency=medium
 
   * New upstream release
