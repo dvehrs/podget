@@ -1,8 +1,12 @@
+podget (0.8.2) unstable; urgency=low
 
   * Improved feed handling to allow for correct handling of feeds with either
     descending sort order (newest to oldest [DEFAULT]) or ascending  sort
     order (oldest to newest).  Ascending enabled with OPT_FEED_ORDER_ASCENDING
     tag in the serverlist file for the feed.
+  * A few new Shellcheck fixes.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Fri, 07 Oct 2016 10:26:41 -0600
 
 podget (0.8.2) unstable; urgency=low
 
