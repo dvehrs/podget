@@ -1,0 +1,389 @@
+#!/usr/bin/env bash
+
+# Useful to follow command execution and determine when an extra echo outputs during silent mode.
+#set -x
+
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Filename:      podget_update_playlists                                                                                                          {{{
+# Maintainer:    Dave Vehrs <davevehrs(at)users.sourceforge.net>
+# Copyright:     (c) 2016 Dave Vehrs
+#
+#                This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public
+#                License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any
+#                later version.
+#
+#                This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+#                warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+#                details.
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Exit Codes                                                                                                                     {{{
+
+# "Reserved" Exit codes
+# 1     General Error
+# 2     Misuse of shell built-ins
+# 126   Command invoked cannot execute
+# 127   Command not found
+# 128+n Invalid argument to exit
+#   130   Script terminated by Control-C (128+2)
+#   143   Script terminated by TERM signal (128+15)
+
+# "Our" Exit codes
+
+# Display Help (set to '0' because it is an valid exit condition, not an error.)
+ERR_DISPLAYHELP=0
+
+# Library directory not defined.
+ERR_LIBNOTDEF=50
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Traps                                                                                                                          {{{
+
+# FUNCNAME is declared with a default value in case the trap is triggered while
+# outside a function.
+trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+# trap to run CLEANUP function if program receives a TERM (kill) or INT (ctrl-c) signal
+# - CLEANUP called in line for other normal exits.
+trap 'CLEANUP_AND_EXIT 143' TERM
+trap 'CLEANUP_AND_EXIT 130' INT
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Set Shell Options to catch errors ('man bash' for details)                                                                     {{{
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# Enable extended glob matches.
+shopt -s extglob
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Help text and default file formats                                                                                             {{{
+
+: << HELP_STEXT
+    -c --config <FILE>           Name of configuration file to use.
+    -d --dir_config <DIRECTORY>  Directory that configuration files are
+    --dir_session <DIRECTORY>    Directory that session files are stored in.
+    -f --force                   Force download of items from each feed even
+                                 if they have already been downloaded.
+    -l --library <DIRECTORY>     Directory to store downloaded files in.
+    -s --silent                  Run silently (for cron jobs).
+    --verbosity <LEVEL>          Set verbosity level (0-4).
+    -v                           Set verbosity to level 1.
+    -vv                          Set verbosity to level 2.
+    -vvv                         Set verbosity to level 3.
+    -vvvv                        Set verbosity to level 4.
+    -h --help                    Display help.
+HELP_STEXT
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Defaults                                                                                                                       {{{
+
+     #########################################################################################################################
+     ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
+     #########################################################################################################################
+
+# Set DIR_LIBRARY, DIR_SESSION, and DIR_LOG  in config file.
+DIR_CONFIG="${HOME}/.podget"
+CONFIG_CORE="podgetrc"
+
+# Default VERBOSITY
+#  0 == silent
+#  1 == Warning messages only.
+#  2 == Progress and Warning messages.
+#  3 == Debug, Progress and Warning messages.
+#  4 == All messages and wget set to maximum VERBOSITY.
+VERBOSITY=2
+
+# Force
+# 0 == Only download new material.
+# 1 == Force download all items even those you've downloaded before.
+FORCE=0
+
+# Date format for new playlist names
+DATE_FORMAT=+%F
+
+# ASX Playlists for Windows Media Player
+# 0 == do not create
+# 1 == create
+ASX_PLAYLIST=0
+
+# Default DEBUG Disabled (Deletion of temporary files allowed)
+DEBUG=0
+
+# Default DEBUG string leader
+DEBUG_LEADER="DEBUG --"
+
+     #########################################################################################################################
+     ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
+     #########################################################################################################################
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Functions                                                                                                                      {{{
+
+# Function: CLEANUP_AND_EXIT
+# Closes session and removes lock file (if it exists)
+# ARGUMENTS:
+# ${1} == Exit Status to report.
+CLEANUP_AND_EXIT() {
+    local EXITSTATUS=${1}
+    exit "${EXITSTATUS}"
+}
+
+display_shelp() {
+	echo; echo "Usage $0 [options]"; echo
+	sed --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | sed -e '/HELP_STEXT/d'
+}
+
+EXIT_ERROR() {
+  # Name of script
+  JOB_NAME=$(basename "$0")
+  # The following three variables are configured with a default value in case
+  # the function is called without options set.
+  LINENUM="${1:-"Unconfigured"}"                   # Line with error
+  EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
+  FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
+
+  echo
+  echo "Error:"
+  echo -e "\tScript:\t\t${JOB_NAME}"
+
+  # Function line only appears if it has been set to value other than the
+  # default.  Works on the assumption that "Unconfigured" is not likely to be
+  # chosen as a function name.
+  if [[ ${FUNCTION} != "Unconfigured" ]]; then
+      echo -e "\tFunction:\t${FUNCTION}"
+  fi
+
+  echo -e "\tAt line:\t${LINENUM}"
+  echo -e "\tExit Status:\t${EXITSTATUS}"
+  echo
+  CLEANUP_AND_EXIT 1
+}
+
+PLAYLIST_ConvertToASX() {
+    local DIR_LIBRARY=${1}
+    local M3U_PLAYLISTNAME=${2}
+    ASX_LOCATION="\\SD Card\\POD\\"
+    ASX_PLAYLISTNAME=$(basename "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}" .m3u).asx
+    sed --silent -e '/TEXT_ASX_BEGINNING$/,/^TEXT_ASX_BEGINNING/p' "$0" |
+      sed -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+
+    while read -r line ; do
+#      local FIXED_ENTRY=$(echo "${line}" | sed 's/\//\\/g')
+      local FIXED_ENTRY="${line//\//\\}"
+      {
+          echo '    <ENTRY>'
+          echo "        <ref href = \"${ASX_LOCATION}${FIXED_ENTRY}\" />"
+          echo "        <ref href = \".\\${FIXED_ENTRY}\" />"
+          echo '    </ENTRY>'
+      } >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+    done < "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}"
+
+    sed --silent -e '/TEXT_ASX_END$/,/^TEXT_ASX_END/p' "$0" |
+      sed -e '/TEXT_ASX_END/d' >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+
+     # Removing unix2dos dependency. Converting to sed statement with in-place editing of the file in question.
+     # ctrl-v ctrl-m for windows line end.
+     sed -i 's/$//' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+}
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Version  (Update with changes!)                                                                                                {{{
+
+VERSION=0.1
+REPORT_VERSION=0
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Parse command line                                                                                                             {{{
+
+# Set defaults for command line options so variables do not conflict with 'set -o nounset' by being undeclared.
+CMDL_FORCE=0
+
+# Parameter Substitution will cause script to exit with an error when 'errexit' is enabled.  Disable while processing the command
+# line.
+set +o errexit
+# Also disable trap for reporting errors on non-zero exit statuses.
+trap - ERR
+
+while (( $# >= 1 )); do
+	case ${1} in
+        -c | --config               ) CONFIG_CORE=${2:-NONE}                            ; shift ; shift           ;;
+        -d | --dir_config           ) DIR_CONFIG=${2:-NONE}                             ; shift ; shift           ;;
+             --dir_session          ) CMDL_SESSION=${2:-NONE}                           ; shift ; shift           ;;
+        -f | --force                ) CMDL_FORCE=1                                      ; shift                   ;;
+        -l | --library              ) CMDL_LIBRARY=${2:-NONE}                           ; shift ; shift           ;;
+        -s | --silent               ) VERBOSITY=0                                       ; shift                   ;;
+        -V | --version              ) VERBOSITY=2 ; REPORT_VERSION=1                    ; shift                   ;;
+		-v                          ) VERBOSITY=1                                       ; shift                   ;;
+		-vv                         ) VERBOSITY=2                                       ; shift                   ;;
+		-vvv                        ) VERBOSITY=3                                       ; shift                   ;;
+		-vvvv                       ) VERBOSITY=4                                       ; shift                   ;;
+        --verbosity                 ) VERBOSITY=${2:-NONE}                                 ; shift ; shift           ;;
+		*                           ) display_shelp                         ; CLEANUP_AND_EXIT ${ERR_DISPLAYHELP} ;;
+	esac
+done
+
+# Re-enable errexit
+set -o errexit
+# Re-enable trap
+trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+
+if [[ -n ${VERBOSITY+set} ]] ; then
+    if [[ -z ${VERBOSITY##*[!0-9]*} ]]; then
+        echo "Verbosity is not a supported integer value"
+        exit 1
+    fi
+fi
+
+if (( VERBOSITY >= 2 )) ; then
+    echo "podget_update_playlists"
+fi
+
+if (( REPORT_VERSION == 1 )); then
+    echo "Version: ${VERSION}"
+    CLEANUP_AND_EXIT 0
+fi
+
+if (( VERBOSITY >= 2 )) ; then
+    echo
+fi
+
+if [[ ${CONFIG_CORE} == "NONE" ]]; then
+    echo "Unset filename for configuration"
+    CLEANUP_AND_EXIT 1
+fi
+
+if [[ ${DIR_CONFIG} == "NONE" ]]; then
+    echo "Unset directory to store configuration"
+    CLEANUP_AND_EXIT 1
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Test for existing configuration directory, if missing install it.                                                              {{{
+
+if [[ ! -d ${DIR_CONFIG} ]] ; then
+    echo "  Configuration directory not found."
+    CLEANUP_AND_EXIT 1
+fi
+
+if [[ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ]] ; then
+    echo "Configuration file does not exist."
+    CLEANUP_AND_EXIT 1
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Configuration                                                                                                                  {{{
+
+# SHELLCHECK SC1090
+# shellcheck source=/dev/null
+source "${DIR_CONFIG}"/"${CONFIG_CORE}"
+
+if (( DEBUG == 1 )) ; then
+    echo
+    echo "${DEBUG_LEADER} Parsing Config file."
+    echo -e "${DEBUG_LEADER} Config directory:\t\t${DIR_CONFIG}"
+    echo -e "${DEBUG_LEADER} Config file:\t\t\t${CONFIG_CORE}"
+    echo
+fi
+
+# for testing
+#echo "Verbosity: ${VERBOSITY}"
+#echo "Debug: ${DEBUG}"
+#CLEANUP_AND_EXIT 0
+
+if [[ -n ${CMDL_LIBRARY+set} ]] ; then
+    if [[ ${CMDL_LIBRARY} == "NONE" ]]; then
+        echo "Unset directory to store podcast library"
+        CLEANUP_AND_EXIT 1
+    fi
+    if (( VERBOSITY >= 3 )) ; then
+        echo -e "\t\tOverriding Library Directory specified in configuration file."
+    fi
+    DIR_LIBRARY=${CMDL_LIBRARY}
+fi
+
+if (( VERBOSITY >= 3 )) ; then
+    echo -e "Library Directory:\t\t${DIR_LIBRARY}"
+fi
+
+if [[ -z ${DIR_LIBRARY} ]] ; then
+    echo "ERROR - Library directory not defined." 1>&2
+    CLEANUP_AND_EXIT ${ERR_LIBNOTDEF}
+fi
+
+if [[ -n ${CMDL_ASX+set} ]]; then
+    ASX_PLAYLIST=${CMDL_ASX}
+fi
+
+if (( CMDL_FORCE != 0 )); then
+    FORCE=${CMDL_FORCE}
+fi
+
+if (( VERBOSITY >= 3 )) ; then
+    if (( DEBUG == 0 )); then
+        echo -e "Debug:\t\t\t\tDisabled - Reduced progress messages."
+    else
+        echo -e "Debug:\t\t\t\tEnabled - Increased progress messages."
+    fi
+fi
+
+if (( VERBOSITY >= 1 )) ; then
+    echo
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Loop over files in Library to create playlists                                                                                 {{{
+
+CATEGORIES=$(ls -d ${DIR_LIBRARY}/*/ | awk -F'/' '{print $(NF-1)}')
+
+while read -r CAT; do
+    if (( VERBOSITY >= 1 )); then
+        echo "CATEGORY: ${CAT}"
+    fi
+    FEEDS=$(ls -d "${DIR_LIBRARY}/${CAT}"/*/ | awk -F'/' '{print $(NF-1)}')
+    while read -r FEED; do
+        if (( VERBOSITY >= 2 )); then
+            echo "  FEED: ${FEED}"
+        fi
+        PLAYLIST_NAME="PLAYLIST_${FEED//[[:space:]]/_}.m3u"
+        if (( VERBOSITY >= 1 )); then
+            echo "  PLAYLIST NAME: ${PLAYLIST_NAME}"
+        fi
+        if [ -f "${DIR_LIBRARY}/${PLAYLIST_NAME}" ]; then
+            rm -f "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+        fi
+        touch "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+        ITEMS=$(ls -1tr "${DIR_LIBRARY}/${CAT}/${FEED}/")
+        while read -r ITEM; do
+            if (( VERBOSITY >= 3 )); then
+                echo "    ITEM: ${ITEM}"
+            fi
+            echo "${CAT}/${FEED}/${ITEM}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+        done <<< "${ITEMS}"
+    done <<< "${FEEDS}"
+done <<< "${CATEGORIES}"
+
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Close session with '0' status and clean up:                                                                                    {{{
+
+# Disable extended glob matches.
+shopt -u extglob
+
+CLEANUP_AND_EXIT 0
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# vim:tw=132:ts=4:sw=4

@@ -1298,6 +1298,7 @@ if [[ ${DIR_CONFIG} == "NONE" ]]; then
     CLEANUP_AND_EXIT 1
 fi
 
+#### ISSUE: Debug not enabled or disabled until CONFIG_CORE is read at about line 1446
 if (( DEBUG == 1 )) ; then
     echo
     echo "${DEBUG_LEADER} Parsing Config file."
