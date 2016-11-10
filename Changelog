@@ -1,4 +1,9 @@
-podget (0.8.2) unstable; urgency=low
+  * Replaced sections where errexit was disabled with script that worked when
+    enabled.
+  * Fixed Changelog to show correct version for 0.8.3 released on October 7,
+    2016.
+
+podget (0.8.3) unstable; urgency=low
 
   * Improved feed handling to allow for correct handling of feeds with either
     descending sort order (newest to oldest [DEFAULT]) or ascending  sort

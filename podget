@@ -826,7 +826,7 @@ FILENAME_CHECK() {
     local OFFENDING_CHARS=""
 
     if [[ ${TEST_STRING} == "UNCONFigured" ]]; then
-        echo "Improperly formated call to DIRECTORY_CHECK."
+        echo "Improperly formated call to FILENAME_CHECK."
         return 1
     fi
 
@@ -1135,8 +1135,6 @@ PLAYLIST_Sort() {
     local DIR_LIBRARY=${1}
     local M3U_PLAYLISTNAME=${2}
     local REALPLAYLISTNAME="${DIR_LIBRARY}/$M3U_PLAYLISTNAME"
-
-    # Potentially need to turn of errexit for this function.
 
     # Sort Playlist
     unset TEMPPLAYLISTNAME
@@ -1915,12 +1913,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
-
-            # Disable exit-on-error for DIRECTORY_CHECK
-            set +o errexit
-            # Also disable trap for reporting errors on non-zero exit statuses.
-            trap - ERR
-
             for i in FEED_CATEGORY FEED_NAME; do
                 # FEED_NAME can be blank, if it is then we skip the DIRECTORY_CHECK
                 if [[ ${i} == "FEED_NAME" && -z "${!i}" ]]; then
@@ -1928,11 +1920,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     continue
                 fi
 
-                DIRECTORY_CHECK ${i}
-
-                EXITSTATUS=$?
-
-                if (( EXITSTATUS != 0 )); then
+                # Moved DIRECTORY_CHECK inside an IF statement so that a non-zero exit status would not trigger either the errexit
+                # or the ERR trap conditions.
+                if ! DIRECTORY_CHECK "${i}"; then
                     echo
                     echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
                     echo
@@ -1940,12 +1930,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     # loop wrapping it.
                     continue 2
                 fi
-            done
 
-            # Re-enable errexit
-            set -o errexit
-            # Re-enable trap
-            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+            done
 
             # If configured to create individual playlists for each podcast, set playlist name here.
             # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
@@ -1979,28 +1965,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "Downloading feed index from ${FEED_URL}"
             fi
 
-            # UTF-8 FEEDS:
-            # Wget returns a non-zero exit status if the file is not found.  This will cause the 'errexit' attribute to cause the
-            # script to exit and report an error.  To avoid this issue, we disable 'errexit' for these commands but re-enable it
-            # afterwards.
-            #
-            # UTF-16 FEEDS:
-            # For UTF-16 feeds, we need to disable both 'errexit' and 'pipefail'.
-            set +o pipefail
-            set +o errexit
-
-            # Also disable trap for reporting errors.
-            trap - ERR
-
             case ${FILETYPE} in
                 'utf8')
-                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}")
-                    EXITSTATUS=$?
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}") && EXITSTATUS=0 || EXITSTATUS=1
                     ;;
                 'utf16')
                     # Slight gymnastics to report the exit status of WGET and not ICONV.
-                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit "${PIPESTATUS[0]}")
-                    EXITSTATUS=$?
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit "${PIPESTATUS[0]}") && EXITSTATUS=0 || EXITSTATUS=1
                     ;;
             esac
 
@@ -2014,13 +1985,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                 continue
             fi
-
-            # Re-enable pipefail and errexit
-            set -o pipefail
-            set -o errexit
-
-            # Re-enable trap
-            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
             INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g')
 
@@ -2247,17 +2211,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                         fi
 
-                        # Wget returns a non-zero exit status if a file is not found.  If 'errexit' is enabled, this will cause
-                        # podget to exit and report an error.  To address this problem, 'errexit' is disabled before wget is called
-                        # and then re-enabled afterwards.
-                        set +o errexit
-
-                        # Also disable trap for reporting errors on non-zero exit statuses.
-                        trap - ERR
-
-                        # To catch content-disposition flag and mv file
-                        # wget -q -O file --server-response http://open.live.bbc.co.uk/mediaselector/5/redir/version/2.0/mediaset/audio-nondrm-download-low/proto/http/vpid/p035nwbf.mp3 2> response.txt
-
+                        # Added '&& WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1' to each WGET call below so we could remove the disabling
+                        # of errexit and the ERR trap.
                         if (( (WGET_OPTION_DISPOSITION == 1) || (WGET_OPTION_FILENAME_LOCATION == 1) )); then
                             if (( VERBOSITY >= 3 )) ; then
                                 if (( WGET_OPTION_DISPOSITION == 1 )); then
@@ -2269,27 +2224,19 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                             # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
                             if [[ -n ${MOD_FILENAME} ]]; then
-                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                             else
-                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                             fi
                         else
                             # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
                             #   ( I'm looking at you ITunes..... )
                             if [[ -n ${MOD_FILENAME} ]]; then
-                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}"
+                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                             else
-                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}"
+                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                             fi
                         fi
-
-                        WGET_EXITSTATUS=$?
-
-                        # Re-enable 'errexit'
-                        set -o errexit
-
-                        # Re-enable trap
-                        trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
                         if (( WGET_EXITSTATUS == 0 )); then
                             # make sure CONTENT_FILENAME hasn't been used before
@@ -2320,13 +2267,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                         echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
 
-                                    # Grep exits non-zero if match isn't found.
-                                    set +o errexit
-
-                                    # Also disable trap for reporting errors on non-zero exit statuses.
-                                    trap - ERR
-
-                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g')
+                                    # Added '|| true' to catch when grep exits with a non-zero status because the
+                                    # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
+                                    # ERR trap.
+                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g') || true
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
@@ -2349,12 +2293,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                             REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
                                         fi
                                     fi
-
-                                    # Re-enable 'errexit'
-                                    set -o errexit
-
-                                    # Re-enable trap
-                                    trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
                                 else
                                     if (( DEBUG == 1 )) ; then
                                         echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
@@ -2378,13 +2316,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                         echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
                                     fi
 
-                                    # Grep exits non-zero if match isn't found.
-                                    set +o errexit
-
-                                    # Also disable trap for reporting errors on non-zero exit statuses.
-                                    trap - ERR
-
-                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/')
+                                    # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
+                                    # not found.  This eliminates the need to disable errexit and the ERR trap.
+                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
 
                                     LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
 
@@ -2402,12 +2336,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                             unset LOCATION_FILENAME
                                         fi
                                     fi
-
-                                    # Re-enable 'errexit'
-                                    set -o errexit
-
-                                    # Re-enable trap
-                                    trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
                                 else
                                     if (( DEBUG == 1 )) ; then
                                         echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
@@ -2727,18 +2655,9 @@ if [[ -n ${IMPORT_OPML+set} ]]; then
                 echo "URL:    ${new_url}"
             fi
 
-            # grep returns a non-zero exit status if the URL is not found.  When errexit is enabled, this causes the script to exit.
-            # Therefore, we disable errexit while this grep command is running.
-            set +o errexit
-            # Also disable trap for reporting errors on non-zero exit statuses.
-            trap - ERR
-
-            test=$(grep "${new_url}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}")
-
-            # Re-enable errexit
-            set -o errexit
-            # Re-enable trap
-            trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+            # Add '|| true' to catch when grep returns a non-zero status for URLs it does not find.  This replaces the need to
+            # disable errexit and the ERR trap.
+            test=$(grep "${new_url}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}") || true
 
             if [[ -z "$test" ]]; then
                 echo "${new_url} ${new_category} ${new_label}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
@@ -2850,18 +2769,9 @@ if [[ -n ${IMPORT_PCAST+set} ]] ; then
         echo "TITLE: ${new_title}"
     fi
 
-    # grep returns a non-zero exit status if the URL is not found.  When errexit is enabled, this causes the script to exit.
-    # Therefore, we disable errexit while this grep command is running.
-    set +o errexit
-    # Also disable trap for reporting errors on non-zero exit statuses.
-    trap - ERR
-
-    test=$(grep "${new_link}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}")
-
-    # Re-enable errexit
-    set -o errexit
-    # Re-enable trap
-    trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+    # Added '|| true' to catch when grep exits with a non-zero status because the link was not found.  This eliminates the need to
+    # disable errexit and the ERR trap.
+    test=$(grep "${new_link}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}") || true
 
     if [[ -z "$test" ]]; then
         echo "${new_link} ${new_category} ${new_title}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
