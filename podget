@@ -1220,12 +1220,6 @@ REPORT_VERSION=0
 CMDL_CLEANUP_SIMULATE=0
 CMDL_FORCE=0
 
-# Parameter Substitution will cause script to exit with an error when 'errexit' is enabled.  Disable while processing the command
-# line.
-set +o errexit
-# Also disable trap for reporting errors on non-zero exit statuses.
-trap - ERR
-
 while (( $# >= 1 )); do
 	case ${1} in
         -c | --config               ) CONFIG_CORE=${2:-NONE}                            ; shift ; shift           ;;
@@ -1255,11 +1249,6 @@ while (( $# >= 1 )); do
 		*                           ) display_shelp                         ; CLEANUP_AND_EXIT ${ERR_DISPLAYHELP} ;;
 	esac
 done
-
-# Re-enable errexit
-set -o errexit
-# Re-enable trap
-trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
 
 if [[ -n ${VERBOSITY+set} ]] ; then
     if [[ -z ${VERBOSITY##*[!0-9]*} ]]; then
