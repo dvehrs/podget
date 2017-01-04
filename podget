@@ -563,7 +563,7 @@ TEXT_DEFAULT_CONFIG
 #                                 cause confusion when downloading more than one item at a time from a feed.
 #   OPT_FEED_ORDER_ASCENDING   -  By default, Podget assumes that items in a feed will be listed from newest to oldest
 #                                 (descending order).  This option will modify Podget's handling of the feed for those
-#                                 that are listed from oldest to newest.  This option will not have any noticible effect
+#                                 that are listed from oldest to newest.  This option will not have any noticeable effect
 #                                 for feeds where you want to download every item.  It will have an effect for new feeds
 #                                 when combined with the --recent [COUNT] option.
 #
