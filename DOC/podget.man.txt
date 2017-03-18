@@ -38,7 +38,7 @@ OPTIONS
 
     -p, --playlist-asx           In addition to M3U playlists, create ASX playlists.
 
-    --playlist-per-podcast       Create playlist of new items for each podcast feed.
+    --playlist-per-podcast       Create a playlist of new items for each podcast feed.
 
     -r, --recent <COUNT>         Download only the <COUNT> newest items from
                                  each feed.
