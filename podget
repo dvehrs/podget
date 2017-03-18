@@ -207,6 +207,11 @@ DEBUG_LEADER="DEBUG --"
 # Default: DESCENDING - Newest items appear first, oldest last.
 FEED_SORT_ORDER="DESCENDING"
 
+# Create or update full playlist for each feed of all available items.
+# 0 == Enable
+# 1 == Disable
+FEED_FULL_PLAYLIST=0
+
      #########################################################################################################################
      ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
      #########################################################################################################################
@@ -566,6 +571,9 @@ TEXT_DEFAULT_CONFIG
 #                                 that are listed from oldest to newest.  This option will not have any noticeable effect
 #                                 for feeds where you want to download every item.  It will have an effect for new feeds
 #                                 when combined with the --recent [COUNT] option.
+#   OPT_FEED_FULL_PLAYLIST     -  Most playlist options create lists of just the new items that are downloaded in the
+#                                 current session.  This option creates or updates a full playlist for all items available
+#                                 for a feed from oldest to newest.
 #
 #     Note:  It is possible to use more than one option per feed, this will combine the effects of the options in order from
 #            top to bottom as they are listed here.
@@ -577,6 +585,7 @@ TEXT_DEFAULT_CONFIG
 #       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
 #       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION OPT_FILENAME_RENAME_MDATE
 #       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_ORDER_ASCENDING
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_FULL_PLAYLIST
 #
 # Atom Feed Options:  The following options are available for advanced handling of Atom feeds.
 #   ATOM_FILTER_SIMPLE            This option will enable filtering for just audio or video files from a feed.
@@ -1767,6 +1776,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             FEED_SORT_ORDER="DESCENDING"
 
             if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset FEED_FULL_PLAYLIST"
+            fi
+            FEED_FULL_PLAYLIST=0
+
+            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
@@ -1842,6 +1856,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
                 FEED_SORT_ORDER="ASCENDING"
                 FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
+            fi
+
+            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_FULL_PLAYLIST.*") > 0 )); then
+                FEED_FULL_PLAYLIST=1
+                FEED_NAME=${FEED_NAME/OPT_FEED_FULL_PLAYLIST}
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
@@ -2113,6 +2132,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER} FEED FULL PLAYLIST: ${FEED_FULL_PLAYLIST}"
                     if (( MOST_RECENT > 0 )) ; then
                         echo -e "${DEBUG_LEADER} Modified Index List:\n${INDEXFILE}"
                         echo -e "${DEBUG_LEADER} Full Index List:\n${FULLINDEXFILE}"
@@ -2519,12 +2539,30 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
             fi
 
+            if (( FEED_FULL_PLAYLIST == 1 )) ; then
+                FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
+                # Remove old full playlist.
+                if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
+                    rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                fi
+                # Build new full playlist.
+                FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                while read -r ITEM; do
+                    if (( DEBUG == 1 )) ; then
+                        echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
+                    fi
+                    echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                done <<< "${FEED_ITEMS}"
+            fi
+
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} Clear Server Loop Vars"
             fi
             unset FEED_URL
             unset FEED_CATEGORY
             unset FEED_NAME
+            unset FEED_ITEMS
+            unset FULL_PLAYLIST_NAME
             unset URL_FILENAME
             unset URL_USERNAME
             unset URL_PASSWORD
