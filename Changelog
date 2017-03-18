@@ -2,6 +2,10 @@
     enabled.
   * Fixed Changelog to show correct version for 0.8.3 released on October 7,
     2016.
+  * Added OPT_FEED_FULL_PLAYLIST support to serverlist parsing to enabled the
+    creation and updating of playlists of all items (not just new) from a feed
+	ordered from oldest to newest.  These playlists are stored in the base of
+	the LIBRARY directory and named "PLAYLIST_<FEED_NAME>.m3u"
 
 podget (0.8.3) unstable; urgency=low
 
