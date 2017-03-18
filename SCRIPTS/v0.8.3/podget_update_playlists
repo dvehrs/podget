@@ -351,27 +351,32 @@ while read -r CAT; do
     if (( VERBOSITY >= 1 )); then
         echo "CATEGORY: ${CAT}"
     fi
-    FEEDS=$(ls -d "${DIR_LIBRARY}/${CAT}"/*/ | awk -F'/' '{print $(NF-1)}')
-    while read -r FEED; do
-        if (( VERBOSITY >= 2 )); then
-            echo "  FEED: ${FEED}"
-        fi
-        PLAYLIST_NAME="PLAYLIST_${FEED//[[:space:]]/_}.m3u"
-        if (( VERBOSITY >= 1 )); then
-            echo "  PLAYLIST NAME: ${PLAYLIST_NAME}"
-        fi
-        if [ -f "${DIR_LIBRARY}/${PLAYLIST_NAME}" ]; then
-            rm -f "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-        fi
-        touch "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-        ITEMS=$(ls -1tr "${DIR_LIBRARY}/${CAT}/${FEED}/")
-        while read -r ITEM; do
-            if (( VERBOSITY >= 3 )); then
-                echo "    ITEM: ${ITEM}"
+    # Test to determine if Category directory contains any Feed directories.
+    if find "${DIR_LIBRARY}/${CAT}" -maxdepth 0 ! -empty -type d | read ;then
+        FEEDS=$(ls -d "${DIR_LIBRARY}/${CAT}"/*/ | awk -F'/' '{print $(NF-1)}')
+        while read -r FEED; do
+            if (( VERBOSITY >= 2 )); then
+                echo "  FEED: ${FEED}"
             fi
-            echo "${CAT}/${FEED}/${ITEM}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-        done <<< "${ITEMS}"
-    done <<< "${FEEDS}"
+            PLAYLIST_NAME="PLAYLIST_${FEED//[[:space:]]/_}.m3u"
+            if (( VERBOSITY >= 1 )); then
+                echo "  PLAYLIST NAME: ${PLAYLIST_NAME}"
+            fi
+            if [ -f "${DIR_LIBRARY}/${PLAYLIST_NAME}" ]; then
+                rm -f "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+            fi
+            touch "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+            ITEMS=$(ls -1tr "${DIR_LIBRARY}/${CAT}/${FEED}/")
+            while read -r ITEM; do
+                if (( VERBOSITY >= 3 )); then
+                    echo "    ITEM: ${ITEM}"
+                fi
+                echo "${CAT}/${FEED}/${ITEM}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+            done <<< "${ITEMS}"
+        done <<< "${FEEDS}"
+    else
+        echo "  NO FEEDS"
+    fi
 done <<< "${CATEGORIES}"
 
 
