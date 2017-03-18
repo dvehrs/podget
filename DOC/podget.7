@@ -23,7 +23,7 @@ Name of configuration file.
 .TP
 .B
 \fB--create-config\fP <FILE>
-Create configuration file.
+Create configuration file and exit.
 .TP
 .B
 \fB-C\fP, \fB--cleanup\fP
@@ -41,6 +41,10 @@ be deleted.
 .B
 \fB-d\fP, \fB--dir_config\fP <DIRECTORY>
 Directory that configuration files are stored in.
+.TP
+.B
+\fB--dir_session\fP <DIRECTORY>
+Directory that session files are stored in.
 .TP
 .B
 \fB-f\fP, \fB--force\fP
@@ -64,8 +68,16 @@ Import server from iTunes PCAST file or HTTP/FTP URL.
 Directory to store downloaded files in.
 .TP
 .B
+\fB-n\fP, \fB--no-playlist\fP
+Do not create M3U playlist of new items.
+.TP
+.B
 \fB-p\fP, \fB--playlist-asx\fP
 In addition to M3U playlists, create ASX playlists.
+.TP
+.B
+\fB--playlist-per-podcast\fP
+Create a playlist of new items for each podcast feed.
 .TP
 .B
 \fB-r\fP, \fB--recent\fP <COUNT>
@@ -83,6 +95,18 @@ Run silently (for cron jobs).
 .B
 \fB-v\fP
 Set verbosity to level 1.
+.TP
+.B
+\fB-vv\fP
+Set verbosity to level 2.
+.TP
+.B
+\fB-vvv\fP
+Set verbosity to level 3.
+.TP
+.B
+\fB-vvvv\fP
+Set verbosity to level 4.
 .TP
 .B
 \fB--verbosity\fP <LEVEL>
