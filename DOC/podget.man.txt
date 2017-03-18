@@ -10,7 +10,7 @@ DESCRIPTION
 OPTIONS
     -c, --config <FILE>          Name of configuration file.
 
-    --create-config <FILE>       Create configuration file.
+    --create-config <FILE>       Create configuration file and exit.
 
     -C, --cleanup                Skip downloading and only run cleanup loop.
 
@@ -20,6 +20,8 @@ OPTIONS
                                  be deleted.
 
     -d, --dir_config <DIRECTORY>  Directory that configuration files are stored in.
+
+    --dir_session <DIRECTORY>    Directory that session files are stored in.
 
     -f, --force                  Force download of items from each feed even if
                                  they've already been downloaded.
@@ -32,7 +34,11 @@ OPTIONS
 
     -l, --library <DIRECTORY>    Directory to store downloaded files in.
 
+    -n, --no-playlist            Do not create M3U playlist of new items.
+
     -p, --playlist-asx           In addition to M3U playlists, create ASX playlists.
+
+    --playlist-per-podcast       Create playlist of new items for each podcast feed.
 
     -r, --recent <COUNT>         Download only the <COUNT> newest items from
                                  each feed.
@@ -42,6 +48,12 @@ OPTIONS
     -s, --silent                 Run silently (for cron jobs).
 
     -v                           Set verbosity to level 1.
+
+    -vv                          Set verbosity to level 2.
+
+    -vvv                         Set verbosity to level 3.
+
+    -vvvv                        Set verbosity to level 4.
 
     --verbosity <LEVEL>          Set verbosity level (0-3).
 

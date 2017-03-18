@@ -104,11 +104,11 @@ shopt -s extglob
     --import_pcast <FILE or URL> Import servers from iTunes PCAST file or
                                  HTTP/FTP URL.
     -l --library <DIRECTORY>     Directory to store downloaded files in.
-    -n --no-playlist             Do not create M3U playlist.
+    -n --no-playlist             Do not create M3U playlist of new items.
     -p --playlist-asx            In addition to the default M3U playlist,
                                  create an ASX Playlist.  M3U playlist must be
                                  created to convert to ASX.
-    --playlist-per-podcast       Create playlist for each podcast feed.
+    --playlist-per-podcast       Create playlist of new items for each podcast feed.
     -r --recent <COUNT>          Download only the <count> newest items from
                                  each feed.
     --serverlist <LIST>          Serverlist to use.
