@@ -573,7 +573,7 @@ TEXT_DEFAULT_CONFIG
 #                                 when combined with the --recent [COUNT] option.
 #   OPT_FEED_FULL_PLAYLIST     -  Most playlist options create lists of just the new items that are downloaded in the
 #                                 current session.  This option creates or updates a full playlist for all items available
-#                                 for a feed from oldest to newest.
+#                                 for a feed from oldest to newest based on the modification date/time of the file.
 #
 #     Note:  It is possible to use more than one option per feed, this will combine the effects of the options in order from
 #            top to bottom as they are listed here.
@@ -2539,6 +2539,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
             fi
 
+            # Build full playlist for podcast if OPT_FEED_FULL_PLAYLIST is specified for the FEED on serverlist.
+            #  - Items on playlist will be listed from oldest to newest based on modification time of the file.
             if (( FEED_FULL_PLAYLIST == 1 )) ; then
                 FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
                 # Remove old full playlist.
