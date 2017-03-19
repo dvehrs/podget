@@ -9,6 +9,8 @@
 	all items (not just new) from a feed either ordered from newest to oldest
 	or from oldest to newest.  These playlists are stored in the base of the
 	LIBRARY directory and named "PLAYLIST_<FEED_NAME>.m3u"
+  * Updated cleanup functions to include support for updating feed playlists
+    when necessary.
 
 podget (0.8.3) unstable; urgency=low
 
