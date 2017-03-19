@@ -2543,9 +2543,15 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
                 # Remove old full playlist.
                 if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
+                    if (( DEBUG == 1 )) ; then
+                        echo "${DEBUG_LEADER} Remove old ${FULL_PLAYLIST_NAME}"
+                    fi
                     rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                 fi
                 # Build new full playlist.
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER} Build new ${FULL_PLAYLIST_NAME}"
+                fi
                 FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
                 while read -r ITEM; do
                     if (( DEBUG == 1 )) ; then
