@@ -571,9 +571,10 @@ TEXT_DEFAULT_CONFIG
 #                                 that are listed from oldest to newest.  This option will not have any noticeable effect
 #                                 for feeds where you want to download every item.  It will have an effect for new feeds
 #                                 when combined with the --recent [COUNT] option.
-#   OPT_FEED_FULL_PLAYLIST     -  Most playlist options create lists of just the new items that are downloaded in the
+#   OPT_FEED_PLAYLIST_NEWFIRST -  Most playlist options create lists of just the new items that are downloaded in the
 #                                 current session.  This option creates or updates a full playlist for all items available
-#                                 for a feed from oldest to newest based on the modification date/time of the file.
+#                                 for a feed sorted from newest to oldest based on the modification date/time of the file.
+#   OPT_FEED_PLAYLIST_OLDFIRST -  Same as OPT_FEED_PLAYLIST_NEWFIRST except playlist is ordered from oldest to newest.
 #
 #     Note:  It is possible to use more than one option per feed, this will combine the effects of the options in order from
 #            top to bottom as they are listed here.
@@ -585,7 +586,8 @@ TEXT_DEFAULT_CONFIG
 #       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_MDATE
 #       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION OPT_FILENAME_RENAME_MDATE
 #       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_ORDER_ASCENDING
-#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_FULL_PLAYLIST
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_PLAYLIST_NEWFIRST
+#       http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_PLAYLIST_OLDFIRST
 #
 # Atom Feed Options:  The following options are available for advanced handling of Atom feeds.
 #   ATOM_FILTER_SIMPLE            This option will enable filtering for just audio or video files from a feed.
@@ -1858,9 +1860,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
             fi
 
-            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_FULL_PLAYLIST.*") > 0 )); then
+            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
                 FEED_FULL_PLAYLIST=1
-                FEED_NAME=${FEED_NAME/OPT_FEED_FULL_PLAYLIST}
+                FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_NEWFIRST}
+            fi
+
+            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
+                FEED_FULL_PLAYLIST=2
+                FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_OLDFIRST}
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
@@ -2541,7 +2548,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # Build full playlist for podcast if OPT_FEED_FULL_PLAYLIST is specified for the FEED on serverlist.
             #  - Items on playlist will be listed from oldest to newest based on modification time of the file.
-            if (( FEED_FULL_PLAYLIST == 1 )) ; then
+            if (( FEED_FULL_PLAYLIST >= 1 )) ; then
                 FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
                 # Remove old full playlist.
                 if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
@@ -2554,7 +2561,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if (( DEBUG == 1 )) ; then
                     echo "${DEBUG_LEADER} Build new ${FULL_PLAYLIST_NAME}"
                 fi
-                FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                if (( FEED_FULL_PLAYLIST == 1 )); then
+                    # Get list in order of newest to oldest
+                    FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                else
+                    # Get list in order of oldest to newest
+                    FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                fi
                 while read -r ITEM; do
                     if (( DEBUG == 1 )) ; then
                         echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
