@@ -2596,7 +2596,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # Build full playlist for podcast if OPT_FEED_FULL_PLAYLIST is specified for the FEED on serverlist.
             #  - Items on playlist will be listed from oldest to newest based on modification time of the file.
-            #  TODO: Can we put this in a function so it can be called after cleanup below?
             if (( FEED_FULL_PLAYLIST >= 1 )) ; then
                 BUILD_FEED_PLAYLIST "${FEED_FULL_PLAYLIST}"
             fi
@@ -2677,7 +2676,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 fi
             fi
         done
-        ### TODO: Need to add something here to rebuild feed full playlists after cleanup....
+        ### TODO: Need to find a way to shrink this.
         ### TODO: Need to add UTF16 handling.
         CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
         while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
