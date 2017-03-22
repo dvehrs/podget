@@ -648,43 +648,6 @@ ARRAY_CONTAINS() {
     return 1
 }
 
-# Function: BUILD_FEED_PLAYLIST
-BUILD_FEED_PLAYLIST() {
-    local PLAYLIST_SYTLE="${1}"
-
-    FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
-    # Remove old full playlist.
-    if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} Remove old ${FULL_PLAYLIST_NAME}"
-        fi
-        if (( VERBOSITY >= 2 )) ; then
-            rm -v "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-        else
-            rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-        fi
-    fi
-    # Build new full playlist.
-    if (( DEBUG == 1 )) ; then
-        echo "${DEBUG_LEADER} Build new ${FULL_PLAYLIST_NAME}"
-    fi
-    if (( PLAYLIST_SYTLE == 1 )); then
-        # Get list in order of newest to oldest
-        FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
-    else
-        # Get list in order of oldest to newest
-        FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
-    fi
-    if [ -n "${FEED_ITEMS}" ]; then
-        while read -r ITEM; do
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
-            fi
-            echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-        done <<< "${FEED_ITEMS}"
-    fi
-}
-
 # Function: CLEANUP_AND_EXIT
 # Closes session and removes lock file (if it exists)
 # ARGUMENTS:
@@ -1816,11 +1779,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             FEED_SORT_ORDER="DESCENDING"
 
             if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset FEED_FULL_PLAYLIST"
-            fi
-            FEED_FULL_PLAYLIST=0
-
-            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
@@ -1904,13 +1862,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
             fi
 
+            # The following two tags are handled in a later loop and so only need to be removed here.
             if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
-                FEED_FULL_PLAYLIST=1
                 FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_NEWFIRST}
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
-                FEED_FULL_PLAYLIST=2
                 FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_OLDFIRST}
             fi
 
@@ -2594,11 +2551,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
             fi
 
-            # Build full playlist for podcast if OPT_FEED_FULL_PLAYLIST is specified for the FEED on serverlist.
-            #  - Items on playlist will be listed from oldest to newest based on modification time of the file.
-            if (( FEED_FULL_PLAYLIST >= 1 )) ; then
-                BUILD_FEED_PLAYLIST "${FEED_FULL_PLAYLIST}"
-            fi
 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} Clear Server Loop Vars"
@@ -2606,8 +2558,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset FEED_URL
             unset FEED_CATEGORY
             unset FEED_NAME
-            unset FEED_ITEMS
-            unset FULL_PLAYLIST_NAME
             unset URL_FILENAME
             unset URL_USERNAME
             unset URL_PASSWORD
@@ -2643,8 +2593,6 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             fi
         fi
         FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u" -mtime +"${CLEANUP_DAYS}")
-        echo "CLEANUP_DAYS: ${CLEANUP_DAYS}"
-        echo "FILELIST: ${FILELIST}"
         for FILE in ${FILELIST} ; do
             if (( VERBOSITY >= 2 )) ; then
                 echo "Deleting tracks from ${FILE}:"
@@ -2676,92 +2624,161 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 fi
             fi
         done
-        ### TODO: Need to find a way to shrink this.
-        ### TODO: Need to add UTF16 handling.
-        CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-        while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-            FEED_FULL_PLAYLIST=0
+    fi
+fi
 
-            if   [[ "${FEED_URL:0:1}" == "#" || "${FEED_URL}" == "" ]] ; then
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER} Discarding (comment or blank line)."
-                    echo "${DEBUG_LEADER} Clear Loop vars"
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Build individual Podcast Full Playlists                                                                                        {{{
+#
+# Placed here so it is run after any session whether it includes cleanup or not.  Does not run before importing or exporting OPML or
+# PCAST feed lists.
+
+
+if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
+    # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this section.
+    if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\(NEW\|OLD\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
+        if (( VERBOSITY == 1 )) ; then
+            echo -e "\nBuild OPT_FEED_PLAYLISTs"
+        fi
+        if (( VERBOSITY >= 2 )) ; then
+            echo -e "\n-------------------------------------------------\nBuild OPT_FEED_PLAYLISTs"
+        fi
+        for FILETYPE in utf8 utf16 ; do
+            if (( VERBOSITY >= 3 )) ; then
+                echo
+                case ${FILETYPE} in
+                    'utf8')
+                        echo "UTF-8 Loop running." ;;
+                    'utf16')
+                        echo "UTF-16 Loop running." ;;
+                esac
+            fi
+            case ${FILETYPE} in
+                'utf8')
+                    CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
+                'utf16')
+                    CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
+                *)
+                    echo "Unknown Filetype: ${FILETYPE}"
+            esac
+
+            if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
+                if (( VERBOSITY >= 3 )) ; then
+                    echo "No config file found, exiting loop."
                 fi
+                continue
+            fi
+
+            ### TODO: Need to find a way to shrink this.
+            while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
+                FEED_FULL_PLAYLIST=0
+
+                if   [[ "${FEED_URL:0:1}" == "#" || "${FEED_URL}" == "" ]] ; then
+                    if (( DEBUG == 1 )) ; then
+                        echo "${DEBUG_LEADER} Discarding (comment or blank line)."
+                        echo "${DEBUG_LEADER} Clear Loop vars"
+                    fi
+                    unset FEED_URL
+                    unset FEED_CATEGORY
+                    unset FEED_NAME
+                    unset FEED_FULL_PLAYLIST
+                    continue
+                fi
+                # Enable user configured no category.
+                if (( $(expr "${FEED_CATEGORY}" : "No_Category") > 0 )); then
+                    # Set to single period which is a bashism for current directory.
+                    FEED_CATEGORY="."
+                fi
+
+                if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
+                    FEED_FULL_PLAYLIST=1
+                    FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_NEWFIRST}
+                fi
+
+                if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
+                    FEED_FULL_PLAYLIST=2
+                    FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_OLDFIRST}
+                fi
+
+
+                if (( FEED_FULL_PLAYLIST >= 1 )) ; then
+
+                    # Date Substitutions
+                    FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
+
+                    # Remove unneeded strings from FEED_NAME
+                    FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
+                    FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
+                    FEED_NAME=${FEED_NAME/OPT_CONTENT_DISPOSITION}
+                    FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
+                    FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
+                    FEED_NAME=${FEED_NAME/OPT_FILENAME_LOCATION}
+                    FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
+                    FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
+
+                    if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
+                        FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
+                    fi
+
+                    if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
+                        FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
+                    fi
+
+                    # Remove any residual leading whitespace from ${FEED_NAME}
+                    FEED_NAME="${FEED_NAME#"${FEED_NAME%%[![:space:]]*}"}"
+
+                    # Remove any residual trailing whitespace from ${FEED_NAME}
+                    FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
+
+                    if (( VERBOSITY >= 2 )) ; then
+                        echo -e "\n-------------------------------------------------"
+                    fi
+                    if (( VERBOSITY >= 1 )) ; then
+                        if [ "${FEED_CATEGORY}" == "." ]; then
+                            printf '%-30s %-50s\n' "Category: NONE" "Name: ${FEED_NAME}"
+                        else
+                            printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
+                        fi
+                    fi
+
+                    FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
+                    # Remove old full playlist.
+                    if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
+                        if (( VERBOSITY >= 2 )) ; then
+                            echo "Remove old playlist: ${FULL_PLAYLIST_NAME}"
+                            rm -v "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        else
+                            rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        fi
+                    fi
+                    # Build new full playlist.
+                    if (( VERBOSITY >= 2 )); then
+                        echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                    fi
+                    if (( FEED_FULL_PLAYLIST == 1 )); then
+                        # Get list in order of newest to oldest
+                        FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                    else
+                        # Get list in order of oldest to newest
+                        FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                    fi
+                    if [ -n "${FEED_ITEMS}" ]; then
+                        while read -r ITEM; do
+                            if (( DEBUG == 1 )) ; then
+                                echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
+                            fi
+                            echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        done <<< "${FEED_ITEMS}"
+                    fi
+                fi
+
                 unset FEED_URL
                 unset FEED_CATEGORY
                 unset FEED_NAME
                 unset FEED_FULL_PLAYLIST
-                continue
-            fi
-            # Enable user configured no category.
-            if (( $(expr "${FEED_CATEGORY}" : "No_Category") > 0 )); then
-                # Set to single period which is a bashism for current directory.
-                FEED_CATEGORY="."
-            fi
-
-            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
-                FEED_FULL_PLAYLIST=1
-                FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_NEWFIRST}
-            fi
-
-            if (( $(expr "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
-                FEED_FULL_PLAYLIST=2
-                FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_OLDFIRST}
-            fi
-
-
-            if (( FEED_FULL_PLAYLIST >= 1 )) ; then
-
-                # Date Substitutions
-                FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
-
-                # Remove unneeded strings from FEED_NAME
-                FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
-                FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
-                FEED_NAME=${FEED_NAME/OPT_CONTENT_DISPOSITION}
-                FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
-                FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
-                FEED_NAME=${FEED_NAME/OPT_FILENAME_LOCATION}
-                FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
-                FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
-
-                if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                    FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
-                fi
-
-                if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                    FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
-                fi
-
-                # Remove any residual leading whitespace from ${FEED_NAME}
-                FEED_NAME="${FEED_NAME#"${FEED_NAME%%[![:space:]]*}"}"
-
-                # Remove any residual trailing whitespace from ${FEED_NAME}
-                FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
-
-                if (( VERBOSITY >= 2 )) ; then
-                    echo -e "\n-------------------------------------------------"
-                fi
-                if (( VERBOSITY >= 1 )) ; then
-                    if [ "${FEED_CATEGORY}" == "." ]; then
-                        printf '%-30s %-50s\n' "Category: NONE" "Name: ${FEED_NAME}"
-                    else
-                        printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
-                    fi
-                fi
-                echo "FEED_FULL_PLAYLIST = ${FEED_FULL_PLAYLIST}"
-                if (( CLEANUP_SIMULATE > 0 )); then
-                    echo "Simulate build new playlist."
-                else
-                    BUILD_FEED_PLAYLIST "${FEED_FULL_PLAYLIST}"
-                fi
-            fi
-
-            unset FEED_URL
-            unset FEED_CATEGORY
-            unset FEED_NAME
-            unset FEED_FULL_PLAYLIST
-        done < "${CURRENT_SERVERLIST}"
+            done < "${CURRENT_SERVERLIST}"
+        done
     fi
 fi
 
