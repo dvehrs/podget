@@ -1887,12 +1887,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                atom_filter_type=$(echo "${FEED_NAME}" | sed -n -e 's/.*atom_filter_type="\([^"]\+\)".*/\1/p')
+                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | sed -n -e 's/.*atom_filter_type="\([^"]\+\)".*/\1/p')
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                atom_filter_lang=$(echo "${FEED_NAME}" | sed -n -e 's/.*atom_filter_lang="\([^"]\+\)".*/\1/p')
+                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | sed -n -e 's/.*atom_filter_lang="\([^"]\+\)".*/\1/p')
                 FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
             fi
 
@@ -2637,6 +2637,8 @@ fi
 
 if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
     # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this section.
+    # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
+    #       nice to find a more elegant way to state this.
     if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\(NEW\|OLD\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
         if (( VERBOSITY == 1 )) ; then
             echo -e "\nBuild OPT_FEED_PLAYLISTs"
