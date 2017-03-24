@@ -1,3 +1,5 @@
+podget (0.8.4) unstable; urgency=low
+
   * Replaced sections where errexit was disabled.
   * Fixed Changelog to show correct version for 0.8.3 released on October 7,
     2016.
@@ -7,6 +9,8 @@
 	serverlist parsing to enable the creation and updating of playlists of
 	all items (not just new) for a feed.  Thanks to Capturts for requesting the
 	feature on Github and DrAzraelTod for submitting an example for inspiration.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Fri, 24 Mar 2017 11:19:24 -0600
 
 podget (0.8.3) unstable; urgency=low
 
