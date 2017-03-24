@@ -1,16 +1,12 @@
-  * Replaced sections where errexit was disabled with script that worked when
-    enabled.
+  * Replaced sections where errexit was disabled.
   * Fixed Changelog to show correct version for 0.8.3 released on October 7,
     2016.
   * Fixed removal of leading or trailing whitespace from a Feed name to include
-    support for removing tabs.  Thanks to Corin-EU for reporting the issue.
+    support for removing tabs.  Thanks to Corin-EU for reporting on Github.
   * Added OPT_FEED_PLAYLIST_NEWFIRST and OPT_FEED_PLAYLIST_OLDFIRST support to
-	serverlist parsing to enabled the creation and updating of playlists of
-	all items (not just new) from a feed either ordered from newest to oldest
-	or from oldest to newest.  These playlists are stored in the base of the
-	LIBRARY directory and named "PLAYLIST_<FEED_NAME>.m3u"
-  * Updated cleanup functions to include support for updating feed playlists
-    when necessary.
+	serverlist parsing to enable the creation and updating of playlists of
+	all items (not just new) for a feed.  Thanks to Capturts for requesting the
+	feature on Github and DrAzraelTod for submitting an example for inspiration.
 
 podget (0.8.3) unstable; urgency=low
 
