@@ -2823,7 +2823,7 @@ if [[ -n ${IMPORT_OPML+set} ]]; then
             fi
 
             new_label=$(echo "${data}" | sed -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | sed -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
-            new_url=$(echo "${data}" | sed -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | sed -e 's/ /%20/g')
+            new_url=$(echo "${data}" | sed -n -e 's/.*\(xml\|\W\)url="\([^"]\+\)".*/\2/Ip' | sed -e 's/ /%20/g')
 
             if (( VERBOSITY >= 3 )) ; then
                 echo "LABEL:  ${new_label}"
