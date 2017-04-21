@@ -1827,6 +1827,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
             unset ATOM_FILTER_LANG
 
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset ATOM_YOUTUBE"
+            fi
+            ATOM_YOUTUBE=0
+
             # Enable user configured no category.
             if (( $(expr "${FEED_CATEGORY}" : "No_Category") > 0 )); then
                 # Set to single period which is a bashism for current directory.
@@ -2007,14 +2012,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
-#            if (( VERBOSITY >= 4 )) ; then
-#                echo "------ Check for RSS or Atom feed --------"
-#                echo "${TESTLINES}"
-#                echo "------ ( first 9 lines of feed --------"
-#                echo "------   looking for '<rss '   --------"
-#                echo "------   or '<feed ' )         --------"
-#                echo
-#            fi
+            if (( VERBOSITY >= 4 )) ; then
+                echo "------ Check for RSS or Atom feed --------"
+                echo "${TESTLINES}"
+                echo "------ ( first 9 lines of feed --------"
+                echo "------   looking for '<rss '   --------"
+                echo "------   or '<feed ' )         --------"
+                echo
+            fi
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
                 # if file is RSS then we look for '<enclosure '
@@ -2023,84 +2028,94 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                          -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
-                # if file is Atom then we look for '<link\s.*rel="enclosure" '
-                # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
+                if grep -q '<yt:channelId>' <<< "${TESTLINES}"; then
+                    # Youtube XML Feeds are of ATOM type but require different parsing.
+                    INDEXFILE=$(echo "${INDEXFILE}" | \
+                                sed -n -e :a -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                                             -e "s/.*<media:content.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
+                                             -e '/<media:content\s*/{N;s/ *\n/ /;ba;}')
 
-                # Characters unlikely to appear in an XML document.  Combination of "invalid" characters and those
-                # that have worked well for my testing.
-                TEST_STRING="^{}_~"
+                    ATOM_YOUTUBE=1
+                else
+                    # if file is Atom then we look for '<link\s.*rel="enclosure" '
+                    # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
 
-                # Find suitable TEST_CHAR to use for sed statements below.
-                for (( i=0; i<${#TEST_STRING}; i++ )); do
-                    TEST_CHAR=${TEST_STRING:$i:1}
+                    # Characters unlikely to appear in an XML document.  Combination of "invalid" characters and those
+                    # that have worked well for my testing.
+                    TEST_STRING="^{}_~"
 
-                    # grep looks for --fixed-strings so that certain characters are not
-                    # interpreted as regular expressions (like ^ $ or /)
-                    #
-                    # We're looking for a character NOT found in the INDEXFILE so its ! grep
-                    if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${INDEXFILE}"; then
-                        # When a character is not found in the string that we can use, break out of the loop.
-                        break
+                    # Find suitable TEST_CHAR to use for sed statements below.
+                    for (( i=0; i<${#TEST_STRING}; i++ )); do
+                        TEST_CHAR=${TEST_STRING:$i:1}
+
+                        # grep looks for --fixed-strings so that certain characters are not
+                        # interpreted as regular expressions (like ^ $ or /)
+                        #
+                        # We're looking for a character NOT found in the INDEXFILE so its ! grep
+                        if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${INDEXFILE}"; then
+                            # When a character is not found in the string that we can use, break out of the loop.
+                            break
+                        fi
+                    done
+
+                    # Get full enclosure lines to filter on
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
+
+                    # SIMPLE FILTERING: filter down to just audio & video types.
+                    if (( ATOM_FILTER_SIMPLE > 0 )); then
+                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
                     fi
-                done
 
-                # Get full enclosure lines to filter on
-                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
+                    if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
+                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
+                    fi
 
-                # SIMPLE FILTERING: filter down to just audio & video types.
-                if (( ATOM_FILTER_SIMPLE > 0 )); then
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
-                fi
+                    TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
-                if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
-                fi
-
-                TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
-
-                if (( VERBOSITY >= 2 )) ; then
-                    # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
-                    # them that more is possible.
-                    if (( ATOM_FILTER_SIMPLE == 0 )) && [[ -z ${ATOM_FILTER_TYPE+set} ]]; then
-                        if (( $(echo "${TYPECOUNT}" | wc -l) > 1 )); then
-                            echo
-                            echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
-                            echo "ATOM_FILTER_TYPE to narrow your selection."
-                            echo
-                            echo "  COUNT | TYPE"
-                            echo "  ------+-------------"
-                            echo "${TYPECOUNT}"
-                            echo
+                    if (( VERBOSITY >= 2 )) ; then
+                        # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
+                        # them that more is possible.
+                        if (( ATOM_FILTER_SIMPLE == 0 )) && [[ -z ${ATOM_FILTER_TYPE+set} ]]; then
+                            if (( $(echo "${TYPECOUNT}" | wc -l) > 1 )); then
+                                echo
+                                echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
+                                echo "ATOM_FILTER_TYPE to narrow your selection."
+                                echo
+                                echo "  COUNT | TYPE"
+                                echo "  ------+-------------"
+                                echo "${TYPECOUNT}"
+                                echo
+                            fi
                         fi
                     fi
-                fi
 
-                if [[ ! -z "${ATOM_FILTER_LANG+set}" ]]; then
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
-                fi
+                    if [[ ! -z "${ATOM_FILTER_LANG+set}" ]]; then
+                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
+                    fi
 
-                LANGCOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+                    LANGCOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
-                if (( VERBOSITY >= 2 )) ; then
-                    # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
-                    if [[ -z "${ATOM_FILTER_LANG+set}" ]]; then
-                        if (( $(echo "${LANGCOUNT}" | wc -l) > 1 )); then
-                            echo
-                            echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
-                            echo "to narrow your selection."
-                            echo
-                            echo "  COUNT | LANGUAGE"
-                            echo "  ------+-------------"
-                            echo "${LANGCOUNT}"
-                            echo
+                    if (( VERBOSITY >= 2 )) ; then
+                        # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
+                        if [[ -z "${ATOM_FILTER_LANG+set}" ]]; then
+                            if (( $(echo "${LANGCOUNT}" | wc -l) > 1 )); then
+                                echo
+                                echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
+                                echo "to narrow your selection."
+                                echo
+                                echo "  COUNT | LANGUAGE"
+                                echo "  ------+-------------"
+                                echo "${LANGCOUNT}"
+                                echo
+                            fi
                         fi
                     fi
-                fi
 
-                # Get the URLs from each enclosure after filtering.
-                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
+                    # Get the URLs from each enclosure after filtering.
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
+                fi
             else
-                echo "Feed is neither RSS, or Atom.  Skipping to next feed."
+                echo "Feed is not RSS, or Atom.  Skipping to next feed."
                 # if Feed is neither RSS or Atom, add URL to LOG_FAIL
                 echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                 continue
@@ -2162,11 +2177,18 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         fi
 
                         # Without the 'sed' statements.
-                        URL_FILENAME="${URL##*/}"
+                        if (( ATOM_YOUTUBE == 1 )); then
+                            URL_FILENAME=$(youtube-dl --get-filename --restrict-filename -o '%(title)s.%(ext)s' "${URL}" 2>/dev/null)
+                        else
+                            URL_FILENAME="${URL##*/}"
+                        fi
                         URL_BASE="${URL%/*}"
 
-                        # replace any whitespace in the filename with underscores.
-                        URL_FILENAME=$(echo "${URL_FILENAME}" | tr '[:blank:]' '_' | tr -s '_')
+                        if (( ATOM_YOUTUBE == 0 )); then
+                            # replace any whitespace in the filename with underscores.
+                            # Handled above for Youtube files with the --restrict-filename option
+                            URL_FILENAME=$(echo "${URL_FILENAME}" | tr '[:blank:]' '_' | tr -s '_')
+                        fi
 
                         # Test for available space on library partition
                         AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
@@ -2228,186 +2250,193 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                         fi
 
-                        # Added '&& WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1' to each WGET call below so we could remove the disabling
-                        # of errexit and the ERR trap.
-                        if (( (WGET_OPTION_DISPOSITION == 1) || (WGET_OPTION_FILENAME_LOCATION == 1) )); then
-                            if (( VERBOSITY >= 3 )) ; then
-                                if (( WGET_OPTION_DISPOSITION == 1 )); then
-                                    echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
-                                fi
-                                if (( WGET_OPTION_FILENAME_LOCATION == 1 )); then
-                                        echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
-                                fi
-                            fi
-                            # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
-                            if [[ -n ${MOD_FILENAME} ]]; then
-                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                            else
-                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                            fi
+                        if (( ATOM_YOUTUBE == 1 )); then
+                            FINAL_FILENAME="${URL_FILENAME}"
+                            # Uses WGET_EXITSTATUS to stay compatible with older checks.
+                            youtube-dl --restrict-filename -o "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/%(title)s.%(ext)s" "${URL}" 2>/dev/null && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
+
                         else
-                            # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
-                            #   ( I'm looking at you ITunes..... )
-                            if [[ -n ${MOD_FILENAME} ]]; then
-                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                            else
-                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                            fi
-                        fi
-
-                        if (( WGET_EXITSTATUS == 0 )); then
-                            # make sure CONTENT_FILENAME hasn't been used before
-                            unset CONTENT_FILENAME
-                            unset LOCATION_FILENAME
-                            unset FINAL_FILENAME
-
-                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
-
-                            # Remove any error log entries for the URL if it failed before
-                            REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
-
-                            # Before filename changes, set FINAL_FILENAME to URL_FILENAME
-                            # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
-                            if [[ -n ${MOD_FILENAME} ]]; then
-                                FINAL_FILENAME="${MOD_FILENAME}"
-                            else
-                                FINAL_FILENAME="${URL_FILENAME}"
-                            fi
-
-                            # if --content-disposition get filename and remove quotes around it.
-                            if (( WGET_OPTION_DISPOSITION == 1 )); then
-                                if (( DEBUG == 1 )) ; then
-                                    echo "${DEBUG_LEADER} CONTENT-DISPOSITION TESTS"
+                            # Added '&& WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1' to each WGET call below so we could remove the disabling
+                            # of errexit and the ERR trap.
+                            if (( (WGET_OPTION_DISPOSITION == 1) || (WGET_OPTION_FILENAME_LOCATION == 1) )); then
+                                if (( VERBOSITY >= 3 )) ; then
+                                    if (( WGET_OPTION_DISPOSITION == 1 )); then
+                                        echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
+                                    fi
+                                    if (( WGET_OPTION_FILENAME_LOCATION == 1 )); then
+                                            echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
+                                    fi
                                 fi
-                                if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                    if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
-                                    fi
-
-                                    # Added '|| true' to catch when grep exits with a non-zero status because the
-                                    # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
-                                    # ERR trap.
-                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g') || true
-
-                                    # Test CONTENT_FILENAME is not null or consists solely of whitespace
-                                    if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
-                                        if (( DEBUG == 1 )) ; then
-                                            echo "${DEBUG_LEADER} CONTENT_FILENAME: '${CONTENT_FILENAME}'"
-                                        fi
-                                    else
-                                        if (( DEBUG == 1 )) ; then
-                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Content-Disposition Tag"
-                                        fi
-                                        # if variable is effectively blank, we can unset it
-                                        unset CONTENT_FILENAME
-
-                                        if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
-                                            if (( DEBUG == 1 )) ; then
-                                                echo "${DEBUG_LEADER}  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
-                                            fi
-
-                                            # Remove any COMPLETE log entries to allow it to retry next session.
-                                            REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
-                                        fi
-                                    fi
+                                # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
+                                if [[ -n ${MOD_FILENAME} ]]; then
+                                    wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                                 else
-                                    if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
-                                    fi
+                                    wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                                 fi
-
-                                # Do we need a cleanup on CONTENT_FILENAME here?
-                                # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-                                # down to a single time.
-                                if [[ ! -z ${CONTENT_FILENAME+set} ]]; then
-                                    CONTENT_FILENAME=$(echo "${CONTENT_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                            else
+                                # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
+                                #   ( I'm looking at you ITunes..... )
+                                if [[ -n ${MOD_FILENAME} ]]; then
+                                    wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
+                                else
+                                    wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
                                 fi
                             fi
 
-                            if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
-                                if (( DEBUG == 1 )) ; then
-                                    echo "${DEBUG_LEADER} FILENAME LOCATION TESTS"
+                            if (( WGET_EXITSTATUS == 0 )); then
+                                # make sure CONTENT_FILENAME hasn't been used before
+                                unset CONTENT_FILENAME
+                                unset LOCATION_FILENAME
+                                unset FINAL_FILENAME
+
+                                echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
+
+                                # Remove any error log entries for the URL if it failed before
+                                REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                                # Before filename changes, set FINAL_FILENAME to URL_FILENAME
+                                # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
+                                if [[ -n ${MOD_FILENAME} ]]; then
+                                    FINAL_FILENAME="${MOD_FILENAME}"
+                                else
+                                    FINAL_FILENAME="${URL_FILENAME}"
                                 fi
-                                if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
+
+                                # if --content-disposition get filename and remove quotes around it.
+                                if (( WGET_OPTION_DISPOSITION == 1 )); then
                                     if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
+                                        echo "${DEBUG_LEADER} CONTENT-DISPOSITION TESTS"
                                     fi
+                                    if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
+                                        if (( DEBUG == 1 )) ; then
+                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
+                                        fi
 
-                                    # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
-                                    # not found.  This eliminates the need to disable errexit and the ERR trap.
-                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
+                                        # Added '|| true' to catch when grep exits with a non-zero status because the
+                                        # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
+                                        # ERR trap.
+                                        CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g') || true
 
-                                    LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
-
-                                    if (( VERBOSITY >= 2 )); then
-                                        # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
-                                        if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
+                                        # Test CONTENT_FILENAME is not null or consists solely of whitespace
+                                        if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
                                             if (( DEBUG == 1 )) ; then
-                                                echo "${DEBUG_LEADER} LOCATION_FILENAME: '${LOCATION_FILENAME}'"
+                                                echo "${DEBUG_LEADER} CONTENT_FILENAME: '${CONTENT_FILENAME}'"
                                             fi
                                         else
                                             if (( DEBUG == 1 )) ; then
-                                                echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Location Tag"
+                                                echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Content-Disposition Tag"
                                             fi
-                                            # If LOCATION_FILENAME is effectively blank we can unset it
-                                            unset LOCATION_FILENAME
+                                            # if variable is effectively blank, we can unset it
+                                            unset CONTENT_FILENAME
+
+                                            if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
+                                                if (( DEBUG == 1 )) ; then
+                                                    echo "${DEBUG_LEADER}  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
+                                                fi
+
+                                                # Remove any COMPLETE log entries to allow it to retry next session.
+                                                REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
+                                            fi
+                                        fi
+                                    else
+                                        if (( DEBUG == 1 )) ; then
+                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                         fi
                                     fi
-                                else
+
+                                    # Do we need a cleanup on CONTENT_FILENAME here?
+                                    # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+                                    # down to a single time.
+                                    if [[ ! -z ${CONTENT_FILENAME+set} ]]; then
+                                        CONTENT_FILENAME=$(echo "${CONTENT_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                                    fi
+                                fi
+
+                                if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
                                     if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                        echo "${DEBUG_LEADER} FILENAME LOCATION TESTS"
                                     fi
-                                fi
-
-                                # Do we need a cleanup on LOCATION_FILENAME here?
-                                # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-                                # down to a single time.
-                                if [[ ! -z ${LOCATION_FILENAME+set} ]]; then
-                                    LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-                                fi
-                            fi
-
-                            # Move filename to that provided by content-disposition
-                            if [[ -n ${CONTENT_FILENAME+set} && -n ${CONTENT_FILENAME} ]]; then
-                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
-                                    fi
-                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
-                                    FINAL_FILENAME="${CONTENT_FILENAME}"
-                                else
-                                    if (( FORCE != 0 )); then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                    if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
+                                        if (( DEBUG == 1 )) ; then
+                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
                                         fi
-                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+
+                                        # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
+                                        # not found.  This eliminates the need to disable errexit and the ERR trap.
+                                        LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
+
+                                        LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
+
+                                        if (( VERBOSITY >= 2 )); then
+                                            # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
+                                            if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
+                                                if (( DEBUG == 1 )) ; then
+                                                    echo "${DEBUG_LEADER} LOCATION_FILENAME: '${LOCATION_FILENAME}'"
+                                                fi
+                                            else
+                                                if (( DEBUG == 1 )) ; then
+                                                    echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Location Tag"
+                                                fi
+                                                # If LOCATION_FILENAME is effectively blank we can unset it
+                                                unset LOCATION_FILENAME
+                                            fi
+                                        fi
+                                    else
+                                        if (( DEBUG == 1 )) ; then
+                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                        fi
+                                    fi
+
+                                    # Do we need a cleanup on LOCATION_FILENAME here?
+                                    # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+                                    # down to a single time.
+                                    if [[ ! -z ${LOCATION_FILENAME+set} ]]; then
+                                        LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                                    fi
+                                fi
+
+                                # Move filename to that provided by content-disposition
+                                if [[ -n ${CONTENT_FILENAME+set} && -n ${CONTENT_FILENAME} ]]; then
+                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]]; then
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                        fi
+                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                         FINAL_FILENAME="${CONTENT_FILENAME}"
                                     else
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                        if (( FORCE != 0 )); then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                            FINAL_FILENAME="${CONTENT_FILENAME}"
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                            fi
                                         fi
                                     fi
                                 fi
-                            fi
 
-                            # Move filename to that provided by LOCATION_FILENAME
-                            if [[ -n ${LOCATION_FILENAME+set} && -n ${LOCATION_FILENAME} ]]; then
-                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                    fi
-                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
-                                    FINAL_FILENAME="${LOCATION_FILENAME}"
-                                else
-                                    if (( FORCE != 0 )); then
+                                # Move filename to that provided by LOCATION_FILENAME
+                                if [[ -n ${LOCATION_FILENAME+set} && -n ${LOCATION_FILENAME} ]]; then
+                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]]; then
                                         if (( VERBOSITY >= 2 )); then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                         fi
-                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                         FINAL_FILENAME="${LOCATION_FILENAME}"
                                     else
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                        if (( FORCE != 0 )); then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                            FINAL_FILENAME="${LOCATION_FILENAME}"
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                            fi
                                         fi
                                     fi
                                 fi
@@ -2437,8 +2466,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     fi
                                 fi
                             fi
+                        fi
 
-                            # Add filename.suffix
+                        # Add filename.suffix
+                        if (( WGET_EXITSTATUS == 0 )); then
                             if [[ -n ${FILENAME_SUFFIX+set} ]]; then
                                 if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]]; then
                                     if (( VERBOSITY >= 2 )); then
@@ -2471,15 +2502,17 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     fi
                                 fi
                             fi
+                        fi
 
-                            # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
-                            if [[ -n ${CONTENT_FILENAME+set} ]] ; then
-                                unset CONTENT_FILENAME
-                            fi
-                            if [[ -n ${FINAL_FILENAME+set} ]] ; then
-                                unset FINAL_FILENAME
-                            fi
-                        else
+                        # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
+                        if [[ -n ${CONTENT_FILENAME+set} ]] ; then
+                            unset CONTENT_FILENAME
+                        fi
+                        if [[ -n ${FINAL_FILENAME+set} ]] ; then
+                            unset FINAL_FILENAME
+                        fi
+
+                        if (( WGET_EXITSTATUS == 1 )); then
                             # if downloaded failed, add URL to LOG_FAIL
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                             # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
