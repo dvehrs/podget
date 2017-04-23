@@ -1,4 +1,4 @@
-prefix ?= /usr/
+prefix ?= /usr/local
 
 all: podget podget.7.gz changelog.gz
 
