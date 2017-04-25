@@ -2719,12 +2719,12 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
                     FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
 
-                    if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
+                    if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+                        FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
                     fi
 
-                    if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
+                    if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+                        FEED_NAME=$(echo "${FEED_NAME}" | sed -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
                     fi
 
                     # Remove any residual leading whitespace from ${FEED_NAME}
