@@ -283,7 +283,7 @@ WGET_BASEOPTS="-c -nH"
 # Most Recent
 # 0  == download all new items. Careful! this can swallow whole bandwidth with ancient feeds.
 # 1+ == download only the <count> most recent
-MOST_RECENT=10
+MOST_RECENT=0
 
 # Force
 # 0 == Only download new material.
@@ -702,7 +702,7 @@ CLEANUP_AND_EXIT() {
 
 display_shelp() {
 	echo; echo "Usage $0 [options]"; echo
-	$SED --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | $SED -e '/HELP_STEXT/d'
+	$${SED} --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | ${SED} -e '/HELP_STEXT/d'
 }
 
 # Function: DIRECTORY_CHECK 'Name of Variable to be tested'
@@ -1012,7 +1012,7 @@ filenameFixFormat() {
     # Filename format fix for podcasts hosted on http://lbc.audioagain.com.
     if [[ -n ${FILENAME_FORMATFIX2+set} ]] && (( FILENAME_FORMATFIX2 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1023,7 +1023,7 @@ filenameFixFormat() {
     # Filename format fix for podcasts hosted on http://www.catradio.cat
     #if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
         #if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
-            #MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
+            #MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             #if (( DEBUG == 1 )) ; then
                 #echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
             #fi
@@ -1033,7 +1033,7 @@ filenameFixFormat() {
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1060,7 +1060,7 @@ filenameFixFormat() {
     # wget -O - http://radiofrance-podcast.net/podcast09/rss_12036.xml | grep enclosure | sed -ru 's/.*(media_url=.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/'
     if [[ -n ${FILENAME_FORMATFIX7+set} ]] && (( FILENAME_FORMATFIX7 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | $SED -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | ${SED} -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1077,7 +1077,7 @@ filenameFixFormat() {
     # --serverlist flags on the command line.
     if [[ -n ${FILENAME_FORMATFIX8+set} ]] && (( FILENAME_FORMATFIX8 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1089,7 +1089,7 @@ filenameFixFormat() {
     # It should work for Audioboo podcasts and others with similar formating.
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1101,7 +1101,7 @@ filenameFixFormat() {
     # This extracts the episode name and uses it for the filename.
     if [[ -n ${FILENAME_FORMATFIX10+set} ]] && (( FILENAME_FORMATFIX10 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | $SED -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | ${SED} -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1111,7 +1111,7 @@ filenameFixFormat() {
     # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
     if [[ -n ${FILENAME_FORMATFIX+set} ]] && (( FILENAME_FORMATFIX > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : ".*\.mp3..*$") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | $SED 's/\.mp3\(.*\)/\1.mp3/')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\.mp3\(.*\)/\1.mp3/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1141,8 +1141,8 @@ PLAYLIST_ConvertToASX() {
     local M3U_PLAYLISTNAME=${2}
     ASX_LOCATION="\\SD Card\\POD\\"
     ASX_PLAYLISTNAME=$(basename "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}" .m3u).asx
-    $SED --silent -e '/TEXT_ASX_BEGINNING$/,/^TEXT_ASX_BEGINNING/p' "$0" |
-      $SED -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+    ${SED} --silent -e '/TEXT_ASX_BEGINNING$/,/^TEXT_ASX_BEGINNING/p' "$0" |
+      ${SED} -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 
     while read -r line ; do
 #      local FIXED_ENTRY=$(echo "${line}" | sed 's/\//\\/g')
@@ -1155,12 +1155,12 @@ PLAYLIST_ConvertToASX() {
       } >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
     done < "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}"
 
-    $SED --silent -e '/TEXT_ASX_END$/,/^TEXT_ASX_END/p' "$0" |
-      $SED -e '/TEXT_ASX_END/d' >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+    ${SED} --silent -e '/TEXT_ASX_END$/,/^TEXT_ASX_END/p' "$0" |
+      ${SED} -e '/TEXT_ASX_END/d' >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 
      # Removing unix2dos dependency. Converting to sed statement with in-place editing of the file in question.
      # ctrl-v ctrl-m for windows line end.
-     $SED -i 's/$/
+     ${SED} -i 's/$/
 /' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 }
 
@@ -1220,9 +1220,9 @@ REMOVE_URL() {
 
     # Escape any characters in URL that can affect the sed command below, currently: *
     local URL_CLEAN
-    URL_CLEAN=$(echo "${URL_INPUT}" | $SED -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
+    URL_CLEAN=$(echo "${URL_INPUT}" | ${SED} -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
 
-    $SED -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
+    ${SED} -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
 }
 
 COMPARE_StringInString() {
@@ -1388,9 +1388,9 @@ fi
 if [[ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ]] ; then
 
     echo "  Installing default user configuration file in ${DIR_CONFIG}/${CONFIG_CORE}"
-    $SED --silent -e '/TEXT_DEFAULT_CONFIG$/,/^TEXT_DEFAULT_CONFIG/p' "$0" |
-        $SED -e '/TEXT_DEFAULT_CONFIG/d' |
-        $SED -e "s|@HOME@|${HOME}|" -e "s/@VERSION@/${VERSION}/" -e "s/@SERVERLIST@/${CONFIG_SERVERLIST}/"> "${DIR_CONFIG}"/"${CONFIG_CORE}"
+    ${SED} --silent -e '/TEXT_DEFAULT_CONFIG$/,/^TEXT_DEFAULT_CONFIG/p' "$0" |
+        ${SED} -e '/TEXT_DEFAULT_CONFIG/d' |
+        ${SED} -e "s|@HOME@|${HOME}|" -e "s/@VERSION@/${VERSION}/" -e "s/@SERVERLIST@/${CONFIG_SERVERLIST}/"> "${DIR_CONFIG}"/"${CONFIG_CORE}"
     EXITSTATUS=$?
     if (( EXITSTATUS != 0 )); then
         echo "  Failed to create \"${DIR_CONFIG}/${CONFIG_CORE}\""
@@ -1401,8 +1401,8 @@ fi
 
 if [[ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ]] ; then
     echo "  Installing default server list configuration."
-    $SED --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
-        $SED -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+    ${SED} --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
+        ${SED} -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
     EXITSTATUS=$?
     if (( EXITSTATUS != 0 )); then
         echo "  Failed to install \"${DIR_CONFIG}/${CONFIG_SERVERLIST}\""
@@ -1434,7 +1434,7 @@ if ! fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CON
     CLEANUP_AND_EXIT 1
 else
     # get version
-    VERSION=$(fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | $SED -e 's/.*by version \([0-9.]\)/\1/')
+    VERSION=$(fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | ${SED} -e 's/.*by version \([0-9.]\)/\1/')
 
     # Split version string into an array by replacing '.' with 'space'
     VERSION_ARRAY=( ${VERSION//./ } )
@@ -1650,9 +1650,9 @@ while read -r -d $'\0' FILE ; do
         while read -r LINE ; do
             TEST_Index=$(expr "${LINE}" : "^[Cc]onfig\sfile:")
             if [[ "A${TEST_Index}" != "A" ]]; then
-                TEST_File=$(echo "${LINE}" | $SED -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
+                TEST_File=$(echo "${LINE}" | ${SED} -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
                 if [[ ${TEST_File} == "${CONFIG_CORE}" ]] ; then
-                    SESSION_PID=$(echo "${FILE}" | $SED -n -e 's/.*podget.\([0-9]*\)$/\1/p')
+                    SESSION_PID=$(echo "${FILE}" | ${SED} -n -e 's/.*podget.\([0-9]*\)$/\1/p')
                     if (( DEBUG == 1 )) ; then
                         echo "${DEBUG_LEADER}  Testing PID ${SESSION_PID} to determine if its still running."
                     fi
@@ -1852,17 +1852,17 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 FEED_CATEGORY="."
             fi
 
-            FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | $SED -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
+            FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
             # Extract PASSWORD from FEED_NAME if found.
             if (( $(expr "${FEED_NAME}" : ".*PASS:[^ $]\+.*") > 0 )); then
-                URL_PASSWORD=$(echo "${FEED_NAME}" | $SED -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
+                URL_PASSWORD=$(echo "${FEED_NAME}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
                 FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
             fi
 
             # Extract USERNAME from FEED_NAME if found.
             if (( $(expr "${FEED_NAME}" : ".*USER:[^ $]\+.*") > 0 )); then
-                URL_USERNAME=$(echo "${FEED_NAME}" | $SED -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
+                URL_USERNAME=$(echo "${FEED_NAME}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
                 FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
             fi
 
@@ -1906,13 +1906,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | $SED -n -e 's/.*atom_filter_type="\([^"]\+\)".*/\1/p')
-                FEED_NAME=$(echo "${FEED_NAME}" | $SED -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
+                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*atom_filter_type="\([^"]\+\)".*/\1/p')
+                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | $SED -n -e 's/.*atom_filter_lang="\([^"]\+\)".*/\1/p')
-                FEED_NAME=$(echo "${FEED_NAME}" | $SED -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
+                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*atom_filter_lang="\([^"]\+\)".*/\1/p')
+                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             # Remove any residual leading whitespace from ${FEED_NAME}
@@ -2021,10 +2021,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 continue
             fi
 
-            INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | $SED -e 's/<\([^/]\)/\n<\1/g')
+            INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | ${SED} -e 's/<\([^/]\)/\n<\1/g')
 
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
-            TESTLINES=$($SED -n 1,9p <<< "${INDEXFILE}")
+            TESTLINES=$(${SED} -n 1,9p <<< "${INDEXFILE}")
 
 #            if (( VERBOSITY >= 4 )) ; then
 #                echo "------ Check for RSS or Atom feed --------"
@@ -2038,7 +2038,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
                 # if file is RSS then we look for '<enclosure '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
-                            $SED -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                            ${SED} -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                          -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
@@ -2064,18 +2064,18 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 done
 
                 # Get full enclosure lines to filter on
-                INDEXFILE=$(echo "${INDEXFILE}" | $SED -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
+                INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
 
                 # SIMPLE FILTERING: filter down to just audio & video types.
                 if (( ATOM_FILTER_SIMPLE > 0 )); then
-                    INDEXFILE=$(echo "${INDEXFILE}" | $SED -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
+                    INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
                 fi
 
                 if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
-                    INDEXFILE=$(echo "${INDEXFILE}" | $SED -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
+                    INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
                 fi
 
-                TYPECOUNT=$(echo "${INDEXFILE}" | $SED -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+                TYPECOUNT=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
@@ -2095,10 +2095,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 if [[ ! -z "${ATOM_FILTER_LANG+set}" ]]; then
-                    INDEXFILE=$(echo "${INDEXFILE}" | $SED -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
+                    INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
                 fi
 
-                LANGCOUNT=$(echo "${INDEXFILE}" | $SED -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+                LANGCOUNT=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
@@ -2117,7 +2117,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 # Get the URLs from each enclosure after filtering.
-                INDEXFILE=$(echo "${INDEXFILE}" | $SED -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
+                INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
                 # if Feed is neither RSS or Atom, add URL to LOG_FAIL
@@ -2127,8 +2127,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # final INDEXFILE cleanup options
             INDEXFILE=$(echo "${INDEXFILE}" | \
-                        $SED -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
-                        $SED -e ':a;N;$!ba;s/\n/ /g')
+                        ${SED} -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                        ${SED} -e ':a;N;$!ba;s/\n/ /g')
 
             if [[ -n ${INDEXFILE} ]]; then
 
@@ -2306,7 +2306,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     # Added '|| true' to catch when grep exits with a non-zero status because the
                                     # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
                                     # ERR trap.
-                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | $SED -e 's/.*filename=//' -e 's/"//g') || true
+                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | ${SED} -e 's/.*filename=//' -e 's/"//g') || true
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
@@ -2354,7 +2354,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                                     # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
                                     # not found.  This eliminates the need to disable errexit and the ERR trap.
-                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | $SED -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
+                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | ${SED} -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
 
                                     LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
 
@@ -2542,7 +2542,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     for URL in ${FULLINDEXFILE}
                     do
                         if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
-                            URL_FILENAME=$(echo "${URL}" | $SED -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
+                            URL_FILENAME=$(echo "${URL}" | ${SED} -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
                             if (( VERBOSITY >= 2 )) ; then
                                     echo "Marking as already downloaded ${URL_FILENAME}."
                             fi
@@ -2726,7 +2726,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 if (( FEED_FULL_PLAYLIST >= 1 )) ; then
 
                     # Date Substitutions
-                    FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | $SED -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
+                    FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
                     # Remove unneeded strings from FEED_NAME
                     FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
@@ -2739,11 +2739,11 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
 
                     if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | $SED -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
+                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
                     fi
 
                     if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | $SED -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
+                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
                     fi
 
                     # Remove any residual leading whitespace from ${FEED_NAME}
@@ -2829,7 +2829,7 @@ if [[ -n ${IMPORT_OPML+set} ]]; then
         opml_list=$(cat "${IMPORT_OPML}")
     fi
 
-    new_list=$(echo "${opml_list}" | $SED -e 's/\(\/>\)/\1\n/g' | $SED -e :a -n -e 's/<outline\([^>]\+\)\/>/\1/Ip;/<outline/{N;s/\n\s*/ /;ba;}')
+    new_list=$(echo "${opml_list}" | ${SED} -e 's/\(\/>\)/\1\n/g' | ${SED} -e :a -n -e 's/<outline\([^>]\+\)\/>/\1/Ip;/<outline/{N;s/\n\s*/ /;ba;}')
 
     if [[ -n "$new_list" ]]; then
 
@@ -2841,8 +2841,8 @@ if [[ -n ${IMPORT_OPML+set} ]]; then
                 echo -e "\n---------------"
             fi
 
-            new_label=$(echo "${data}" | $SED -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | $SED -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
-            new_url=$(echo "${data}" | $SED -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | $SED -e 's/ /%20/g')
+            new_label=$(echo "${data}" | ${SED} -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | ${SED} -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
+            new_url=$(echo "${data}" | ${SED} -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | ${SED} -e 's/ /%20/g')
 
             if (( VERBOSITY >= 3 )) ; then
                 echo "LABEL:  ${new_label}"
@@ -2953,9 +2953,9 @@ if [[ -n ${IMPORT_PCAST+set} ]] ; then
         pcast_data=$(cat "${IMPORT_PCAST}")
     fi
 
-    new_link=$(echo "${pcast_data}" | $SED -n -e 's/.*\(href\|url\)="\([^"]\+\)".*/\2/Ip' | $SED -e 's/ /%20/g')
-    new_category=$(echo "${pcast_data}" | $SED -n -e 's/.*<category>\([^<]\+\)<.*/\1/Ip' | $SED -e 's/ /_/g;s/\&quot;/\&/g;s/\&amp;/\&/g')
-    new_title=$(echo "${pcast_data}" | $SED -n -e 's/.*<title>\([^<]\+\)<.*/\1/Ip')
+    new_link=$(echo "${pcast_data}" | ${SED} -n -e 's/.*\(href\|url\)="\([^"]\+\)".*/\2/Ip' | ${SED} -e 's/ /%20/g')
+    new_category=$(echo "${pcast_data}" | ${SED} -n -e 's/.*<category>\([^<]\+\)<.*/\1/Ip' | ${SED} -e 's/ /_/g;s/\&quot;/\&/g;s/\&amp;/\&/g')
+    new_title=$(echo "${pcast_data}" | ${SED} -n -e 's/.*<title>\([^<]\+\)<.*/\1/Ip')
 
     if (( VERBOSITY >= 2 )) ; then
         echo "LINK: ${new_link}"

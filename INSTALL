@@ -3,6 +3,11 @@ Source Install:
      $ make
      $ sudo make install
 
+Building on Mac OSX
+If you are running El Capitain v10.11.0 or newer, Mac security restrictions require you to
+change the first line of the Makefile to
+  prefix ?= /usr/local
+
 Building and installing a Debian package:
      $ cd podget-<version>
      $ fakeroot ./debian/rules binary
