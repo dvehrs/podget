@@ -2754,25 +2754,40 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                             rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                         fi
                     fi
-                    # Build new full playlist.
-                    if (( VERBOSITY >= 2 )); then
-                        echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-                    fi
-                    if (( FEED_FULL_PLAYLIST == 1 )); then
-                        # Get list in order of newest to oldest
-                        FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
-                    else
-                        # Get list in order of oldest to newest
-                        FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
-                    fi
-                    if [ -n "${FEED_ITEMS}" ]; then
-                        while read -r ITEM; do
-                            if (( DEBUG == 1 )) ; then
-                                echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
+                    if [[ -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]]; then
+                        # Build new full playlist.
+                        if (( VERBOSITY >= 2 )); then
+                            echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        fi
+                        if (( FEED_FULL_PLAYLIST == 1 )); then
+                            # Get list in order of newest to oldest
+                            FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                        else
+                            # Get list in order of oldest to newest
+                            FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                        fi
+                        if [ -n "${FEED_ITEMS}" ]; then
+                            while read -r ITEM; do
+                                if (( DEBUG == 1 )) ; then
+                                    echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
+                                fi
+                                echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                            done <<< "${FEED_ITEMS}"
+                        else
+                            if (( VERBOSITY >= 1 )); then
+                                printf '%-30s %-50s\n' "" "No files, no playlist"
+                            else
+                                echo "No files, no playlist:  ${FEED_NAME}"
                             fi
-                            echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-                        done <<< "${FEED_ITEMS}"
+                        fi
+                    else
+                        if (( VERBOSITY >= 1 )); then
+                            printf '%-30s %-50s\n' "" "No directory, no playlist"
+                        else
+                            echo "No directory, no playlist:  ${FEED_NAME}"
+                        fi
                     fi
+
                 fi
 
                 unset FEED_URL
