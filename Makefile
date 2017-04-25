@@ -1,4 +1,10 @@
-prefix ?= /usr
+UNAME:= $(shell uname -s)
+
+ifeq ($(UNAME), Darwin)
+	prefix ?= /usr/local
+else
+	prefix ?= /usr
+endif
 
 all: podget podget.7.gz changelog.gz
 
