@@ -281,7 +281,7 @@ LOG_COMPLETE=done
 WGET_BASEOPTS="-c -nH"
 
 # Most Recent
-# 0  == download all new items. Careful! this can swallow whole bandwidth with ancient feeds.
+# 0  == download all new items.
 # 1+ == download only the <count> most recent
 MOST_RECENT=0
 
@@ -1019,16 +1019,15 @@ filenameFixFormat() {
         fi
     fi
 
-    # This section can cause problems. Uncomment, if you need catradio support
     # Filename format fix for podcasts hosted on http://www.catradio.cat
-    #if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
-        #if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
-            #MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
-            #if (( DEBUG == 1 )) ; then
-                #echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
-            #fi
-        #fi
-    #fi
+    if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
+        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
+            fi
+        fi
+    fi
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
