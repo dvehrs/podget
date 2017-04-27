@@ -9,5 +9,13 @@ Building and installing a Debian package:
      $ cd ../
      $ sudo dpkg -i podget_<version>-all.deb
 
+Mac OSX GNU Sed Dependency:
+    Podget requires GNU Sed.  The easiest way to install this is
+    to use Homebrew.  For details on how to install and use
+    Homebrew, please visit: https://brew.sh
+
+    Once Homebrew is installed, GNU Sed can be installed
+    with: brew install gnu-sed
+
 After the package is installed, run it once to install default configuration
 files into $HOME/.podget, edit them as needed.
