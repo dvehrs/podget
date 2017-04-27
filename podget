@@ -634,7 +634,7 @@ TEXT_ASX_END
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Portability code
+# Portability code                                                                                                               {{{
 # This allows Gnu/Linux podget to also run on BSD/Mac OSX
 
 if [ "$(uname)" = "Darwin" ]; then
