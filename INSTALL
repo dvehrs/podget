@@ -3,6 +3,10 @@ Source Install:
      $ make
      $ sudo make install
 
+    After the package is installed, run it once to install
+    default configuration files into $HOME/.podget, edit
+    them as needed.
+
 Building and installing a Debian package:
      $ cd podget-<version>
      $ fakeroot ./debian/rules binary
@@ -17,5 +21,3 @@ Mac OSX GNU Sed Dependency:
     Once Homebrew is installed, GNU Sed can be installed
     with: brew install gnu-sed
 
-After the package is installed, run it once to install default configuration
-files into $HOME/.podget, edit them as needed.
