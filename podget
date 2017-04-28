@@ -1910,14 +1910,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
             fi
 
-            if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*atom_filter_type="\([^"]\+\)".*/\1/p')
-                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
+            if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
+                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
             fi
 
-            if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*atom_filter_lang="\([^"]\+\)".*/\1/p')
-                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
+            if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
+                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
             fi
 
             # Remove any residual leading whitespace from ${FEED_NAME}
@@ -2743,12 +2743,12 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
                     FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
 
-                    if (( $(expr "${FEED_NAME}" : ".*atom_filter_type=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_type="[^"]\+"\(.*\)/\1\2/p')
+                    if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
                     fi
 
-                    if (( $(expr "${FEED_NAME}" : ".*atom_filter_lang=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)atom_filter_lang="[^"]\+"\(.*\)/\1\2/p')
+                    if (( $(expr "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
                     fi
 
                     # Remove any residual leading whitespace from ${FEED_NAME}
