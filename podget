@@ -397,9 +397,9 @@ FILENAME_FORMATFIX2=1
 # Downloaded filenames look like: 1189153569775.mp3?programa=El+mat%ED+de+Catalunya+R%E0dio&amp;podcast=y
 # This fix removes everything after the .mp3
 #
-# 0 == disabled
-# 1 == enabled (default)
-FILENAME_FORMATFIX3=1
+# 0 == disabled (default)
+# 1 == enabled
+FILENAME_FORMATFIX3=0
 
 # Filename Cleanup 5:  When the filename is part of the URL and the actual filename stays the same for
 # all items listed.
@@ -1019,15 +1019,22 @@ filenameFixFormat() {
         fi
     fi
 
+    echo "BEFORE FILENAME_FORMATFIX3"
+
     # Filename format fix for podcasts hosted on http://www.catradio.cat
     if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[\\?]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
+        echo "INSIDE FILENAME_FORMATFIX3"
+        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[&]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
+            echo "FOUND FILENAME_FORMATFIX3"
+            echo "CAT RADIO FILENAME ${MODIFIED_FILENAME}"
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
             fi
         fi
     fi
+
+    echo "AFTER FILENAME_FORMATFIX3"
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
