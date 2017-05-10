@@ -634,39 +634,9 @@ TEXT_ASX_END
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Portability code                                                                                                               {{{
-# This allows Gnu/Linux podget to also run on Mac OSX
-
-if [ "$(uname)" = "Darwin" ]; then
-    DARWIN_EXIT=0
-
-    if ! hash gsed >/dev/null 2>&1; then
-        echo "GNU Sed Required."
-        echo "Try 'brew install gnu-sed'  (see htts://brew.sh for details)"
-        DARWIN_EXIT=1
-    else
-        SED="gsed"
-    fi
-    if ! hash gexpr >/dev/null 2>&1; then
-        echo "GNU Expr Required."
-        echo "Try 'brew install coreutils'  (see htts://brew.sh for details)"
-        DARWIN_EXIT=1
-    else
-        EXPR="gexpr"
-    fi
-    if (( DARWIN_EXIT > 0 )); then
-        CLEANUP_AND_EXIT 1
-    fi
-else
-    SED="sed"
-    EXPR="expr"
-fi
-
-#                                                                                                                                }}}
-# ----------------------------------------------------------------------------------------------------------------------------------
 # Functions                                                                                                                      {{{
 
-# Functioon: ARRAY_CONTAINS
+# Function: ARRAY_CONTAINS
 # Test if Array contains element.
 # Returns 0 if found, or 1 if not found.
 # ARGUMENTS:
@@ -1262,6 +1232,36 @@ COMPARE_StringInString() {
 
 VERSION=0.8.4
 REPORT_VERSION=0
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Portability code                                                                                                               {{{
+# This allows Gnu/Linux podget to also run on Mac OSX
+
+if [ "$(uname)" = "Darwin" ]; then
+    DARWIN_EXIT=0
+
+    if ! hash gsed >/dev/null 2>&1; then
+        echo "GNU Sed Required."
+        echo "Try 'brew install gnu-sed'  (see htts://brew.sh for details)"
+        DARWIN_EXIT=1
+    else
+        SED="gsed"
+    fi
+    if ! hash gexpr >/dev/null 2>&1; then
+        echo "GNU Expr Required."
+        echo "Try 'brew install coreutils'  (see htts://brew.sh for details)"
+        DARWIN_EXIT=1
+    else
+        EXPR="gexpr"
+    fi
+    if (( DARWIN_EXIT > 0 )); then
+        CLEANUP_AND_EXIT 1
+    fi
+else
+    SED="sed"
+    EXPR="expr"
+fi
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
