@@ -1,3 +1,10 @@
+podget (0.8.5) unstable; urgency=low
+
+  * Added support for BSD & Mac OSX
+  * New contributed script to easily move media files to a player device
+
+ -- Dave Vehrs <dvehrs@gmail.com> Sun, 14 Mar 2017 12:19:24 -0600
+
 podget (0.8.4) unstable; urgency=low
 
   * Replaced sections where errexit was disabled.
