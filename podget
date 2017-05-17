@@ -336,7 +336,7 @@ ASX_PLAYLIST=0
 # to normalize files to have the same volume.
 #
 # A period (.) will automatically be added between the filename and tag like so:
-#       fileanme.mp3.newtag
+#       filename.mp3.newtag
 #
 # Tags will not be added to filenames as they are added to the playlists.  It will be necessary for any script that you run to
 # process the files remove the tag for the playlists to work.
