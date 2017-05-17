@@ -1,3 +1,7 @@
+  * Fixed OPML Import to favor xmlUrl of htmlUrl.  Thanks to kuba-orlik
+    on Github.
+
+
 podget (0.8.4) unstable; urgency=low
 
   * Replaced sections where errexit was disabled.
