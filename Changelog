@@ -1,9 +1,10 @@
-podget (0.8.5) unstable; urgency=low
 
-  * Added support for BSD & Mac OSX
-  * New contributed script to easily move media files to a player device
+  * Added checks for GNU versions of two commands to enable support for
+    Mac OSX.  Thanks to Bruce Ingalls (bingalls on Github) for the 
+    inspiration for these changes and his assistance in making them work.
+  * User Contributed Script:  pod2player.sh by Bruce Ingalls.  A ZSH
+    script to easily move media files to a player device.
 
- -- Dave Vehrs <dvehrs@gmail.com> Sun, 14 Mar 2017 12:19:24 -0600
 
 podget (0.8.4) unstable; urgency=low
 

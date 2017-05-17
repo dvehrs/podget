@@ -6,14 +6,16 @@
 # Note that Z Shell is required
 # I have the same subdirectory structure on my Android player, as my laptop podcatcher.
 
-echo "Read instructions, and disable this line, before running this script"
-exit 
+echo "Read instructions, and disable this line, before running this script"; exit
 # Where your player mounts, when connected to your laptop
 DEST=/Volumes/MyPlayerDevice/Podcasts
 
+# Default Podget Library storage directory
+DIR_LIBRARY=~/POD
+
 # End of user edited section. You should not need to modify below
 
-cd ~/POD                  # default podget storage directory
+cd "${DIR_LIBRARY}"                  # default podget storage directory
 for i in AUDIO_**/*; do
   j=$(echo ${i} | sed 's/\([ ()]\)/\\\1/g')   # escape spaces, parens. Other weird podcast chars?
   eval dest=$DEST/${j}
