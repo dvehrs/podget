@@ -1,14 +1,19 @@
 #!/bin/zsh
-# pod2droid.sh : Move podget podcasts to a mobile player
+# pod2player.sh : Move podget podcasts to a mobile player
 # Copyright 2017, Bruce Ingalls. See COPYING for GPL 3.0 license
-# Mac mounts removable media at /Volumes; Linux typically mounts at /media or /mnt
 # WARNING! You can lose files, if you do not read, understand & edit this script!
-# Note that Z Shell is required
-# I have the same subdirectory structure on my Android player, as my laptop podcatcher.
+#
+# This script effectively does `mv ~/pod/* dest/`, while dealing with similar
+# subdirectory names shared between source & destination directories
+#
+# For this to work, you must first mount the filesystem of your media player device 
+# (e.g. Android). Finally, you should have the same directory structure in the podcast
+# destination directory, as the ~/pod/ source podcatcher directory on your laptop
 
 echo "Read instructions, and disable this line, before running this script"; exit
-# Where your player mounts, when connected to your laptop
-DEST=/Volumes/MyPlayerDevice/Podcasts
+
+# The removable media mount point
+DEVICE=/Volumes/MyPlayerDevice/Podcasts     # Mac uses /Volumes, Linux uses /media or /mnt
 
 # Default Podget Library storage directory
 DIR_LIBRARY=~/POD
@@ -18,11 +23,11 @@ DIR_LIBRARY=~/POD
 cd "${DIR_LIBRARY}"                  # default podget storage directory
 for i in AUDIO_**/*; do
   j=$(echo ${i} | sed 's/\([ ()]\)/\\\1/g')   # escape spaces, parens. Other weird podcast chars?
-  eval dest=$DEST/${j}
+  eval dest=$DEVICE/${j}
   if [ -d ${dest} ] 
   then
     eval pushd ${j}
-    eval mv * ${DEST}/${j}
+    eval mv * ${dest}
     popd
     eval rmdir ${j}
   else
