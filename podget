@@ -397,6 +397,21 @@ FILENAME_FORMATFIX2=1
 # Downloaded filenames look like: 1189153569775.mp3?programa=El+mat%ED+de+Catalunya+R%E0dio&amp;podcast=y
 # This fix removes everything after the .mp3
 #
+# NOTE: Testing in 2017 reveals changes in CatRadio's URL format that hampers this fix.
+#
+# Downloaded filenames now look like:  1487257264030.mp3&programa=Bon+dia%2C+malparits%21&var10=Neix+%2BCatR%E0dio%2C+el+dial+digital+de+Catalunya+R%E0dio&var11=video&var15=1783&var20=Podcast&var29=Audio&var3=951439&var14=951439&v25=Catalunya+R%E0dio&var19=16/02/17&var12=Tall&var18=45194
+#
+#   Two changes cause issues:
+#     1.  Change of '?' to '&' for designating options.
+#     2.  Use of forward slashes in date (var19) mess up some of our other filename extraction.
+#
+# However the fix for these podcasts is now simpler.  If in our serverlist, we use either
+# the OPT_FILENAME_LOCATION or OPT_CONTENT_DISPOSTION option for these feedlists then the
+# filename will be correctly extracted.  This leaves us with a long number as the filename,
+# however if we also enable the OPT_FILENAME_RENAME_MDATE option then the filename is prefixed
+# with the last modification date of the file which helps list the files in an order that
+# makes sense.
+#
 # 0 == disabled (default)
 # 1 == enabled
 FILENAME_FORMATFIX3=0
