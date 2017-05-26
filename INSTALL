@@ -3,11 +3,28 @@ Source Install:
      $ make
      $ sudo make install
 
+    After the package is installed, run it once to install
+    default configuration files into $HOME/.podget, edit
+    them as needed.
+
 Building and installing a Debian package:
      $ cd podget-<version>
      $ fakeroot ./debian/rules binary
      $ cd ../
      $ sudo dpkg -i podget_<version>-all.deb
 
-After the package is installed, run it once to install default configuration
-files into $HOME/.podget, edit them as needed.
+Mac OSX GNU Dependencies:
+    Podget requires GNU Sed and Coreutils (for expr).  The easiest way to
+    install them is to use Homebrew.  For details on how to install and
+    use Homebrew, please visit: https://brew.sh
+
+    GNU Sed can be installed with: brew install gnu-sed
+
+    And Coreutils can be installed with: brew install coreutils.
+
+    Podget looks for the required binaries with a 'g' prefix.  This prefix is
+    added automatically by brew with its default options.  The prefix can be
+    overridden with the brew option '--with-default-names'.  However if you do
+    this, it may be necessary that you add symbolic links from the brew
+    installed sed to gsed and from the brew installed expr to gexpr.
+

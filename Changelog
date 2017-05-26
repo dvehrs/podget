@@ -1,5 +1,10 @@
   * Fixed OPML Import to favor xmlUrl of htmlUrl.  Thanks to kuba-orlik
     on Github.
+  * Added checks for GNU versions of two commands to enable support for
+    Mac OSX.  Thanks to Bruce Ingalls (bingalls on Github) for the 
+    inspiration for these changes and his assistance in making them work.
+  * User Contributed Script:  pod2player.sh by Bruce Ingalls.  A ZSH
+    script to easily move media files to a player device.
 
 
 podget (0.8.4) unstable; urgency=low
