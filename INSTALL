@@ -13,11 +13,18 @@ Building and installing a Debian package:
      $ cd ../
      $ sudo dpkg -i podget_<version>-all.deb
 
-Mac OSX GNU Sed Dependency:
-    Podget requires GNU Sed.  The easiest way to install this is
-    to use Homebrew.  For details on how to install and use
-    Homebrew, please visit: https://brew.sh
+Mac OSX GNU Dependencies:
+    Podget requires GNU Sed and Coreutils (for expr).  The easiest way to
+    install them is to use Homebrew.  For details on how to install and
+    use Homebrew, please visit: https://brew.sh
 
-    Once Homebrew is installed, GNU Sed can be installed
-    with: brew install gnu-sed
+    GNU Sed can be installed with: brew install gnu-sed
+
+    And Coreutils can be installed with: brew install coreutils.
+
+    Podget looks for the required binaries with a 'g' prefix.  This prefix is
+    added automatically by brew with its default options.  The prefix can be
+    overridden with the brew option '--with-default-names'.  However if you do
+    this, it may be necessary that you add symbolic links from the brew
+    installed sed to gsed and from the brew installed expr to gexpr.
 
