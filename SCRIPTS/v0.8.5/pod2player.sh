@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 # pod2player.sh : Move podget podcasts to a mobile player
 # Copyright 2017, Bruce Ingalls. See COPYING for GPL 3.0 license
 # WARNING! You can lose files, if you do not read, understand & edit this script!
@@ -17,20 +17,21 @@ DEVICE=/Volumes/MyPlayerDevice/Podcasts     # Mac uses /Volumes, Linux uses /med
 
 # Default Podget Library storage directory
 DIR_LIBRARY=~/POD
+CATEGORY_PREFIX='AUDIO_'	# Prefix for all your podcast categories, to filter, say, videos
 
 # End of user edited section. You should not need to modify below
 
 cd "${DIR_LIBRARY}"                  # default podget storage directory
-for i in AUDIO_**/*; do
+for i in ${CATEGORY_PREFIX}**/*; do
   j=$(echo ${i} | sed 's/\([ ()]\)/\\\1/g')   # escape spaces, parens. Other weird podcast chars?
-  eval dest=$DEVICE/${j}
-  if [ -d ${dest} ] 
+  dest="${DEVICE}/${j}"
+  if [ -d "${dest}" ] 
   then
-    eval pushd ${j}
-    eval mv * ${dest}
+    eval pushd "${j}"
+    eval mv * "${dest}"
     popd
-    eval rmdir ${j}
+    eval rmdir "${j}"
   else
-    mv ${j} ${dest}
+    eval mv "${j}" "`dirname "${dest}"`/"
   fi
 done
