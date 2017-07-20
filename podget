@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Useful to follow command execution and determine when an extra echo outputs during silent mode.
+# Useful to follow command execution and determine where an extra echo outputs during silent mode.
 #set -x
 
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -633,7 +633,7 @@ TEXT_DEFAULT_CONFIG
 #       http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
 #
 #FEEDS:
-# ------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------
 http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
 TEXT_DEFAULT_SERVERLIST
 
