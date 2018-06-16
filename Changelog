@@ -1,3 +1,7 @@
+  * StanESmith reported on Github that our Cleanup loop was not working.
+    Changed loop to check on individual file modification times rather than
+    using that of the playlist.
+
 podget (0.8.5) unstable; urgency=low
 
   * Fixed OPML Import to favor xmlUrl of htmlUrl.  Thanks to kuba-orlik

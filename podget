@@ -2638,20 +2638,29 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 echo -e "\n-------------------------------------------------\nCleanup old tracks."
             fi
         fi
-        FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u" -mtime +"${CLEANUP_DAYS}")
+        FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
         for FILE in ${FILELIST} ; do
             if (( VERBOSITY >= 2 )) ; then
                 echo "Deleting tracks from ${FILE}:"
             fi
             while read -r LINE ; do
+                # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
+                CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
+                # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.  This works with uniform
+                # whole days and isn't subject to when the cleanup is run.
+                DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
                 if [[ -f "${DIR_LIBRARY}/${LINE}" ]]; then
-                    if (( CLEANUP_SIMULATE > 0 )); then
-                        echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
-                    else
-                        if (( VERBOSITY >= 2 )) ; then
-                            rm -v "${DIR_LIBRARY}/${LINE}"
+                    # Compare each file from the playlist with file modification date.  If file modification date is older than
+                    # DATE_CLEAN2 then we remove that file
+                    if [ "$(stat --format %Y "${DIR_LIBRARY}/${LINE}")" -lt "${DATE_CLEAN2}" ]; then
+                        if (( CLEANUP_SIMULATE > 0 )); then
+                            echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
                         else
-                            rm -f "${DIR_LIBRARY}/${LINE}"
+                            if (( VERBOSITY >= 2 )) ; then
+                                rm -v "${DIR_LIBRARY}/${LINE}"
+                            else
+                                rm -f "${DIR_LIBRARY}/${LINE}"
+                            fi
                         fi
                     fi
                 else
