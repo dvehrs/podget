@@ -1345,7 +1345,7 @@ if [[ ${DIR_CONFIG} == "NONE" ]]; then
     CLEANUP_AND_EXIT 1
 fi
 
-#### ISSUE: Debug not enabled or disabled until CONFIG_CORE is read at about line 1446
+#### ISSUE: Debug not enabled or disabled until CONFIG_CORE is read at about line 1478
 if (( DEBUG == 1 )) ; then
     echo
     echo "${DEBUG_LEADER} Parsing Config file."
@@ -1387,7 +1387,7 @@ unset FILENAME_BADCHARS
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Test for existing configuration directory, if missing install it.                                                              {{{
+# CONFIG TEST PART 1 of 4: Test for existing DIR_CONFIG, if missing create it and install CONFIG_CORE                            {{{
 
 if [[ ! -d ${DIR_CONFIG} ]] ; then
     echo "  Configuration directory not found.  Creating \"${DIR_CONFIG}\""
@@ -1412,6 +1412,10 @@ if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
     fi
 fi
 
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# CONFIG TEST PART 2 of 4: Test for existing CONFIG_CORE, if missing create it.                                                  {{{
+
 if [[ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ]] ; then
 
     echo "  Installing default user configuration file in ${DIR_CONFIG}/${CONFIG_CORE}"
@@ -1426,30 +1430,10 @@ if [[ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ]] ; then
     INSTALL_SESSION=1
 fi
 
-if [[ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ]] ; then
-    echo "  Installing default server list configuration."
-    ${SED} --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
-        ${SED} -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-    EXITSTATUS=$?
-    if (( EXITSTATUS != 0 )); then
-        echo "  Failed to install \"${DIR_CONFIG}/${CONFIG_SERVERLIST}\""
-        CLEANUP_AND_EXIT 1
-    fi
-    INSTALL_SESSION=1
-fi
-
-# Exit if set to --create-config
-if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
-    if (( CMDL_CREATECONFIG == 1 )); then
-        CLEANUP_AND_EXIT 0
-    fi
-fi
-
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Configuration                                                                                                                  {{{
+# CONFIG TEST PART 3 of 4: Test if configuration file was created by a version that supports all required items and formats.     {{{
 
-# Test if configuration file was created by a version that supports all the necessary items and formats.
 if ! fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" >/dev/null ; then
 	echo "${DIR_CONFIG}/${CONFIG_CORE} cannot be verified to be compatible with this version of podget."
     echo
@@ -1489,9 +1473,45 @@ else
     fi
 fi
 
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Read core configuration options                                                                                                {{{
+
 # SHELLCHECK SC1090
 # shellcheck source=/dev/null
 source "${DIR_CONFIG}"/"${CONFIG_CORE}"
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# CONFIG TEST PART 4 of 4: Test for existing DIR_SERVERLIST, if missing create it.                                               {{{
+
+# Note: This test needs to happen after CONFIG_CORE has been read, as it may specify a different serverlist name than the default.
+
+if [[ ! -f "${DIR_CONFIG}/${CONFIG_SERVERLIST}" ]] ; then
+    echo "  Installing default server list configuration."
+    ${SED} --silent -e '/TEXT_DEFAULT_SERVERLIST$/,/^TEXT_DEFAULT_SERVERLIST/p' "$0" |
+        ${SED} -e '/TEXT_DEFAULT_SERVERLIST/d' > "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+    EXITSTATUS=$?
+    if (( EXITSTATUS != 0 )); then
+        echo "  Failed to install \"${DIR_CONFIG}/${CONFIG_SERVERLIST}\""
+        CLEANUP_AND_EXIT 1
+    fi
+    INSTALL_SESSION=1
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Exit if set to --create-config                                                                                                 {{{
+
+if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
+    if (( CMDL_CREATECONFIG == 1 )); then
+        CLEANUP_AND_EXIT 0
+    fi
+fi
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Configuration adjustments for command line options                                                                             {{{
 
 if [[ -n ${CMDL_SERVERLIST+set} ]]; then
     if (( VERBOSITY >= 1 )) ; then
