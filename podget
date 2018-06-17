@@ -1481,6 +1481,14 @@ fi
 # shellcheck source=/dev/null
 source "${DIR_CONFIG}"/"${CONFIG_CORE}"
 
+# Config adjustment: Restore serverlist setting from command line if necessary
+if [[ -n ${CMDL_SERVERLIST+set} ]]; then
+    if (( VERBOSITY >= 1 )) ; then
+        echo "Serverlist set on command line, overriding value from configuration file."
+    fi
+    CONFIG_SERVERLIST=${CMDL_SERVERLIST}
+fi
+
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # CONFIG TEST PART 4 of 4: Test for existing DIR_SERVERLIST, if missing create it.                                               {{{
@@ -1512,13 +1520,6 @@ fi
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Configuration adjustments for command line options                                                                             {{{
-
-# CONFIG_SERVERLIST has already been set to CMDL_SERVERLIST if necessary.  This check is for the status message.
-if [[ -n ${CMDL_SERVERLIST+set} ]]; then
-    if (( VERBOSITY >= 1 )) ; then
-        echo "Serverlist set on command line, overriding value from configuration file."
-    fi
-fi
 
 if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
     if (( VERBOSITY >= 1 )) ; then
