@@ -486,6 +486,12 @@ FILENAME_FORMATFIX8=1
 # Example URL: http://audioboo.fm/boos/1273271-mw-123-es-wird-fruhling.mp3?keyed=true&amp;source=rss
 # Fixed Filename: 1273271-mw-123-es-wird-fruhling.mp3
 #
+# NOTE: On Aug 30 2018, this fix was updated to also fix feeds formated like those from viertausendhertz.de.
+#
+# Feed URL: http://viertausendhertz.de/feed/podcast/systemfehler
+# Example URL: https://viertausendhertz.de/podcast-download/1538/sf04.mp3?v=1470947681&#038;source=feed
+# Fixed Filename: sf04.mp3
+#
 # 0 == disabled
 # 1 == enabled (default)
 FILENAME_FORMATFIX9=1
@@ -1086,8 +1092,8 @@ filenameFixFormat() {
     # Enclosure URLs have "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
     # It should work for Audioboo podcasts and others with similar formating.
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9A-z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&;=A-Za-z0-9]+/\1/g')
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&#;=A-Za-z0-9]+/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
             fi
