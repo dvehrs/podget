@@ -6,7 +6,7 @@
     from each playlist.  Thanks to StanESmith for reporting this issue on
 	Github.
   * Fixed FILENAME_FORMATFIX9 to cleanup one more formatting issue.  Thanks
-    to Gerhard Grobmann (charakterziffer) for reporting this issue on Github.
+    to Gerhard GroBmann (charakterziffer) for reporting this issue on Github.
 
 podget (0.8.5) unstable; urgency=low
 
