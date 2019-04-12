@@ -677,12 +677,13 @@ CLEANUP_AND_EXIT() {
     local EXITSTATUS=${1}
 
     if (( VERBOSITY >= 2 )) ; then
-        echo -en "\nClosing session"
+        #echo -en "\nClosing session"
+        printf '\n%s' "Closing session"
     fi
     if [[ -n ${DIR_SESSION+set} && -f ${DIR_SESSION}/podget.$$ ]]; then
         if (( DEBUG == 0 )); then
             if (( VERBOSITY >= 2 )) ; then
-                echo -n " and removing lock file"
+                printf '%s' " and removing lock file"
             fi
             if (( VERBOSITY >= 4 )) ; then
                 echo
@@ -691,14 +692,13 @@ CLEANUP_AND_EXIT() {
                 rm -f "${DIR_SESSION}"/podget.$$
             fi
         else
-            echo
-            echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/podget.$$"
+            printf '\n%s\n' "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/podget.$$"
         fi
     fi
     if (( (VERBOSITY >= 2) && (VERBOSITY <= 3) )); then
-        echo "."
+        printf '%s\n' "."
     elif (( (VERBOSITY == 1) || (VERBOSITY > 3) )); then
-            echo
+        echo
     fi
 
     exit "${EXITSTATUS}"
@@ -772,8 +772,8 @@ DIRECTORY_CHECK() {
         while (( TEST_FAIL != 0 )); do
             if (( (8<=TEST_FAIL) && (TEST_FAIL<=150) )); then
                 COUNT=$((COUNT+1))
-                echo "  ${COUNT}. '\000' cannot be used in directory names as mkdir expects"
-                echo "     to get a null terminated string and '\000' is considered 'end of string'."
+                echo "  ${COUNT}. '\\000' cannot be used in directory names as mkdir expects"
+                echo "     to get a null terminated string and '\\000' is considered 'end of string'."
 
                 if (( TEST_FAIL >= 8 )); then
                     TEST_FAIL=$((TEST_FAIL-8))
@@ -825,20 +825,17 @@ EXIT_ERROR() {
   EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
   FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
 
-  echo
-  echo "Error:"
-  echo -e "\tScript:\t\t${JOB_NAME}"
+  printf '\n%s\n\t%20s %s\n' "Error:" "Script:" "${JOB_NAME}"
 
   # Function line only appears if it has been set to value other than the
   # default.  Works on the assumption that "Unconfigured" is not likely to be
   # chosen as a function name.
   if [[ ${FUNCTION} != "Unconfigured" ]]; then
-      echo -e "\tFunction:\t${FUNCTION}"
+      printf '\t%20s %s\n' "Function:" "${FUNCTION}"
   fi
 
-  echo -e "\tAt line:\t${LINENUM}"
-  echo -e "\tExit Status:\t${EXITSTATUS}"
-  echo
+  printf '\t%20s %s\n\t%20s %s\n\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
+
   CLEANUP_AND_EXIT 1
 }
 
@@ -998,7 +995,7 @@ filenameFixFormat() {
           -n ${FILENAME_FORMATFIX7+set} || -n ${FILENAME_FORMATFIX8+set} || -n ${FILENAME_FORMATFIX9+set} ||
           -n ${FILENAME_FORMATFIX10+set} ]]; then
         if (( VERBOSITY >= 3 )) ; then
-           echo -e "ORIGINAL FILENAME:\t${MODIFIED_FILENAME}"
+           printf '%-30s %s\n' "ORIGINAL FILENAME:" "${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1015,7 +1012,7 @@ filenameFixFormat() {
 
     # Filename format fix for podcasts hosted on http://lbc.audioagain.com.
     if [[ -n ${FILENAME_FORMATFIX2+set} ]] && (( FILENAME_FORMATFIX2 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\+\$") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\\+\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
@@ -1026,7 +1023,7 @@ filenameFixFormat() {
 
     # Filename format fix for podcasts hosted on http://www.catradio.cat
     if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[0-9]\+\.mp3\?[&]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[0-9]\\+\\.mp3\\?[&]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
@@ -1036,7 +1033,7 @@ filenameFixFormat() {
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\+\.[gmopv34]\+[?]referrer=rss") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\\+\\.[gmopv34]\\+[?]referrer=rss") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
@@ -1046,7 +1043,7 @@ filenameFixFormat() {
 
     # ZDF podcast filename fix
     if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+\.[gmopv34]\+[?][-_+0-9]\+") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+\\.[gmopv34]\\+[?][-_+0-9]\\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
@@ -1080,7 +1077,7 @@ filenameFixFormat() {
     # to separate these feeds to their own configuration and serverlist files.  They can then be loaded by using the -c and
     # --serverlist flags on the command line.
     if [[ -n ${FILENAME_FORMATFIX8+set} ]] && (( FILENAME_FORMATFIX8 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\+") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\\+") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
@@ -1092,7 +1089,7 @@ filenameFixFormat() {
     # Enclosure URLs have "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
     # It should work for Audioboo podcasts and others with similar formating.
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\+[.][gmopv34]\+[?][%&;=0-9a-zA-Z]\+") > 0 )) ; then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+[.][gmopv34]\\+[?][%&;=0-9a-zA-Z]\\+") > 0 )) ; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&#;=A-Za-z0-9]+/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
@@ -1104,7 +1101,7 @@ filenameFixFormat() {
     # Filenames are generally long strings of numbers and letters, with the actual episode name being defined after the '?'
     # This extracts the episode name and uses it for the filename.
     if [[ -n ${FILENAME_FORMATFIX10+set} ]] && (( FILENAME_FORMATFIX10 > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\+[.][MmPp3]\+[?][-0-9A-Za-z%=]\+%26episodeName%3D[-0-9A-Za-z%.*]\+%26episodeKind%3D") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\\+[.][MmPp3]\\+[?][-0-9A-Za-z%=]\\+%26episodeName%3D[-0-9A-Za-z%.*]\\+%26episodeKind%3D") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | ${SED} -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
@@ -1114,7 +1111,7 @@ filenameFixFormat() {
 
     # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
     if [[ -n ${FILENAME_FORMATFIX+set} ]] && (( FILENAME_FORMATFIX > 0 )); then
-        if (( $(${EXPR} "${MODIFIED_FILENAME}" : ".*\.mp3..*$") > 0 )); then
+        if (( $(${EXPR} "${MODIFIED_FILENAME}" : ".*\\.mp3..*$") > 0 )); then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} 's/\.mp3\(.*\)/\1.mp3/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
@@ -1129,7 +1126,7 @@ filenameFixFormat() {
          # down to a single time.
          MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
         if (( VERBOSITY >= 3 )) ; then
-            echo -e "MODIFIED FILENAME:\t${MODIFIED_FILENAME}"
+            printf '%-30s %s\n' "MODIFIED FILENAME:" "${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1178,6 +1175,9 @@ PLAYLIST_Sort() {
     if hash mktemp >&2; then
         TEMPPLAYLISTNAME=$(mktemp 2>/dev/null)
     elif hash tempfile >&2; then
+        # NOTE: The shellcheck warning for tempfile being depreciated is disabled here because we are only using it for systems that
+        # do not already have mktemp.  So realistically, it should almost never be called.
+        # shellcheck disable=SC2186
         TEMPPLAYLISTNAME=$(tempfile 2>/dev/null)
     else
         echo "Error: Neither mktemp or tempfile found.  Unable to sort playlist."
@@ -1223,7 +1223,9 @@ REMOVE_URL() {
 
     # Escape any characters in URL that can affect the sed command below, currently: *
     local URL_CLEAN
-    URL_CLEAN=$(echo "${URL_INPUT}" | ${SED} -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
+    # URL_CLEAN as it was before trying to correct implicit escaping.
+    # URL_CLEAN=$(echo "${URL_INPUT}" | ${SED} -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
+    URL_CLEAN=$(echo "${URL_INPUT}" | ${SED} -e "s${TEST_CHAR}\\([^\\]\\)\\*${TEST_CHAR}\\1\\\\*${TEST_CHAR}g")
 
     ${SED} -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
 }
@@ -1353,16 +1355,15 @@ fi
 
 #### ISSUE: Debug not enabled or disabled until CONFIG_CORE is read at about line 1478
 if (( DEBUG == 1 )) ; then
-    echo
-    echo "${DEBUG_LEADER} Parsing Config file."
-    echo -e "${DEBUG_LEADER} Config directory:\t\t${DIR_CONFIG}"
-    echo -e "${DEBUG_LEADER} Config file:\t\t\t${CONFIG_CORE}"
-    echo -e "${DEBUG_LEADER} Server List:\t\t\t${CONFIG_SERVERLIST}"
+    printf '\n%s %-30s %s\n' "${DEBUG_LEADER}" "Parsing Config file." ""
+    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Config directory:" "${DIR_CONFIG}"
+    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Config file:" "${CONFIG_CORE}"
+    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Server List:" "${CONFIG_SERVERLIST}"
 fi
 
 if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
     if [[ -n ${CMDL_ASX+set} ]]; then
-        echo "Conflicting playlist options."
+        printf '%-30s %s' "Error:" "Conflicting playlist options."
         CLEANUP_AND_EXIT 1
     fi
 fi
@@ -1373,8 +1374,7 @@ fi
 
 # Test filename for CONFIG_CORE, CMDL/CONFIG_SERVERLIST and directory for DIR_CONFIG
 if (( DEBUG == 1 )) ; then
-    echo
-    echo "${DEBUG_LEADER} Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
+    printf '\n%s %s\n' "${DEBUG_LEADER}" "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
 fi
 FILENAME_CHECK CONFIG_CORE
 if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
@@ -1386,7 +1386,7 @@ fi
 DIRECTORY_CHECK DIR_CONFIG
 
 if (( DEBUG == 1 )) ; then
-    echo "${DEBUG_LEADER} Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
+    printf '%s %s\n\n' "${DEBUG_LEADER}" "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
     echo
 fi
 unset FILENAME_BADCHARS
@@ -1400,7 +1400,7 @@ if [[ ! -d ${DIR_CONFIG} ]] ; then
     mkdir "${DIR_CONFIG}"
     EXITSTATUS=$?
     if (( EXITSTATUS != 0 )); then
-        echo "  Failed to create \"${DIR_CONFIG}\""
+        printf '%-30s %s' "Error:" "Failed to create \"${DIR_CONFIG}\""
         CLEANUP_AND_EXIT 1
     fi
     INSTALL_SESSION=1
@@ -1430,7 +1430,7 @@ if [[ ! -f "${DIR_CONFIG}/${CONFIG_CORE}" ]] ; then
         ${SED} -e "s|@HOME@|${HOME}|" -e "s/@VERSION@/${VERSION}/" -e "s/@SERVERLIST@/${CONFIG_SERVERLIST}/"> "${DIR_CONFIG}"/"${CONFIG_CORE}"
     EXITSTATUS=$?
     if (( EXITSTATUS != 0 )); then
-        echo "  Failed to create \"${DIR_CONFIG}/${CONFIG_CORE}\""
+        printf '%-30s %s' "Error:" "Failed to create \"${DIR_CONFIG}/${CONFIG_CORE}\""
         CLEANUP_AND_EXIT 1
     fi
     INSTALL_SESSION=1
@@ -1440,7 +1440,7 @@ fi
 # ----------------------------------------------------------------------------------------------------------------------------------
 # CONFIG TEST PART 3 of 4: Test if configuration file was created by a version that supports all required items and formats.     {{{
 
-if ! fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" >/dev/null ; then
+if ! grep -F "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" >/dev/null ; then
 	echo "${DIR_CONFIG}/${CONFIG_CORE} cannot be verified to be compatible with this version of podget."
     echo
 	echo "It is missing the version line that is included in configuration files created by newer versions of podget."
@@ -1451,10 +1451,10 @@ if ! fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CON
     CLEANUP_AND_EXIT 1
 else
     # get version
-    VERSION=$(fgrep "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | ${SED} -e 's/.*by version \([0-9.]\)/\1/')
+    VERSION=$(grep -F "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | ${SED} -e 's/.*by version \([0-9.]\)/\1/')
 
     # Split version string into an array by replacing '.' with 'space'
-    VERSION_ARRAY=( ${VERSION//./ } )
+    IFS='.' read -r -a VERSION_ARRAY <<< "${VERSION}"
 
     # Assign values from array to named variables with a default of '0' if unset.
     # NOTE: BASE is currently commented out because it is currently unused.  It is here if we need it.
@@ -1529,7 +1529,7 @@ fi
 
 if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
     if (( VERBOSITY >= 1 )) ; then
-        echo -e "\t\tNO PLAYLIST set on command line, overriding value from configuration file."
+        printf '\t\t%s\n' "NO PLAYLIST set on command line, overriding value from configuration file."
     fi
     NO_PLAYLIST=${CMDL_NOPLAYLIST}
 fi
@@ -1547,13 +1547,13 @@ if [[ -n ${CMDL_LIBRARY+set} ]] ; then
         CLEANUP_AND_EXIT 1
     fi
     if (( VERBOSITY >= 3 )) ; then
-        echo -e "\t\tOverriding Library Directory specified in configuration file."
+        printf '\t\t%s\n' "Overriding Library Directory specified in configuration file."
     fi
     DIR_LIBRARY=${CMDL_LIBRARY}
 fi
 
 if (( VERBOSITY >= 3 )) ; then
-    echo -e "Library Directory:\t\t${DIR_LIBRARY}"
+    printf '%-30s %s\n' "Library Directory:" "${DIR_LIBRARY}"
 fi
 
 if [[ -z ${DIR_LIBRARY} ]] ; then
@@ -1585,7 +1585,7 @@ if [[ -n ${DIR_SESSION+set} ]]; then
 fi
 
 if (( VERBOSITY >= 3 )) ; then
-    echo -e "Session Directory:\t\t${DIR_SESSION}"
+    printf '%-30s %s\n' "Session Directory:" "${DIR_SESSION}"
 fi
 
 if [[ -n ${CMDL_CLEANUP_DAYS+set} ]] ; then
@@ -1609,7 +1609,7 @@ fi
 DIRECTORY_CHECK DIR_LOG
 
 if (( VERBOSITY >= 3 )) ; then
-    echo -e "Log Directory:\t\t\t${DIR_LOG}"
+    printf '%-30s %s\n' "Log Directory:" "${DIR_LOG}"
 fi
 
 if [[ -n ${CMDL_ASX+set} ]]; then
@@ -1649,7 +1649,8 @@ else
 fi
 
 if (( DEBUG == 1 )) ; then
-    echo -e "WGet Options:\t\t\t${WGET_COMMON_OPTIONS}"
+    # echo -e "WGet Options:\t\t\t${WGET_COMMON_OPTIONS}"
+    printf '%-30s %s\n' "WGet Options:" "${WGET_COMMON_OPTIONS}"
 fi
 
 if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
@@ -1657,8 +1658,8 @@ if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
     FILENAME_BADCHARS="${FILENAME_BADCHARS/\\/\\\\}"
 
     if (( DEBUG == 1 )) ; then
-        echo -e "Filename Bad Characters:\t${FILENAME_BADCHARS}"
-        echo -e "Filename Replace Character:\t${FILENAME_REPLACECHAR}"
+        printf '%-30s %s\n' "Filename Bad Characters:" "${FILENAME_BADCHARS}"
+        printf '%-30s %s\n' "Filename Replace Character:" "${FILENAME_REPLACECHAR}"
     fi
 
     MODIFY_FILENAME=1
@@ -1666,9 +1667,9 @@ fi
 
 if (( VERBOSITY >= 3 )) ; then
     if (( DEBUG == 0 )); then
-        echo -e "Debug:\t\t\t\tDisabled - Delete temp files and reduced progress messages."
+        printf '%-30s %s\n' "Debug:" "Disabled - Delete temp files and reduced progress messages."
     else
-        echo -e "Debug:\t\t\t\tEnabled - Do not delete temp files and increased progress messages."
+        printf '%-30s %s\n' "Debug:" "Enabled - Do not delete temp files and increased progress messages."
     fi
 fi
 
@@ -1684,7 +1685,7 @@ fi
 # Test that session directory exists (useful when placed on a tmpfs filesystem).
 if [[ ! -d ${DIR_SESSION} ]]; then
     if (( DEBUG == 1 )) ; then
-        echo -e "\nSession directory not found, creating"
+        printf '\n%s\n' "Session directory not found, creating"
     fi
     mkdir -p "${DIR_SESSION}"
 fi
@@ -1702,7 +1703,7 @@ while read -r -d $'\0' FILE ; do
         TEST_SESSION=1
         # shellcheck disable=SC2094
         while read -r LINE ; do
-            TEST_Index=$(${EXPR} "${LINE}" : "^[Cc]onfig\sfile:")
+            TEST_Index=$(${EXPR} "${LINE}" : "^[Cc]onfig\\sfile:")
             if [[ "A${TEST_Index}" != "A" ]]; then
                 TEST_File=$(echo "${LINE}" | ${SED} -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
                 if [[ ${TEST_File} == "${CONFIG_CORE}" ]] ; then
@@ -1748,16 +1749,16 @@ echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 
 if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
     if (( DEBUG == 1 )) ; then
-        echo -e "\n${DEBUG_LEADER} Main loop:"
-        echo "${DEBUG_LEADER} SERVER LIST FILE: $CONFIG_SERVERLIST"
-        echo "${DEBUG_LEADER} WGET OPTIONS: ${WGET_COMMON_OPTIONS}"
+        printf '\n%s %s\n' "${DEBUG_LEADER}" "Main loop:"
+        printf '%s %-30s %s\n' "${DEBUG_LEADER}" "SERVER LIST FILE:" "$CONFIG_SERVERLIST"
+        printf '%s %-30s %s\n' "${DEBUG_LEADER}" "WGET OPTIONS:" "${WGET_COMMON_OPTIONS}"
         if (( NO_PLAYLIST == 0 )); then
-            echo "${DEBUG_LEADER} Playlist Creation Enabled."
+            printf '%s %s\n' "${DEBUG_LEADER}" "Playlist Creation Enabled."
         else
-            echo "${DEBUG_LEADER} Playlist Creation Disabled."
+            printf '%s %s\n' "${DEBUG_LEADER}" "Playlist Creation Disabled."
         fi
         if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-            echo "${DEBUG_LEADER} PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
+            printf '%s %s\n' "${DEBUG_LEADER}" "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
         fi
     fi
 
@@ -1909,13 +1910,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
             # Extract PASSWORD from FEED_NAME if found.
-            if (( $(${EXPR} "${FEED_NAME}" : ".*PASS:[^ $]\+.*") > 0 )); then
+            if (( $(${EXPR} "${FEED_NAME}" : ".*PASS:[^ $]\\+.*") > 0 )); then
                 URL_PASSWORD=$(echo "${FEED_NAME}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
                 FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
             fi
 
             # Extract USERNAME from FEED_NAME if found.
-            if (( $(${EXPR} "${FEED_NAME}" : ".*USER:[^ $]\+.*") > 0 )); then
+            if (( $(${EXPR} "${FEED_NAME}" : ".*USER:[^ $]\\+.*") > 0 )); then
                 URL_USERNAME=$(echo "${FEED_NAME}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
                 FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
             fi
@@ -1987,7 +1988,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             if (( VERBOSITY >= 2 )) ; then
-                echo -e "\n-------------------------------------------------"
+                printf '\n%s\n' "-------------------------------------------------"
             fi
             if (( VERBOSITY >= 1 )) ; then
                 if [ "${FEED_CATEGORY}" == "." ]; then
@@ -1998,7 +1999,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
             if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} Loop WGET_OPTIONS: ${WGET_OPTIONS[*]}"
+                printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
             fi
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
@@ -2093,7 +2094,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 # if file is RSS then we look for '<enclosure '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             ${SED} -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
-                                         -e "s/.*<enclosure.*url\s*=\s*'\([^']\+\)'.*/\1/Ip" \
+                                         -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
                 # if file is Atom then we look for '<link\s.*rel="enclosure" '
@@ -2122,14 +2123,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                 # SIMPLE FILTERING: filter down to just audio & video types.
                 if (( ATOM_FILTER_SIMPLE > 0 )); then
-                    INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "\\${TEST_CHAR}type=\"\(audio\|video\)${TEST_CHAR}p")
+                    INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "\\${TEST_CHAR}type=\"\\(audio\\|video\\)${TEST_CHAR}p")
                 fi
 
                 if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
                     INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
                 fi
 
-                TYPECOUNT=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*type=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+                TYPECOUNT=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*type=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
@@ -2152,7 +2153,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
                 fi
 
-                LANGCOUNT=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*xml:lang=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+                LANGCOUNT=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*xml:lang=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
 
                 if (( VERBOSITY >= 2 )) ; then
                     # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
@@ -2171,7 +2172,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 # Get the URLs from each enclosure after filtering.
-                INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*href=\"\([^\"]\+\)\".*${TEST_CHAR}\1${TEST_CHAR}Ip")
+                INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "s${TEST_CHAR}.*href=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip")
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
                 # if Feed is neither RSS or Atom, add URL to LOG_FAIL
@@ -2217,18 +2218,18 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER} FEED FULL PLAYLIST: ${FEED_FULL_PLAYLIST}"
+                    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "FEED FULL PLAYLIST:" "${FEED_FULL_PLAYLIST}"
                     if (( MOST_RECENT > 0 )) ; then
-                        echo -e "${DEBUG_LEADER} Modified Index List:\n${INDEXFILE}"
-                        echo -e "${DEBUG_LEADER} Full Index List:\n${FULLINDEXFILE}"
+                        printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Modified Index List:" "${INDEXFILE}"
+                        printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Full Index List:" "${FULLINDEXFILE}"
                     else
-                        echo -e "${DEBUG_LEADER} Index List:\n${INDEXFILE}"
+                        printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Index List:" "${INDEXFILE}"
                     fi
                 fi
 
                 for URL in ${INDEXFILE}
                 do
-                    if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
+                    if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
 
                         if (( VERBOSITY >= 2 )) ; then
                             echo
@@ -2244,7 +2245,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         # Test for available space on library partition
                         AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
                         if (( AVAIL_SPACE < MIN_SPACE )); then
-                            echo -e "\nAvailable space on Library partition has dropped below allowed.\nStopping Session." 1>&2
+                            printf '\n%s\n%s\n' "Available space on Library partition has dropped below allowed." "Stopping Session." 1>&2
                             CLEANUP_AND_EXIT ${ERR_LIBLOWSPACE}
                         fi
 
@@ -2360,7 +2361,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     # Added '|| true' to catch when grep exits with a non-zero status because the
                                     # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
                                     # ERR trap.
-                                    CONTENT_FILENAME=$(grep "^\s\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | ${SED} -e 's/.*filename=//' -e 's/"//g') || true
+                                    CONTENT_FILENAME=$(grep "^\\s\\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | ${SED} -e 's/.*filename=//' -e 's/"//g') || true
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
@@ -2408,7 +2409,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                                     # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
                                     # not found.  This eliminates the need to disable errexit and the ERR trap.
-                                    LOCATION_FILENAME=$(grep "^\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | ${SED} -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
+                                    LOCATION_FILENAME=$(grep "^\\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | ${SED} -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
 
                                     LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
 
@@ -2595,7 +2596,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if (( (MOST_RECENT != 0) && (INSTALL_SESSION == 0) )); then
                     for URL in ${FULLINDEXFILE}
                     do
-                        if ! fgrep "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
+                        if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
                             URL_FILENAME=$(echo "${URL}" | ${SED} -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
                             if (( VERBOSITY >= 2 )) ; then
                                     echo "Marking as already downloaded ${URL_FILENAME}."
@@ -2662,7 +2663,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             if (( CLEANUP_SIMULATE > 0 )); then
                 echo "Simulating cleanup, the following files will be removed when you run cleanup."
             else
-                echo -e "\n-------------------------------------------------\nCleanup old tracks."
+                printf '\n%s\n%s\n' "-------------------------------------------------" "Cleanup old tracks."
             fi
         fi
         FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
@@ -2721,12 +2722,12 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
     # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this section.
     # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
     #       nice to find a more elegant way to state this.
-    if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\(NEW\|OLD\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
+    if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
         if (( VERBOSITY == 1 )) ; then
-            echo -e "\nBuild OPT_FEED_PLAYLISTs"
+            printf '\n%s\n' "Build OPT_FEED_PLAYLISTs"
         fi
         if (( VERBOSITY >= 2 )) ; then
-            echo -e "\n-------------------------------------------------\nBuild OPT_FEED_PLAYLISTs"
+            printf '\n%s\n%s\n' "-------------------------------------------------" "Build OPT_FEED_PLAYLISTs"
         fi
         for FILETYPE in utf8 utf16 ; do
             if (( VERBOSITY >= 3 )) ; then
@@ -2816,7 +2817,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
 
                     if (( VERBOSITY >= 2 )) ; then
-                        echo -e "\n-------------------------------------------------"
+                        printf '\n%s\n' "-------------------------------------------------"
                     fi
                     if (( VERBOSITY >= 1 )) ; then
                         if [ "${FEED_CATEGORY}" == "." ]; then
@@ -2893,7 +2894,7 @@ if [[ -n ${IMPORT_OPML+set} ]]; then
     fi
 
     if (( VERBOSITY >= 2 )) ; then
-        echo -e "\nImport servers from OPML file: ${IMPORT_OPML}"
+        printf '\n%s\n' "Import servers from OPML file: ${IMPORT_OPML}"
     fi
 
     new_category="OPML_Import_$(date ${DATE_FORMAT})"
@@ -2916,7 +2917,7 @@ if [[ -n ${IMPORT_OPML+set} ]]; then
 
         for data in ${new_list} ; do
             if (( VERBOSITY >= 1 )) ; then
-                echo -e "\n---------------"
+                printf '\n%s\n' "---------------"
             fi
 
             new_label=$(echo "${data}" | ${SED} -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | ${SED} -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
@@ -2960,7 +2961,7 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
     fi
 
     if (( VERBOSITY >= 2 )) ; then
-        echo -e "\nExport serverlist to OPML file: ${EXPORT_OPML}"
+        printf '\n%s\n' "Export serverlist to OPML file: ${EXPORT_OPML}"
     fi
 
     if [[ ! -e ${EXPORT_OPML} ]]; then
@@ -2984,12 +2985,12 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
         FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
 
         # Remove any residual trailing spaces from ${FEED_NAME}
-        while (( $(${EXPR} "${FEED_NAME}" : ".*[ ]\+$") > 0 )); do
+        while (( $(${EXPR} "${FEED_NAME}" : ".*[ ]\\+$") > 0 )); do
             FEED_NAME=${FEED_NAME%[ ]*}
         done
 
         # Remove any residual leading spaces from ${FEED_NAME}
-        while (( $(${EXPR} "${FEED_NAME}" : "[ ]\+.*$") > 0 )); do
+        while (( $(${EXPR} "${FEED_NAME}" : "[ ]\\+.*$") > 0 )); do
             FEED_NAME=${FEED_NAME#[ ]*}
         done
 
@@ -3019,7 +3020,7 @@ if [[ -n ${IMPORT_PCAST+set} ]] ; then
     fi
 
     if (( VERBOSITY >= 2 )) ; then
-        echo -e "\nImport server from PCAST file: ${IMPORT_PCAST}"
+        printf '\n%s\n' "Import server from PCAST file: ${IMPORT_PCAST}"
     fi
 
     if [[ ${IMPORT_PCAST} == http:* ]] || [[ ${IMPORT_PCAST} == ftp:* ]] ; then
