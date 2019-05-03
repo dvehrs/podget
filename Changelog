@@ -1,4 +1,5 @@
 
+  * Updated man page.
   * Fixed automatic creation of serverlist file so that core configuration
     file was read prior to testing for existence of the file.  Thanks to
 	Corin-EU for reporting this issue on Github.
