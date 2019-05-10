@@ -2458,11 +2458,17 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     FINAL_FILENAME="${CONTENT_FILENAME}"
                                 else
                                     if (( FORCE != 0 )); then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                        if [[ "${FINAL_FILENAME}" == "${CONTENT_FILENAME}" ]]; then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
+                                            fi
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                            FINAL_FILENAME="${CONTENT_FILENAME}"
                                         fi
-                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
-                                        FINAL_FILENAME="${CONTENT_FILENAME}"
                                     else
                                         if (( VERBOSITY >= 2 )); then
                                             echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
