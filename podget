@@ -1823,8 +1823,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "${DEBUG_LEADER} Serverlist Line --> ${FEED_URL:-} ${FEED_CATEGORY:-} ${FEED_NAME:-}"
             fi
 
-#            if   [[ "${FEED_URL:0:1}" == "#" || "${FEED_URL}" == "" ]] ; then
-            if   [[ "${FEED_URL:0:1}" == "#" || -z ${FEED_URL-empty} ]] ; then
+            if   [[ "${FEED_URL:0:1}" == "#" || -z "${FEED_URL-empty}" ]] ; then
                 if (( DEBUG == 1 )) ; then
                     echo "${DEBUG_LEADER} Discarding (comment or blank line)."
                     echo "${DEBUG_LEADER} Clear Server Loop vars"
@@ -1904,7 +1903,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset ATOM_FILTER_LANG
 
             # Enable user configured no category.
-            if (( $(${EXPR} "${FEED_CATEGORY}" : "No_Category") > 0 )) || [[ -z ${FEED_CATEGORY-empty} ]]; then
+            if (( $(${EXPR} "${FEED_CATEGORY}" : "No_Category") > 0 )) || [[ -z "${FEED_CATEGORY-empty}" ]]; then
                 # Set to single period which is a bashism for current directory.
                 FEED_CATEGORY="."
             fi
@@ -2761,8 +2760,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
                 FEED_FULL_PLAYLIST=0
 
-#                if   [[ "${FEED_URL:0:1}" == "#" || "${FEED_URL}" == "" ]] ; then
-                if   [[ "${FEED_URL:0:1}" == "#" ||  -z ${FEED_URL-empty} ]] ; then
+                if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
                     if (( DEBUG == 1 )) ; then
                         echo "${DEBUG_LEADER} Discarding (comment or blank line)."
                         echo "${DEBUG_LEADER} Clear Loop vars"
@@ -2974,8 +2972,7 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
 <body>' > "${EXPORT_OPML}"
 
 	while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-#        if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ "${FEED_URL}" == "" ]] ; then
-        if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ -z ${FEED_URL-empty} ]] ; then
+        if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ -z "${FEED_URL-empty}" ]] ; then
             if (( VERBOSITY >= 3 )) ; then
                 echo "  Discarding line (comment or blank line)."
             fi
