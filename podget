@@ -1977,6 +1977,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             # Remove any residual trailing whitespace from ${FEED_NAME}
             FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
 
+            # blank FEED_NAME handling
+            if [[ -z "${FEED_NAME-empty}" ]]; then
+                # Set to single period which is a bashism for current directory.
+                FEED_NAME="."
+            fi
+
             # Add Username and Password to wget options if found.
             # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
             # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
@@ -2537,12 +2543,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             if (( NO_PLAYLIST == 0 )); then
-                                # if creating playlists, then add to file.
-                                # Suggested fix from https://sourceforge.net/tracker/?func=detail&aid=2170298&group_id=133382&atid=727035
+                                # If creating playlists, then add to file.  Added sed command to remove any './' from each item
+                                # added to a playlist or the echo statement.
                                 if [[ -n ${PLAYLIST_NAME+set} ]] ; then
-                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
                                     if (( VERBOSITY >= 2 )); then
-                                        echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                        echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}" | sed -e 's|[.]/||g'
                                     fi
                                 fi
                             fi
