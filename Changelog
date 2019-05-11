@@ -1,4 +1,7 @@
 
+  * Applied patch inspired by Bob Hepple (bhepple on Github) to allow for
+    items on server lists to have both blank categories and names.  Many
+	thanks for the great idea and help testing it.
   * Updated man page.
   * Fixed automatic creation of serverlist file so that core configuration
     file was read prior to testing for existence of the file.  Thanks to
