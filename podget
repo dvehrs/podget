@@ -1044,7 +1044,7 @@ filenameFixFormat() {
     # ZDF podcast filename fix
     if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
         if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+\\.[gmopv34]\\+[?][-_+0-9]\\+") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -2552,9 +2552,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 # If creating playlists, then add to file.  Added sed command to remove any './' from each item
                                 # added to a playlist or the echo statement.
                                 if [[ -n ${PLAYLIST_NAME+set} ]] ; then
-                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" | ${SED} -e 's|[.]/||g' >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
                                     if (( VERBOSITY >= 2 )); then
-                                        echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}" | sed -e 's|[.]/||g'
+                                        echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}" | ${SED} -e 's|[.]/||g'
                                     fi
                                 fi
                             fi
