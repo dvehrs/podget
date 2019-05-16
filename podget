@@ -1090,7 +1090,7 @@ filenameFixFormat() {
     # It should work for Audioboo podcasts and others with similar formating.
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
         if (( $(${EXPR} "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+[.][gmopv34]\\+[?][%&;=0-9a-zA-Z]\\+") > 0 )) ; then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][%&#;=A-Za-z0-9]+/\1/g')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | ${SED} -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][-%&#;=A-Za-z0-9]+/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
             fi

@@ -1,4 +1,5 @@
 
+  * Fixed FILENAME_FORMATFIX9 to include a dash ('-') in removed part.
   * Applied patch inspired by Bob Hepple (bhepple on Github) to allow for
     items on server lists to have both blank categories and names.  Many
 	thanks for the great idea and help testing it.
