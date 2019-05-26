@@ -1902,86 +1902,95 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
             unset ATOM_FILTER_LANG
 
-            # Enable user configured no category.
-            if (( $(${EXPR} "${FEED_CATEGORY}" : "No_Category") > 0 )) || [[ -z "${FEED_CATEGORY-empty}" ]]; then
-                # Set to single period which is a bashism for current directory.
-                FEED_CATEGORY="."
-            fi
+            # End resets
+            # -----------------------------------------------------------------
+            # Read new configuration
+
+            # Pass FEED_CATEGORY and FEED_NAME through the option filters.  This allows handling of options with blank feed
+            # categories and names.
+            unset FILTER_ITEM
+            for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
+                # Extract PASSWORD from FILTER_ITEM if found.
+                if (( $(${EXPR} "${FILTER_ITEM}" : ".*PASS:[^ $]\\+.*") > 0 )); then
+                    URL_PASSWORD=$(echo "${FILTER_ITEM}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/PASS:+([^[:space:]])}"
+                fi
+
+                # Extract USERNAME from FILTER_ITEM if found.
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*USER:[^ $]\\+.*") > 0 )); then
+                    URL_USERNAME=$(echo "${!FILTER_ITEM}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/USER:+([^[:space:]])}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_CONTENT_DISPOSITION.*") > 0 )); then
+                    WGET_OPTION_DISPOSITION=1
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
+                    WGET_OPTION_DISPOSITION_FAIL=1
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
+                    FEED_SORT_ORDER="ASCENDING"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
+                fi
+
+                # The following two tags are handled in a later loop and so only need to be removed here.
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
+                    WGET_OPTION_FILENAME_LOCATION=1
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_RENAME_MDATE.*") > 0 )); then
+                    POST_WGET_RENAME_MDATE=1
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_SIMPLE.*") > 0 )); then
+                    ATOM_FILTER_SIMPLE=1
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+                    ATOM_FILTER_TYPE=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
+                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
+                fi
+
+                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+                    ATOM_FILTER_LANG=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
+                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
+                fi
+
+                # Remove repeated spaces
+                eval ${FILTER_ITEM}="\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
+
+                # Remove any residual leading whitespace from ${!FILTER_ITEM}
+                eval ${FILTER_ITEM}="\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
+
+                # Remove any residual trailing whitespace from ${!FILTER_ITEM}
+                eval ${FILTER_ITEM}="\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
+
+                # No_Category, or blank item handling.
+                if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
+                    # Set to single period which is a bashism for current directory.
+                    eval ${FILTER_ITEM}="."
+                fi
+            done
 
             FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
 
-            # Extract PASSWORD from FEED_NAME if found.
-            if (( $(${EXPR} "${FEED_NAME}" : ".*PASS:[^ $]\\+.*") > 0 )); then
-                URL_PASSWORD=$(echo "${FEED_NAME}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
-                FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
-            fi
-
-            # Extract USERNAME from FEED_NAME if found.
-            if (( $(${EXPR} "${FEED_NAME}" : ".*USER:[^ $]\\+.*") > 0 )); then
-                URL_USERNAME=$(echo "${FEED_NAME}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
-                FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_CONTENT_DISPOSITION.*") > 0 )); then
-                WGET_OPTION_DISPOSITION=1
-                FEED_NAME=${FEED_NAME/OPT_CONTENT_DISPOSITION}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
-                WGET_OPTION_DISPOSITION_FAIL=1
-                FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
-                FEED_SORT_ORDER="ASCENDING"
-                FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
-            fi
-
-            # The following two tags are handled in a later loop and so only need to be removed here.
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
-                FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_NEWFIRST}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
-                FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_OLDFIRST}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
-                WGET_OPTION_FILENAME_LOCATION=1
-                FEED_NAME=${FEED_NAME/OPT_FILENAME_LOCATION}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FILENAME_RENAME_MDATE.*") > 0 )); then
-                POST_WGET_RENAME_MDATE=1
-                FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*ATOM_FILTER_SIMPLE.*") > 0 )); then
-                ATOM_FILTER_SIMPLE=1
-                FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
-                ATOM_FILTER_TYPE=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
-                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
-            fi
-
-            if (( $(${EXPR} "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
-                ATOM_FILTER_LANG=$(echo "${FEED_NAME}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
-                FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
-            fi
-
-            # Remove any residual leading whitespace from ${FEED_NAME}
-            FEED_NAME="${FEED_NAME#"${FEED_NAME%%[![:space:]]*}"}"
-
-            # Remove any residual trailing whitespace from ${FEED_NAME}
-            FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
-
-            # blank FEED_NAME handling
-            if [[ -z "${FEED_NAME-empty}" ]]; then
-                # Set to single period which is a bashism for current directory.
-                FEED_NAME="."
-            fi
+            # End setting of FEED_CATEGORY, FEED_NAME, and OPT_items
+            # -----------------------------------------------------------------
 
             # Add Username and Password to wget options if found.
             # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
@@ -2783,51 +2792,72 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     unset FEED_FULL_PLAYLIST
                     continue
                 fi
-                # Enable user configured no category.
-                if (( $(${EXPR} "${FEED_CATEGORY}" : "No_Category") > 0 )); then
-                    # Set to single period which is a bashism for current directory.
-                    FEED_CATEGORY="."
-                fi
 
-                if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
-                    FEED_FULL_PLAYLIST=1
-                    FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_NEWFIRST}
-                fi
+                # ---------------------
+                # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
 
-                if (( $(${EXPR} "${FEED_NAME}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
-                    FEED_FULL_PLAYLIST=2
-                    FEED_NAME=${FEED_NAME/OPT_FEED_PLAYLIST_OLDFIRST}
-                fi
+                unset FILTER_ITEM
+                for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
+                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
+                        FEED_FULL_PLAYLIST=1
+                        eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
+                    fi
+
+                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
+                        FEED_FULL_PLAYLIST=2
+                        eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
+                    fi
+
+                    # Remove unneeded strings from FILTER_ITEM
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/PASS:+([^[:space:]])}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/USER:+([^[:space:]])}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+                    eval ${FILTER_ITEM}="${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+
+                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
+                    fi
+
+                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
+                    fi
+
+                    # Condense repeated spaces
+                    eval ${FILTER_ITEM}="\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
+
+                    # Remove any residual leading whitespace from ${!FILTER_ITEM}
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
+
+                    # Remove any residual trailing whitespace from ${!FILTER_ITEM}
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
+
+                    # No_Category, or blank item handling.
+                    if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
+                        # Set to single period which is a bashism for current directory.
+                        eval ${FILTER_ITEM}="."
+                    fi
+                done
 
 
                 if (( FEED_FULL_PLAYLIST >= 1 )) ; then
+                    if [ "${FEED_NAME}" == "." ]; then
+                        if (( VERBOSITY >= 1 )); then
+                            printf '%-30s %-50s\n' "" "Individual playlists require FEED_NAME,"
+                            printf '%-30s %-50s\n' "" " unable to create one for:"
+                            printf '%-30s %-50s\n' "" "  ${FEED_URL}"
+                        else
+                            echo "Individual playlists require FEED_NAME, unable to create one for:"
+                            echo "    ${FEED_URL}"
+                        fi
+                        continue
+                    fi
 
                     # Date Substitutions
                     FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
-
-                    # Remove unneeded strings from FEED_NAME
-                    FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
-                    FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
-                    FEED_NAME=${FEED_NAME/OPT_CONTENT_DISPOSITION}
-                    FEED_NAME=${FEED_NAME/OPT_DISPOSITION_FAIL}
-                    FEED_NAME=${FEED_NAME/OPT_FEED_ORDER_ASCENDING}
-                    FEED_NAME=${FEED_NAME/OPT_FILENAME_LOCATION}
-                    FEED_NAME=${FEED_NAME/OPT_FILENAME_RENAME_MDATE}
-                    FEED_NAME=${FEED_NAME/ATOM_FILTER_SIMPLE}
-
-                    if (( $(${EXPR} "${FEED_NAME}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')
-                    fi
-
-                    if (( $(${EXPR} "${FEED_NAME}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
-                        FEED_NAME=$(echo "${FEED_NAME}" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')
-                    fi
-
-                    # Remove any residual leading whitespace from ${FEED_NAME}
-                    FEED_NAME="${FEED_NAME#"${FEED_NAME%%[![:space:]]*}"}"
-
-                    # Remove any residual trailing whitespace from ${FEED_NAME}
-                    FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
 
                     if (( VERBOSITY >= 2 )) ; then
                         printf '\n%s\n' "-------------------------------------------------"
