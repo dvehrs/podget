@@ -2897,7 +2897,8 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                                 if (( DEBUG == 1 )) ; then
                                     echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
                                 fi
-                                echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                                # Added Sed statement to remove "./" (current directory) from each item added as necessary
+                                echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" | ${SED} -e 's|[.]/||g' >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                             done <<< "${FEED_ITEMS}"
                         else
                             if (( VERBOSITY >= 1 )); then
