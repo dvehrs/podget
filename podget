@@ -2008,10 +2008,18 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
             if (( VERBOSITY >= 1 )) ; then
                 if [ "${FEED_CATEGORY}" == "." ]; then
-                    printf '%-30s %-50s\n' "Category: NONE" "Name: ${FEED_NAME}"
+                    DISPLAY_CATEGORY="None"
                 else
-                    printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
+                    DISPLAY_CATEGORY="${FEED_CATEGORY}"
                 fi
+
+                if [ "${FEED_NAME}" == "." ]; then
+                    DISPLAY_NAME="None"
+                else
+                    DISPLAY_NAME="${FEED_NAME}"
+                fi
+
+                printf '%-30s %-50s\n' "Category: ${DISPLAY_CATEGORY}" "Name: ${DISPLAY_NAME}"
             fi
 
             if (( DEBUG == 1 )) ; then
@@ -2800,23 +2808,23 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
                     if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
                         FEED_FULL_PLAYLIST=1
-                        eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
+                        eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
                     fi
 
                     if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
                         FEED_FULL_PLAYLIST=2
-                        eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
+                        eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
                     fi
 
                     # Remove unneeded strings from FILTER_ITEM
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/PASS:+([^[:space:]])}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/USER:+([^[:space:]])}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
-                    eval ${FILTER_ITEM}="${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/PASS:+([^[:space:]])}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/USER:+([^[:space:]])}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
 
                     if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
                         eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
@@ -2846,11 +2854,10 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 if (( FEED_FULL_PLAYLIST >= 1 )) ; then
                     if [ "${FEED_NAME}" == "." ]; then
                         if (( VERBOSITY >= 1 )); then
-                            printf '%-30s %-50s\n' "" "Individual playlists require FEED_NAME,"
-                            printf '%-30s %-50s\n' "" " unable to create one for:"
+                            printf '%-30s %-50s\n' "" "No FEED_NAME, unable to create playlist for:"
                             printf '%-30s %-50s\n' "" "  ${FEED_URL}"
                         else
-                            echo "Individual playlists require FEED_NAME, unable to create one for:"
+                            echo "No FEED_NAME, unable to create playlist for:"
                             echo "    ${FEED_URL}"
                         fi
                         continue
