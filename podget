@@ -515,10 +515,12 @@ FILENAME_FORMATFIX10=1
 #   1. Stop podget from automatically deleting some temporary files in DIR_SESSION.
 #   2. Enable additional messages to track progress.
 #
-# 0 == disabled (default)
-# 1 == enabled
+# 0           == disabled (default)
+# 1           == enabled
+# ${DEBUG:-0} == Sets DEBUG to disabled if it is not already set.  This allow the user to enabled it
+#                from the command line with "DEBUG=1 podget"
 #
-#DEBUG=0
+#DEBUG=${DEBUG:-0}
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 TEXT_DEFAULT_CONFIG
