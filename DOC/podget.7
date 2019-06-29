@@ -207,8 +207,10 @@ Podget checks for already running sessions when it starts and exits if any are f
 To enable debug output, you can do it two ways.
 .PP
 The first way is by uncommenting the DEBUG option in your podgetrc and setting it to '1'.
+However this way will not enable DEBUG until just over 1400 lines into the script when the podgetrc is read.
+This is sufficient for most issues.
 .PP
-The second way is from the \fIcommand\fP line.
+The second way is from the \fIcommand\fP line and enables debug as early as possible.
 Simply execute \fBpodget\fP like so:
 DEBUG=1 \fBpodget\fP \fB-vvvv\fP
 .PP
