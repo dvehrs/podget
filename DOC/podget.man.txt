@@ -119,6 +119,19 @@ SESSION CONTROL
 
 Podget checks for already running sessions when it starts and exits if any are found. Each session requires its own core configuration file, so for multiple sessions simply provide a unique -c <configfile> option for each.
 
+ENABLING DEBUG OUTPUT
+
+To enable debug output, you can do it two ways.
+
+The first way is by uncommenting the DEBUG option in your podgetrc and setting it to '1'.
+
+The second way is from the command line.
+Simply execute podget like so:
+  DEBUG=1 podget -vvvv
+
+You can enable other options as well if you need to but for debugging purposes, 
+it is highly recommended that you enabled as much verbosity as possible.
+
 EXAMPLE SERVER LIST
 
 By default, Podget uses $HOME/.podget/serverlist for the default list of servers to contact. However you can configure the name with the config_serverlist variable in your $HOME/.podget/podgetrc file.
