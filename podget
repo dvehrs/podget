@@ -198,7 +198,7 @@ ASX_PLAYLIST=0
 NO_PLAYLIST=0
 
 # Default DEBUG Disabled (Deletion of temporary files allowed)
-DEBUG=0
+DEBUG=${DEBUG:-0}
 
 # Default DEBUG string leader
 DEBUG_LEADER="DEBUG --"
