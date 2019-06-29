@@ -197,7 +197,8 @@ ASX_PLAYLIST=0
 # Enable playlist creation
 NO_PLAYLIST=0
 
-# Default DEBUG Disabled (Deletion of temporary files allowed)
+# Default DEBUG Disabled (Deletion of temporary files allowed), configured
+# to allow its setting to be overridden from the command line.
 DEBUG=${DEBUG:-0}
 
 # Default DEBUG string leader
