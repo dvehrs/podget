@@ -62,7 +62,7 @@ ERR_EXPORTOPML=90
 
 # FUNCNAME is declared with a default value in case the trap is triggered while
 # outside a function.
-trap 'EXIT_ERROR ${LINENO} $? ${FUNCNAME:-"Unconfigured"}' ERR
+trap 'EXIT_ERROR ${LINENO} ${?} ${FUNCNAME:-Unconfigured}' ERR
 
 # trap to run CLEANUP function if program receives a TERM (kill) or INT (ctrl-c) signal
 # - CLEANUP called in line for other normal exits.
@@ -76,6 +76,18 @@ trap 'CLEANUP_AND_EXIT 130' INT
 set -o errexit
 set -o nounset
 set -o pipefail
+
+# Enable errtrace so that the ERR trap is inherited by functions
+# NOTE: Causes an error about line 1841 where we try to filter various items out of
+# the category and name.  Speculation is it is caused by our use of the expr command
+# that commonly gives non-zero exit status for commands that actually exited OK.
+#
+# We can get around the issue by adding a '|| true' to the end of each expr command
+# but that seems a hack.  What about replacing expr?
+#set -o errtrace
+
+# Enable inheritance of errexit by command substitution subshells
+shopt -s inherit_errexit
 
 # Enable extended glob matches.
 shopt -s extglob
@@ -723,23 +735,35 @@ DIRECTORY_CHECK() {
 
 EXIT_ERROR() {
   # Name of script
+  local JOB_NAME
   JOB_NAME=$(basename "$0")
   # The following three variables are configured with a default value in case
   # the function is called without options set.
-  LINENUM="${1:-"Unconfigured"}"                   # Line with error
-  EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
-  FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
+  local LINENUM="${1:-"Unconfigured"}"                   # Line with error
+  local EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
+  local FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
 
-  printf '\n%s\n\t%20s %s\n' "Error:" "Script:" "${JOB_NAME}"
+  printf '\n%s\n  %-15s %s\n' "Error:" "Script:" "${JOB_NAME}"
 
   # Function line only appears if it has been set to value other than the
   # default.  Works on the assumption that "Unconfigured" is not likely to be
   # chosen as a function name.
   if [[ ${FUNCTION} != "Unconfigured" ]]; then
-      printf '\t%20s %s\n' "Function:" "${FUNCTION}"
+      printf '  %-15s %s\n' "Function:" "${FUNCTION}"
   fi
 
-  printf '\t%20s %s\n\t%20s %s\n\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
+  printf '  %-15s %s\n  %-15s %s\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
+
+  printf '\n%s\n' "Context:"
+  # Test is awk installed, if so use it.  If not, then use tools from coreutils.
+  if hash awk 2>/dev/null; then
+      # This line works and adds a ">>>" to designate the offending line but adds
+      # awk as a script dependency.
+      awk 'NR>L-4 && NR<L+4 { printf "%-5d%3s%s\n",NR,(NR==L?">>>":""),$0 }' L="${LINENUM}" "${0}"
+  else
+      # This line works and only depends on coreutils
+      pr -tn "${0}" | tail -n+$((LINENUM - 3)) | head -n7
+  fi
 
   CLEANUP_AND_EXIT 1
 }
@@ -1820,63 +1844,79 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset FILTER_ITEM
             for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
                 # Extract PASSWORD from FILTER_ITEM if found.
-                if (( $(${EXPR} "${FILTER_ITEM}" : ".*PASS:[^ $]\\+.*") > 0 )); then
-                    URL_PASSWORD=$(echo "${FILTER_ITEM}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(PASS:)([^[:space:]]+).*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*PASS:[^ $]\\+.*") > 0 )); then
+#                    URL_PASSWORD=$(echo "${!FILTER_ITEM}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
+                    URL_PASSWORD="${BASH_REMATCH[3]}"
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/PASS:+([^[:space:]])}"
                 fi
 
                 # Extract USERNAME from FILTER_ITEM if found.
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*USER:[^ $]\\+.*") > 0 )); then
-                    URL_USERNAME=$(echo "${!FILTER_ITEM}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(USER:)([^[:space:]]+).*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*USER:[^ $]\\+.*") > 0 )); then
+#                    URL_USERNAME=$(echo "${!FILTER_ITEM}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
+                    URL_USERNAME="${BASH_REMATCH[3]}"
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/USER:+([^[:space:]])}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_CONTENT_DISPOSITION.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_CONTENT_DISPOSITION.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_CONTENT_DISPOSITION.*") > 0 )); then
                     WGET_OPTION_DISPOSITION=1
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_DISPOSITION_FAIL.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
                     WGET_OPTION_DISPOSITION_FAIL=1
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
                     FEED_SORT_ORDER="ASCENDING"
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
                 fi
 
                 # The following two tags are handled in a later loop and so only need to be removed here.
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_LOCATION.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
                     WGET_OPTION_FILENAME_LOCATION=1
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_RENAME_MDATE.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_RENAME_MDATE.*") > 0 )); then
                     POST_WGET_RENAME_MDATE=1
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_SIMPLE.*") > 0 )); then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)ATOM_FILTER_SIMPLE.*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_SIMPLE.*") > 0 )); then
                     ATOM_FILTER_SIMPLE=1
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
-                    ATOM_FILTER_TYPE=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=)([^[:space:]]+).*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+#                    ATOM_FILTER_TYPE=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
+                    ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
                     eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
                 fi
 
-                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
-                    ATOM_FILTER_LANG=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=)([^[:space:]]+).*$ ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+#                    ATOM_FILTER_LANG=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
+                    ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
                     eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
                 fi
 
@@ -1890,7 +1930,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 eval ${FILTER_ITEM}="\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
 
                 # No_Category, or blank item handling.
-                if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
+#                if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
                     # Set to single period which is a bashism for current directory.
                     eval ${FILTER_ITEM}="."
                 fi
