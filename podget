@@ -1718,13 +1718,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
     # UTF-8/16 handling
     for FILETYPE in utf8 utf16 ; do
-        if (( VERBOSITY >= 3 )) ; then
+        if (( DEBUG == 1 )) ; then
             echo
             case ${FILETYPE} in
                 'utf8')
-                    echo "UTF-8 Loop running." ;;
+                    echo "${DEBUG_LEADER} UTF-8 Loop running." ;;
                 'utf16')
-                    echo "UTF-16 Loop running." ;;
+                    echo "${DEBUG_LEADER} UTF-16 Loop running." ;;
             esac
         fi
         case ${FILETYPE} in
@@ -1742,8 +1742,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "Unknown Filetype: ${FILETYPE}"
         esac
         if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
-            if (( VERBOSITY >= 3 )) ; then
-                echo "No config file found, exiting loop."
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} No config file found, exiting loop."
             fi
             continue
         fi
