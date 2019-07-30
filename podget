@@ -2703,20 +2703,20 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
     # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
     #       nice to find a more elegant way to state this.
     if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
-        if (( VERBOSITY == 1 )) ; then
-            printf '\n%s\n' "Build OPT_FEED_PLAYLISTs"
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} Build OPT_FEED_PLAYLISTs"
         fi
-        if (( VERBOSITY >= 2 )) ; then
-            printf '\n%s\n%s\n' "-------------------------------------------------" "Build OPT_FEED_PLAYLISTs"
-        fi
+        # Set header to not be displayed unless active feed configured to require one.
+        FEED_PLAYLIST_HEADER=0
+
         for FILETYPE in utf8 utf16 ; do
-            if (( VERBOSITY >= 3 )) ; then
+            if (( DEBUG == 1 )) ; then
                 echo
                 case ${FILETYPE} in
                     'utf8')
-                        echo "UTF-8 Loop running." ;;
+                        echo "${DEBUG_LEADER} UTF-8 Loop running." ;;
                     'utf16')
-                        echo "UTF-16 Loop running." ;;
+                        echo "${DEBUG_LEADER} UTF-16 Loop running." ;;
                 esac
             fi
             case ${FILETYPE} in
@@ -2729,8 +2729,8 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             esac
 
             if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
-                if (( VERBOSITY >= 3 )) ; then
-                    echo "No config file found, exiting loop."
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER} No config file found, exiting loop."
                 fi
                 continue
             fi
@@ -2802,6 +2802,16 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
 
 
                 if (( FEED_FULL_PLAYLIST >= 1 )) ; then
+                    if (( FEED_PLAYLIST_HEADER == 0 )); then
+                        if (( VERBOSITY == 1 )) ; then
+                            printf '\n%s\n' "Build OPT_FEED_PLAYLISTs"
+                        fi
+                        if (( VERBOSITY >= 2 )) ; then
+                            printf '\n%s\n%s\n' "-------------------------------------------------" "Build OPT_FEED_PLAYLISTs"
+                        fi
+                        # Increment header variable so it only displays once.
+                        (( FEED_PLAYLIST_HEADER++ ))
+                    fi
                     if [ "${FEED_NAME}" == "." ]; then
                         if (( VERBOSITY >= 1 )); then
                             printf '%-30s %-50s\n' "" "No FEED_NAME, unable to create playlist for:"

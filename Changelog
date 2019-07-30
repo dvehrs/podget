@@ -15,6 +15,8 @@
     to Gerhard GroBmann (charakterziffer) for reporting this issue on Github.
   * Converted implicit to explicit escaping in double quoted strings
     (example: '\n' to '\\n')
+  * Changed display of "Build OPT_FEED_PLAYLISTs" to only be shown if an
+    active feed is configured to use it.
 
 podget (0.8.5) unstable; urgency=low
 
