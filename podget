@@ -2810,7 +2810,11 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                             printf '\n%s\n%s\n' "-------------------------------------------------" "Build OPT_FEED_PLAYLISTs"
                         fi
                         # Increment header variable so it only displays once.
-                        (( FEED_PLAYLIST_HEADER++ ))
+                        # NOTE: If we attempt to post-increment our variable, it will cause an error because of the way that '(('
+                        # evaluates the expression.  When the result is zero, it exits with '1' triggering errexit, however if
+                        # we pre-increment then the error does not happen.
+                        # More examples: https://en.wikipedia.org/wiki/Increment_and_decrement_operators
+                        (( ++FEED_PLAYLIST_HEADER ))
                     fi
                     if [ "${FEED_NAME}" == "." ]; then
                         if (( VERBOSITY >= 1 )); then
