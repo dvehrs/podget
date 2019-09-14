@@ -530,7 +530,7 @@ FILENAME_FORMATFIX10=1
 #
 # 0           == disabled (default)
 # 1           == enabled
-# ${DEBUG:-0} == Sets DEBUG to disabled if it is not already set.  This allow the user to enabled it
+# ${DEBUG:-0} == Sets DEBUG to disabled if it is not already set.  This allows the user to enabled it
 #                from the command line with "DEBUG=1 podget"
 #
 #DEBUG=${DEBUG:-0}
@@ -2100,7 +2100,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -e "\\${TEST_CHAR}type=\"\\(audio\\|video\\)${TEST_CHAR}p")
                 fi
 
-                if [[ ! -z ${ATOM_FILTER_TYPE+set} ]]; then
+                if [[ -n ${ATOM_FILTER_TYPE+set} ]]; then
                     INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
                 fi
 
@@ -2123,7 +2123,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     fi
                 fi
 
-                if [[ ! -z "${ATOM_FILTER_LANG+set}" ]]; then
+                if [[ -n "${ATOM_FILTER_LANG+set}" ]]; then
                     INDEXFILE=$(echo "${INDEXFILE}" | ${SED} -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
                 fi
 
@@ -2367,7 +2367,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 # Do we need a cleanup on CONTENT_FILENAME here?
                                 # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
                                 # down to a single time.
-                                if [[ ! -z ${CONTENT_FILENAME+set} ]]; then
+                                if [[ -n ${CONTENT_FILENAME+set} ]]; then
                                     CONTENT_FILENAME=$(echo "${CONTENT_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
                                 fi
                             fi
@@ -2410,7 +2410,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 # Do we need a cleanup on LOCATION_FILENAME here?
                                 # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
                                 # down to a single time.
-                                if [[ ! -z ${LOCATION_FILENAME+set} ]]; then
+                                if [[ -n ${LOCATION_FILENAME+set} ]]; then
                                     LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
                                 fi
                             fi
@@ -2587,7 +2587,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 # If doing individual playlists for each podcast Sort new playlist
-                if (( NO_PLAYLIST == 0 )) && [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" && ! -z "${PLAYLIST_PERPODCAST+set}" ]]; then
+                if (( NO_PLAYLIST == 0 )) && [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" && -n "${PLAYLIST_PERPODCAST+set}" ]]; then
                     PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
                     # If doing individual playlists for each podcast, Create ASX Playlist
