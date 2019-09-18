@@ -1906,18 +1906,20 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
                 fi
 
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\")([^\"]+).*$ ]]; then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
 #                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
 #                    ATOM_FILTER_TYPE=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
                     ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
-                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
+#                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="\?[^" ]\+"\?\(.*\)/\1\2/p')"
                 fi
 
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\")([^\"]+).*$ ]]; then
+                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
 #                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
 #                    ATOM_FILTER_LANG=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
                     ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
-                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
+#                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="\?[^" ]\+"\?\(.*\)/\1\2/p')"
                 fi
 
                 # Remove repeated spaces

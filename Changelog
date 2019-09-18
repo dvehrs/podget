@@ -18,6 +18,7 @@
   * Changed display of "Build OPT_FEED_PLAYLISTs" to only be shown if an
     active feed is configured to use it.
   * Changed display of UTF loop messages from verbosity 3 to debug.
+  * Changed ATOM_FILTER statements to not require quotes.
 
 podget (0.8.5) unstable; urgency=low
 
