@@ -2758,12 +2758,14 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
 
                 unset FILTER_ITEM
                 for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
-                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
+                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
+#                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
                         FEED_FULL_PLAYLIST=1
                         eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
                     fi
 
-                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
+                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
+#                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
                         FEED_FULL_PLAYLIST=2
                         eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
                     fi
@@ -2777,14 +2779,18 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
+                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
 
-                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
-                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
-                    fi
+#                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
+##                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
+#                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
+#                    fi
 
-                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
-                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
-                    fi
+#                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
+##                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
+#                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
+#                    fi
 
                     # Condense repeated spaces
                     eval ${FILTER_ITEM}="\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
@@ -2796,7 +2802,8 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     eval ${FILTER_ITEM}="\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
 
                     # No_Category, or blank item handling.
-                    if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
+                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
+#                    if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
                         # Set to single period which is a bashism for current directory.
                         eval ${FILTER_ITEM}="."
                     fi

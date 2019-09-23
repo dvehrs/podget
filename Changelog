@@ -19,6 +19,7 @@
     active feed is configured to use it.
   * Changed display of UTF loop messages from verbosity 3 to debug.
   * Changed ATOM_FILTER statements to not require quotes.
+  * Removed EXPR statements from individual playlist creation.
 
 podget (0.8.5) unstable; urgency=low
 
