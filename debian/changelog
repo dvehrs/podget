@@ -1,8 +1,31 @@
+podget (0.8.6-1) unstable; urgency=medium
+
+  * Bump Standards-Version to 4.4.0
+  * New Upstream release
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Fri, 27 Sep 2019 10:30:26 -0600
+
+podget (0.8.5-1.1) UNRELEASED; urgency=medium
+
+  * Update watch file to look on github
+  * Update debian/copyright upstream source to github
+  * Bump copyright years and add myself to debian/copyright
+
+ -- Francois Marier <francois@debian.org>  Thu, 01 Mar 2018 12:22:14 -0800
+
 podget (0.8.5-1) unstable; urgency=medium
 
+  [ Dave Vehrs ]
   * New upstream release
 
- -- Dave Vehrs <dvehrs@gmail.com>  Wed, 07 Jun 2017 14:40:26 -0600
+  [ Francois Marier ]
+  * Remove trailing spaces from debian/changelog
+  * Use HTTPS URL for debian/copyright format
+  * Bump Standards-Version to 4.1.3
+  * Bump debhelper compat to 11
+  * Add VCS-* URLs to debian/control
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Mon, 26 Feb 2018 21:07:33 -0800
 
 podget (0.8.4-1) unstable; urgency=medium
 
@@ -194,7 +217,7 @@ podget (0.6.15-1) unstable; urgency=low
     same session directory and their sessions won't conflict with each other.
   * Fixed so that podget can properly handle spaces in filenames.
   * Include patch by Simon Rutishauser to enable export of the server list as an
-    OPML file.  
+    OPML file.
 
  -- Dave Vehrs <dvehrs@gmail.com>  Tue, 17 Aug 2013 16:04:21 -0600
 
@@ -213,7 +236,7 @@ podget (0.6.14-1) unstable; urgency=low
 podget (0.6.13-1) unstable; urgency=low
 
   * Update to default podgetrc contents to further explain the Smodcast fixes.
- 
+
  -- Dave Vehrs <dvehrs@gmail.com>  Tue, 29 Mar 2013 16:20:31 -0600
 
 podget (0.6.12-1) unstable; urgency=low
@@ -242,7 +265,7 @@ podget (0.6.10-1) unstable; urgency=low
     enclosures for the zdf.de podcasts.  Issue submitted by Joerg Schiermeier on
     Jan 20, 2013.  Thanks.
   * Fixed to display of filenames while marking older podcasts as downloaded
-    with the --recent option.  Rather than display the current filename for 
+    with the --recent option.  Rather than display the current filename for
     each item, it would display the last modified filename repeatedly.  Fixed
     to display the filename of the item being marked as downloaded.
   * Refined the filename_formatfix to correct filenames downloaded from
@@ -292,28 +315,28 @@ podget (0.6.8-9) unstable; urgency=low
 
 podget (0.6.8-8) unstable; urgency=low
 
-  * More updates for Debian Package.  Updated compat file to specify an 
+  * More updates for Debian Package.  Updated compat file to specify an
     updated version of debhelper (v7).
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:39:11 -0700
 
 podget (0.6.8-7) unstable; urgency=low
 
-  * More updates for Debian Package.  Updated compat file to specify an 
+  * More updates for Debian Package.  Updated compat file to specify an
     updated version of debhelper (v9).
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:28:30 -0700
 
 podget (0.6.8-6) unstable; urgency=low
 
-  * More updates for Debian Package.  Updated control file to specify an 
+  * More updates for Debian Package.  Updated control file to specify an
     updated version of debhelper.
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat,  2 Dec 2012 08:12:23 -0700
 
 podget (0.6.8-5) unstable; urgency=low
 
-  * More updates for Debian Package.  Updated Makefile to changed name for 
+  * More updates for Debian Package.  Updated Makefile to changed name for
     upstream changelog and gzipped it.  Updated Makefile to remove changelog
     during the clean step.
 
@@ -321,7 +344,7 @@ podget (0.6.8-5) unstable; urgency=low
 
 podget (0.6.8-4) unstable; urgency=low
 
-  * More updates for Debian Package.  Added instructions to install the 
+  * More updates for Debian Package.  Added instructions to install the
     upstream changelog to the Makefile.
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 14:27:45 -0700
@@ -329,7 +352,7 @@ podget (0.6.8-4) unstable; urgency=low
 podget (0.6.8-3) unstable; urgency=low
 
   * Further updates for Debian package. Made sure tar.gz and orig.tar.gz had
-    the same md5sum.  
+    the same md5sum.
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat,  1 Dec 2012 14:14:07 -0700
 
@@ -358,7 +381,7 @@ podget (0.6.7-1) unstable; urgency=low
  -- Dave Vehrs <dvehrs@gmail.com>  Sat, 14 Apr 2012 11:28:55 -0700
 
 podget (0.6.6-1) unstable; urgency=low
-  
+
   * Fixed Bug #666149 reported by Elena Grandi via the Debian reporting system.
     Playlist names were being created with spaces that would break some lines.
     Added quotes to prevent.
@@ -382,18 +405,18 @@ podget (0.6.4-1) unstable; urgency=low
 podget (0.6.3-1) unstable; urgency=low
 
   * Fixed tempfile bug/typo.
-  * Fixed -f and --force to redownload existing files, including fix to 
-    wget base options. 
+  * Fixed -f and --force to redownload existing files, including fix to
+    wget base options.
 
  -- Dave Vehrs <dvehrs@gmail.com>  Fri, 18 Nov 2011 11:29:02 -0700
 
 podget (0.6.2-1) unstable; urgency=low
 
   * Added use of the tempfile command to the playlist sorting per Renalt
-    Sabitov's idea and bug report (via Debian).  
+    Sabitov's idea and bug report (via Debian).
 
  -- Dave Vehrs <dvehrs@gmail.com>  Fri, 16 Sep 2011 18:00:19 -0700
-  
+
 podget (0.6.1-1) unstable; urgency=low
 
   * Various fixes for Debian Lintain reports.
@@ -402,9 +425,9 @@ podget (0.6.1-1) unstable; urgency=low
 
 podget (0.6) unstable; urgency=low
 
-  * Added date substitutions to the feed category per David Willmore's 
+  * Added date substitutions to the feed category per David Willmore's
     feature request (#1652606).  Thanks.
-  * Reversed order of filename character modifications and format fixing.  
+  * Reversed order of filename character modifications and format fixing.
   * Fixed error reports to go to stderr.
   * Added more custom error/exit codes to simplify debugging.
   * Added another filename format fix for feeds from LBC Plus per
@@ -413,11 +436,11 @@ podget (0.6) unstable; urgency=low
     of the sort command as suggested by Cameron Paine. Thanks.
   * Fixed Indexfile creation for Podcast feeds that have the enclosure URL
     broken over multiple lines as suggested by Colin Carter.  Thanks.
-  * Modified Session file messaging to clearer report when old session files 
+  * Modified Session file messaging to clearer report when old session files
     were removed.
   * Fixed -r (most recent) and -f (force) command line options to override
     the defaults stored in the user configuration files.  Thanks to Jim C.
-    for reporting the bug and providing a potential patch.  
+    for reporting the bug and providing a potential patch.
   * Wrapped eval statement on line 422 in quotes to try to fix an OBSD error.
   * Changed install command --mode flags to -m in the Makefile so that it
     would be OBSD compatible.
@@ -430,7 +453,7 @@ podget (0.6) unstable; urgency=low
   * Fixed "Filesystem paths including spaces crash the podget script" (Bug#
     1889724) submitted by Anonymous. Thanks.
   * Fixed "Some filenames cause podget to fail" (Patch#1845815) submitted by
-    Anonymous. Thanks. 
+    Anonymous. Thanks.
   * Fixed error with playlist loading submitted by Markus.  Thanks.
   * Added a filename format fix as suggested by Rob Sims via the Debian Bug
     Reporting System (http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=459949,
@@ -445,7 +468,7 @@ podget (0.6) unstable; urgency=low
 
 podget (0.5.8-1) unstable; urgency=low
 
-  * Initial release 
+  * Initial release
 
  -- Dave Vehrs <dvehrs@gmail.com>  Tue, 23 Jan 2007 13:19:37 -0700
 
