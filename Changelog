@@ -1,3 +1,26 @@
+
+  * Improved DEBUG to allow it to be set from command line.
+  * Fixed FILENAME_FORMATFIX9 to include a dash ('-') in removed part.
+  * Applied patch inspired by Bob Hepple (bhepple on Github) to allow for
+    items on server lists to have both blank categories and names.  Many
+	thanks for the great idea and help testing it.
+  * Updated man page.
+  * Fixed automatic creation of serverlist file so that core configuration
+    file was read prior to testing for existence of the file.  Thanks to
+	Corin-EU for reporting this issue on Github.
+  * Fixed Cleanup Loop to work based on individual file modification times
+    from each playlist.  Thanks to StanESmith for reporting this issue on
+	Github.
+  * Fixed FILENAME_FORMATFIX9 to cleanup one more formatting issue.  Thanks
+    to Gerhard GroBmann (charakterziffer) for reporting this issue on Github.
+  * Converted implicit to explicit escaping in double quoted strings
+    (example: '\n' to '\\n')
+  * Changed display of "Build OPT_FEED_PLAYLISTs" to only be shown if an
+    active feed is configured to use it.
+  * Changed display of UTF loop messages from verbosity 3 to debug.
+  * Changed ATOM_FILTER statements to not require quotes.
+  * Removed EXPR statements from individual playlist creation.
+
 podget (0.8.5) unstable; urgency=low
 
   * Fixed OPML Import to favor xmlUrl of htmlUrl.  Thanks to kuba-orlik
