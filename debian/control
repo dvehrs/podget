@@ -2,13 +2,16 @@ Source: podget
 Section: misc
 Priority: optional
 Maintainer: Dave Vehrs <dvehrs@gmail.com>
-Build-Depends: debhelper (>= 9)
-Standards-Version: 3.9.8
-Homepage: http://podget.sourceforge.net
+Build-Depends: debhelper (>= 12)
+Rules-Requires-Root: no
+Standards-Version: 4.4.0
+Homepage: https://github.com/dvehrs/podget
+VCS-git: https://salsa.debian.org/debian/podget.git
+VCS-Browser: https://salsa.debian.org/debian/podget
 
 Package: podget
 Architecture: all
-Depends: bash (>= 3.0), coreutils (>= 8.5), debianutils (>= 4.0), findutils (>=4.0.0), grep (>= 2.0.0), gawk (>=4.0.0) | mawk (>=1.3.0), sed (>= 4.0.0), wget, ${shlibs:Depends}, ${misc:Depends}
+Depends: bash (>= 4.0), coreutils (>= 8.5), debianutils (>= 4.0), findutils (>=4.0.0), grep (>= 2.0.0), gawk (>=4.0.0) | mawk (>=1.3.0), sed (>= 4.0.0), wget, ${shlibs:Depends}, ${misc:Depends}
 Suggests: libc-bin (>=2.0)
 Description: Podcast aggregrator/downloader optimized for cron
  Podget is a simple podcast aggregator optimized for running as a scheduled
