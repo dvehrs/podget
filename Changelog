@@ -1,3 +1,5 @@
+  * Unified option filtering into single function
+
 podget (0.8.6) unstable; urgency=low
 
   * Improved DEBUG to allow it to be set from command line.
