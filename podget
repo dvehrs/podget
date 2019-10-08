@@ -1066,6 +1066,95 @@ filenameFixFormat() {
     return 0
 }
 
+# Function: FILTER_OPTIONS ${1}
+# Arguments:
+# ${1} == name of variable to filter on (either FEED_CATEGORY or FEED_NAME)
+FILTER_OPTIONS() {
+    local FILTER_ITEM="${1}"
+
+    # Extract Password from FILTER_ITEM if found.
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(PASS:)([^[:space:]]+).*$ ]]; then
+        URL_PASSWORD="${BASH_REMATCH[3]}"
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/PASS:+([^[:space:]])}"
+    fi
+
+    # Extract USERNAME from FILTER_ITEM if found.
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(USER:)([^[:space:]]+).*$ ]]; then
+        URL_USERNAME="${BASH_REMATCH[3]}"
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/USER:+([^[:space:]])}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_CONTENT_DISPOSITION.*$ ]]; then
+        WGET_OPTION_DISPOSITION=1
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_DISPOSITION_FAIL.*$ ]]; then
+        WGET_OPTION_DISPOSITION_FAIL=1
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
+        FEED_SORT_ORDER="ASCENDING"
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
+        FEED_FULL_PLAYLIST=1
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
+        FEED_FULL_PLAYLIST=2
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_LOCATION.*$ ]]; then
+        WGET_OPTION_FILENAME_LOCATION=1
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
+        POST_WGET_RENAME_MDATE=1
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)ATOM_FILTER_SIMPLE.*$ ]]; then
+        ATOM_FILTER_SIMPLE=1
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
+        ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
+        ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
+        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
+    fi
+
+    # Remove repeated spaces
+    eval "${FILTER_ITEM}=\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
+
+    # Remove any residual leading whitespace from ${!FILTER_ITEM}
+    eval "${FILTER_ITEM}=\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
+
+    # Remove any residual trailing whitespace from ${!FILTER_ITEM}
+    eval "${FILTER_ITEM}=\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
+
+    # No_Category, or blank item handling.
+    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
+        # Set to single period which is a bashism for current directory.
+        eval "${FILTER_ITEM}=."
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^.*%(YY|MM|DD)%.*$ ]]; then
+        eval "${FILTER_ITEM}=$(echo "${!FILTER_ITEM}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )"
+    fi
+
+}
+
 PLAYLIST_ConvertToASX() {
     local DIR_LIBRARY=${1}
     local M3U_PLAYLISTNAME=${2}
@@ -1841,105 +1930,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # Pass FEED_CATEGORY and FEED_NAME through the option filters.  This allows handling of options with blank feed
             # categories and names.
-            unset FILTER_ITEM
-            for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
-                # Extract PASSWORD from FILTER_ITEM if found.
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(PASS:)([^[:space:]]+).*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*PASS:[^ $]\\+.*") > 0 )); then
-#                    URL_PASSWORD=$(echo "${!FILTER_ITEM}" | ${SED} -e 's/.*\(PASS:[^ $]\+\).*/\1/' -e 's/PASS:\(.*\)/\1/')
-                    URL_PASSWORD="${BASH_REMATCH[3]}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/PASS:+([^[:space:]])}"
-                fi
-
-                # Extract USERNAME from FILTER_ITEM if found.
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(USER:)([^[:space:]]+).*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*USER:[^ $]\\+.*") > 0 )); then
-#                    URL_USERNAME=$(echo "${!FILTER_ITEM}" | ${SED} -e 's/.*\(USER:[^ $]\+\).*/\1/' -e 's/USER:\(.*\)/\1/')
-                    URL_USERNAME="${BASH_REMATCH[3]}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/USER:+([^[:space:]])}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_CONTENT_DISPOSITION.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_CONTENT_DISPOSITION.*") > 0 )); then
-                    WGET_OPTION_DISPOSITION=1
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_DISPOSITION_FAIL.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_DISPOSITION_FAIL.*") > 0 )); then
-                    WGET_OPTION_DISPOSITION_FAIL=1
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_ORDER_ASCENDING.*") > 0 )); then
-                    FEED_SORT_ORDER="ASCENDING"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
-                fi
-
-                # The following two tags are handled in a later loop and so only need to be removed here.
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_LOCATION.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_LOCATION.*") > 0 )); then
-                    WGET_OPTION_FILENAME_LOCATION=1
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FILENAME_RENAME_MDATE.*") > 0 )); then
-                    POST_WGET_RENAME_MDATE=1
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)ATOM_FILTER_SIMPLE.*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_SIMPLE.*") > 0 )); then
-                    ATOM_FILTER_SIMPLE=1
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
-#                    ATOM_FILTER_TYPE=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_TYPE="\([^"]\+\)".*/\1/p')
-                    ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
-#                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="\?[^" ]\+"\?\(.*\)/\1\2/p')"
-                fi
-
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
-#                    ATOM_FILTER_LANG=$(echo "${!FILTER_ITEM}" | ${SED} -n -e 's/.*ATOM_FILTER_LANG="\([^"]\+\)".*/\1/p')
-                    ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
-#                    eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="\?[^" ]\+"\?\(.*\)/\1\2/p')"
-                fi
-
-                # Remove repeated spaces
-                eval ${FILTER_ITEM}="\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
-
-                # Remove any residual leading whitespace from ${!FILTER_ITEM}
-                eval ${FILTER_ITEM}="\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
-
-                # Remove any residual trailing whitespace from ${!FILTER_ITEM}
-                eval ${FILTER_ITEM}="\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
-
-                # No_Category, or blank item handling.
-                if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
-#                if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
-                    # Set to single period which is a bashism for current directory.
-                    eval ${FILTER_ITEM}="."
-                fi
+            unset FILTER_TARGET
+            for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
+                FILTER_OPTIONS "${FILTER_TARGET}"
             done
 
-            FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
+            # Unset options that are not required in this while loop
+            unset FEED_FULL_PLAYLIST
 
             # End setting of FEED_CATEGORY, FEED_NAME, and OPT_items
             # -----------------------------------------------------------------
@@ -2756,59 +2753,22 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 # ---------------------
                 # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
 
-                unset FILTER_ITEM
-                for FILTER_ITEM in FEED_CATEGORY FEED_NAME; do
-                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
-#                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_NEWFIRST.*") > 0 )); then
-                        FEED_FULL_PLAYLIST=1
-                        eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
-                    fi
-
-                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
-#                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*OPT_FEED_PLAYLIST_OLDFIRST.*") > 0 )); then
-                        FEED_FULL_PLAYLIST=2
-                        eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
-                    fi
-
-                    # Remove unneeded strings from FILTER_ITEM
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/PASS:+([^[:space:]])}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/USER:+([^[:space:]])}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
-
-#                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
-##                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_TYPE=.*") > 0 )); then
-#                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_TYPE="[^"]\+"\(.*\)/\1\2/p')"
-#                    fi
-
-#                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
-##                    if (( $(${EXPR} "${!FILTER_ITEM}" : ".*ATOM_FILTER_LANG=.*") > 0 )); then
-#                        eval ${FILTER_ITEM}="$(echo \"${!FILTER_ITEM}\" | ${SED} -n -e 's/\(^.*\)ATOM_FILTER_LANG="[^"]\+"\(.*\)/\1\2/p')"
-#                    fi
-
-                    # Condense repeated spaces
-                    eval ${FILTER_ITEM}="\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
-
-                    # Remove any residual leading whitespace from ${!FILTER_ITEM}
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
-
-                    # Remove any residual trailing whitespace from ${!FILTER_ITEM}
-                    eval ${FILTER_ITEM}="\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
-
-                    # No_Category, or blank item handling.
-                    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
-#                    if (( $(${EXPR} "${!FILTER_ITEM}" : "No_Category") > 0 )) || [[ -z "${!FILTER_ITEM-empty}" ]]; then
-                        # Set to single period which is a bashism for current directory.
-                        eval ${FILTER_ITEM}="."
-                    fi
+                unset FILTER_TARGET
+                for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
+                    FILTER_OPTIONS "${FILTER_TARGET}"
                 done
 
+                # Unset options that are not required in this while loop
+                unset URL_PASSWORD
+                unset URL_USERNAME
+                unset WGET_OPTION_DISPOSITION
+                unset WGET_OPTION_DISPOSITION_FAIL
+                unset WGET_OPTION_FILENAME_LOCATION
+                unset FEED_SORT_ORDER
+                unset POST_WGET_RENAME_MDATE
+                unset ATOM_FILTER_SIMPLE
+                unset ATOM_FILTER_TYPE
+                unset ATOM_FILTER_LANG
 
                 if (( FEED_FULL_PLAYLIST >= 1 )) ; then
                     if (( FEED_PLAYLIST_HEADER == 0 )); then
