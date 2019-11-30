@@ -1,4 +1,6 @@
-  * Unified option filtering into single function
+  * Unified option filtering into single function.
+  * Replaced 'eval' statements with 'printf' statements.
+  * Removed FEED_FULL_PLAYLIST from Debug statements prior to it being needed.
 
 podget (0.8.6) unstable; urgency=low
 
