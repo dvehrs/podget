@@ -1060,7 +1060,8 @@ filenameFixFormat() {
     fi
 
     # Pass the modified filename back to the calling variable.
-    eval "${VAR_RETURN}='${MODIFIED_FILENAME}'"
+#    eval "${VAR_RETURN}=${MODIFIED_FILENAME@Q}"
+    printf -v "${VAR_RETURN}" '%s' "${MODIFIED_FILENAME}"
 
     # close without error
     return 0
@@ -1075,82 +1076,99 @@ FILTER_OPTIONS() {
     # Extract Password from FILTER_ITEM if found.
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(PASS:)([^[:space:]]+).*$ ]]; then
         URL_PASSWORD="${BASH_REMATCH[3]}"
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/PASS:+([^[:space:]])}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/PASS:+([^[:space:]])}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/PASS:+([^[:space:]])}"
     fi
 
     # Extract USERNAME from FILTER_ITEM if found.
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(USER:)([^[:space:]]+).*$ ]]; then
         URL_USERNAME="${BASH_REMATCH[3]}"
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/USER:+([^[:space:]])}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/USER:+([^[:space:]])}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/USER:+([^[:space:]])}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_CONTENT_DISPOSITION.*$ ]]; then
         WGET_OPTION_DISPOSITION=1
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_DISPOSITION_FAIL.*$ ]]; then
         WGET_OPTION_DISPOSITION_FAIL=1
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
         FEED_SORT_ORDER="ASCENDING"
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
         FEED_FULL_PLAYLIST=1
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
         FEED_FULL_PLAYLIST=2
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_LOCATION.*$ ]]; then
         WGET_OPTION_FILENAME_LOCATION=1
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
         POST_WGET_RENAME_MDATE=1
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)ATOM_FILTER_SIMPLE.*$ ]]; then
         ATOM_FILTER_SIMPLE=1
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
         ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
         ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
-        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
+#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
     fi
 
     # Remove repeated spaces
-    eval "${FILTER_ITEM}=\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
+#    eval "${FILTER_ITEM}=\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
+    printf -v "${FILTER_ITEM}" '%s' "$(tr -s ' ' <<< "${!FILTER_ITEM}")"
 
     # Remove any residual leading whitespace from ${!FILTER_ITEM}
-    eval "${FILTER_ITEM}=\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
+#    eval "${FILTER_ITEM}=\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
+    printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM#${!FILTER_ITEM%%[![:space:]]*}}"
 
     # Remove any residual trailing whitespace from ${!FILTER_ITEM}
-    eval "${FILTER_ITEM}=\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
+#    eval "${FILTER_ITEM}=\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
+    printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM%${!FILTER_ITEM##*[![:space:]]}}"
 
     # No_Category, or blank item handling.
     if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
         # Set to single period which is a bashism for current directory.
-        eval "${FILTER_ITEM}=."
+#        eval "${FILTER_ITEM}=."
+        printf -v "${FILTER_ITEM}" '%s' '.'
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^.*%(YY|MM|DD)%.*$ ]]; then
-        eval "${FILTER_ITEM}=$(echo "${!FILTER_ITEM}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )"
+#        eval "${FILTER_ITEM}=$(echo "${!FILTER_ITEM}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )"
+        printf -v "${FILTER_ITEM}" '%s' "$(${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" <<< "${!FILTER_ITEM}")"
     fi
 
 }
@@ -2191,7 +2209,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 fi
 
                 if (( DEBUG == 1 )) ; then
-                    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "FEED FULL PLAYLIST:" "${FEED_FULL_PLAYLIST}"
                     if (( MOST_RECENT > 0 )) ; then
                         printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Modified Index List:" "${INDEXFILE}"
                         printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Full Index List:" "${FULLINDEXFILE}"
