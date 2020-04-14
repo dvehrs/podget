@@ -1809,17 +1809,17 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
     touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
 
     if (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
-        PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
+        SESSION_PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
 
         COUNTER=2
-        while [[ -e ${DIR_LIBRARY}/${PLAYLIST_NAME} ]] ; do
-            PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).r$COUNTER.m3u"
+        while [[ -e ${DIR_LIBRARY}/${SESSION_PLAYLIST_NAME} ]] ; do
+            SESSION_PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).r$COUNTER.m3u"
             COUNTER=$((COUNTER+1))
         done
 
         if (( VERBOSITY >= 3 )); then
             echo
-            echo "Playlist name: ${PLAYLIST_NAME}"
+            echo "Playlist name: ${SESSION_PLAYLIST_NAME}"
         fi
     fi
 
@@ -1871,6 +1871,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 unset FEED_URL
                 unset FEED_CATEGORY
                 unset FEED_NAME
+                unset FEED_FULL_PLAYLIST
                 unset URL_USERNAME
                 unset URL_PASSWORD
                 continue
@@ -1887,6 +1888,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
             read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
+
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset FEED_FULL_PLAYLIST=0"
+            fi
+            FEED_FULL_PLAYLIST=0
 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset FEED_SORT_ORDER=DESCENDING"
@@ -1954,7 +1960,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             done
 
             # Unset options that are not required in this while loop
-            unset FEED_FULL_PLAYLIST
 
             # End setting of FEED_CATEGORY, FEED_NAME, and OPT_items
             # -----------------------------------------------------------------
@@ -2014,9 +2019,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             done
 
-            # If configured to create individual playlists for each podcast, set playlist name here.
-            # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
-            if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+            if (( FEED_FULL_PLAYLIST >= 1 )) ; then
+                PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
+            elif (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+                # If configured to create individual playlists for each podcast, set playlist name here.
+                # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
                 PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').m3u"
 
                 COUNTER=2
@@ -2024,6 +2031,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').r$COUNTER.m3u"
                     COUNTER=$((COUNTER+1))
                 done
+            elif (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
+                PLAYLIST_NAME="${SESSION_PLAYLIST_NAME}"
             fi
 
             if (( VERBOSITY >= 2 )) ; then
@@ -2531,7 +2540,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 fi
                             fi
 
-                            if (( NO_PLAYLIST == 0 )); then
+                            if (( NO_PLAYLIST == 0 )) || (( FEED_FULL_PLAYLIST >= 1 )) ; then
                                 # If creating playlists, then add to file.  Added sed command to remove any './' from each item
                                 # added to a playlist or the echo statement.
                                 if [[ -n ${PLAYLIST_NAME+set} ]] ; then
@@ -2663,16 +2672,23 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             fi
         fi
         FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
+        # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
+        CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
+        # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.
+        # This works with uniform whole days and isn't subject to when the cleanup is run.
+        DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
         for FILE in ${FILELIST} ; do
+            if [[ "${FILE##/*/}" =~ ^${PLAYLIST_NAMEBASE}* ]]; then
+                # Compare global playlist file modification date with DATE_CLEAN2.  If file modification date is newer than
+                # DATE_CLEAN2 then we skip it.
+                if [ "$(stat --format %Y "${FILE}")" -gt "${DATE_CLEAN2}" ]; then
+                    continue
+                fi
+            fi
             if (( VERBOSITY >= 2 )) ; then
                 echo "Deleting tracks from ${FILE}:"
             fi
             while read -r LINE ; do
-                # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
-                CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
-                # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.  This works with uniform
-                # whole days and isn't subject to when the cleanup is run.
-                DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
                 if [[ -f "${DIR_LIBRARY}/${LINE}" ]]; then
                     # Compare each file from the playlist with file modification date.  If file modification date is older than
                     # DATE_CLEAN2 then we remove that file
@@ -2827,7 +2843,9 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                         fi
                     fi
 
-                    FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
+#                    FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
+                    # Replace spaces with underscores and then pipe through tr to limit repetitions.
+                    FULL_PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
                     # Remove old full playlist.
                     if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
                         if (( VERBOSITY >= 2 )) ; then
