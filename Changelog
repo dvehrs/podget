@@ -2,7 +2,7 @@
   * Replaced 'eval' statements with 'printf' statements.
   * Removed FEED_FULL_PLAYLIST from Debug statements prior to it being needed.
   * Fixed playlist cleanup to skip global playlists newer than the cleanup date. 
-    Thanks to kwisher for reporting this on Github.
+    Thanks to Kevin Wisher (kwisher on Github) for reporting this.
 
 podget (0.8.6) unstable; urgency=low
 
