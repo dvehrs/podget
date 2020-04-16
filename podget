@@ -1503,9 +1503,12 @@ else
     MAJOR="${VERSION_ARRAY[1]:-0}"
     MINOR="${VERSION_ARRAY[2]:-0}"
 
-#    echo "BASE: ${BASE:-0}"
-#    echo "MAJOR: ${MAJOR}"
-#    echo "MINOR: ${MINOR}"
+    if (( DEBUG == 1 )) ; then
+        echo "${DEBUG_LEADER} PODGETRC Version Check:  (looking for newer than 0.6.18)"
+        echo "${DEBUG_LEADER}   BASE: ${BASE:-0}"
+        echo "${DEBUG_LEADER}   MAJOR: ${MAJOR}"
+        echo "${DEBUG_LEADER}   MINOR: ${MINOR}"
+    fi
 
     if (( (MAJOR < 7) && (MINOR < 19) )); then
         echo "${DIR_CONFIG}/${CONFIG_CORE} was created by an older version of podget than is needed by this version."
