@@ -86,8 +86,14 @@ set -o pipefail
 # but that seems a hack.  What about replacing expr?
 #set -o errtrace
 
-# Enable inheritance of errexit by command substitution subshells
+# Enabling inheritance of errexit by command substitution subshells, this was added in Bash 4.4
+#   NOTE:  Test command is run within a subshell where pipefail is disabled.
+if (set +o pipefail && shopt inherit_errexit 2>&1 | grep -q invalid) ; then
+    echo "Bash added the 'inherit_errexit' shell option in version 4.4, please upgrade."
+    exit 1
+fi
 shopt -s inherit_errexit
+
 
 # Enable extended glob matches.
 shopt -s extglob
