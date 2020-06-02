@@ -94,7 +94,6 @@ if (set +o pipefail && shopt inherit_errexit 2>&1 | grep -q invalid) ; then
 fi
 shopt -s inherit_errexit
 
-
 # Enable extended glob matches.
 shopt -s extglob
 
