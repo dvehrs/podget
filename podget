@@ -1173,7 +1173,7 @@ FILTER_OPTIONS() {
 
     if [[ "${!FILTER_ITEM}" =~ ^.*%(YY|MM|DD)%.*$ ]]; then
 #        eval "${FILTER_ITEM}=$(echo "${!FILTER_ITEM}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )"
-        printf -v "${FILTER_ITEM}" '%s' "$(${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" <<< "${!FILTER_ITEM}")"
+        printf -v "${FILTER_ITEM}" '%s' "$(sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" <<< "${!FILTER_ITEM}")"
     fi
 
 }
