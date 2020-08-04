@@ -5,6 +5,10 @@
     Thanks to Kevin Wisher (kwisher on Github) for reporting this.
   * Added test for shopt inherit_errexit support to verify that at least Bash
     version 4.4 was installed. Thanks to Jude DaShiell for reporting the issue.
+  * Thanks to Eric Cook (llua@gmx.com) for submitting a patch that updated the way
+    required GNU applications are called, adding support for FreeBSD, NetBSD and
+	OpenBSD.  Additionally his patch simplified the ways we call sed and expr
+	making script maintenance easier.
 
 podget (0.8.6) unstable; urgency=low
 
