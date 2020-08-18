@@ -1096,74 +1096,74 @@ FILTER_OPTIONS() {
     #       the zero space condition is functionally equivalent to the blank part we had before.
 
     # Extract Password from FILTER_ITEM if found.
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)(PASS:)([^[:space:]]+).*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(PASS:)([^[:space:]]+).*$ ]]; then
         URL_PASSWORD="${BASH_REMATCH[3]}"
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/PASS:+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/PASS:+([^[:space:]])}"
     fi
 
     # Extract USERNAME from FILTER_ITEM if found.
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)(USER:)([^[:space:]]+).*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(USER:)([^[:space:]]+).*$ ]]; then
         URL_USERNAME="${BASH_REMATCH[3]}"
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/USER:+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/USER:+([^[:space:]])}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_CONTENT_DISPOSITION.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_CONTENT_DISPOSITION.*$ ]]; then
         WGET_OPTION_DISPOSITION=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_DISPOSITION_FAIL.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_DISPOSITION_FAIL.*$ ]]; then
         WGET_OPTION_DISPOSITION_FAIL=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
         FEED_SORT_ORDER="ASCENDING"
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
         FEED_FULL_PLAYLIST=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
         FEED_FULL_PLAYLIST=2
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_FILENAME_LOCATION.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_LOCATION.*$ ]]; then
         WGET_OPTION_FILENAME_LOCATION=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
         POST_WGET_RENAME_MDATE=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)ATOM_FILTER_SIMPLE.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)ATOM_FILTER_SIMPLE.*$ ]]; then
         ATOM_FILTER_SIMPLE=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
         ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
         ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
@@ -1182,7 +1182,7 @@ FILTER_OPTIONS() {
     printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM%${!FILTER_ITEM##*[![:space:]]}}"
 
     # No_Category, or blank item handling.
-    if [[ "${!FILTER_ITEM}" =~ ^(.*[[:space:]]|[[:space:]]?)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
         # Set to single period which is a bashism for current directory.
 #        eval "${FILTER_ITEM}=."
         printf -v "${FILTER_ITEM}" '%s' '.'
