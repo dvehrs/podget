@@ -2174,15 +2174,20 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 # Get full enclosure lines to filter on
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
 
-                if (( DEBUG == 1 )) ; then
-                    printf '%s %s\n' "${DEBUG_LEADER}" "------ Indexfile Contents --------"
-                    while IFS= read -r LINE; do
-                        printf '%s %s\n' "${DEBUG_LEADER}" "${LINE}"
-                    done< <(printf "%s\n" "${INDEXFILE}")
-                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
-                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
-                    echo
-                fi
+# NOTE: I have this section disabled because it has a high potential for confusing
+#       users.  At this stage, there is potential that they will see many enclosures
+#       in the feed and not understand why the filtering they have selected results
+#       in fewer or none found.  However it is useful during testing so it is
+#       available.
+#                if (( DEBUG == 1 )) ; then
+#                    printf '%s %s\n' "${DEBUG_LEADER}" "------ Indexfile Contents --------"
+#                    while IFS= read -r LINE; do
+#                        printf '%s %s\n' "${DEBUG_LEADER}" "${LINE}"
+#                    done< <(printf "%s\n" "${INDEXFILE}")
+#                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
+#                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
+#                    echo
+#                fi
 
                 # SIMPLE FILTERING: filter down to just audio & video types.
                 if (( ATOM_FILTER_SIMPLE > 0 )); then
@@ -2282,10 +2287,27 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                 if (( DEBUG == 1 )) ; then
                     if (( MOST_RECENT > 0 )) ; then
-                        printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Modified Index List:" "${INDEXFILE}"
-                        printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Full Index List:" "${FULLINDEXFILE}"
+                        printf '%s %s\n' "${DEBUG_LEADER}" "Full Index List:"
+                        URLCOUNT=0
+                        for URL in ${FULLINDEXFILE}; do
+                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+                            URLCOUNT=$((URLCOUNT+1))
+                        done
+                        printf '%s %s\n' "${DEBUG_LEADER}" "Modified Index List:"
+                        URLCOUNT=0
+                        for URL in ${INDEXFILE}; do
+                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+                            URLCOUNT=$((URLCOUNT+1))
+                        done
+                        unset URLCOUNT
                     else
-                        printf '%s %s\n%s\n' "${DEBUG_LEADER}" "Index List:" "${INDEXFILE}"
+                        printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
+                        URLCOUNT=0
+                        for URL in ${INDEXFILE}; do
+                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+                            URLCOUNT=$((URLCOUNT+1))
+                        done
+                        unset URLCOUNT
                     fi
                 fi
 
