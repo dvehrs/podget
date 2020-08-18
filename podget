@@ -2124,22 +2124,32 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
-#            if (( VERBOSITY >= 4 )) ; then
-#                echo "------ Check for RSS or Atom feed --------"
-#                echo "${TESTLINES}"
-#                echo "------ ( first 9 lines of feed --------"
-#                echo "------   looking for '<rss '   --------"
-#                echo "------   or '<feed ' )         --------"
-#                echo
-#            fi
+            if (( DEBUG == 1 )) ; then
+                printf '%s %s\n' "${DEBUG_LEADER}" "------ Check for RSS or Atom feed --------"
+                while IFS= read -r LINE; do
+                    printf '%s %s\n' "${DEBUG_LEADER}" "${LINE}"
+                done< <(printf "%s\n" "${TESTLINES}")
+                printf '%s %s\n' "${DEBUG_LEADER}" "------ ( first 9 lines of feed --------"
+                printf '%s %s\n' "${DEBUG_LEADER}" "------   looking for '<rss '   --------"
+                printf '%s %s\n' "${DEBUG_LEADER}" "------   or '<feed ' )         --------"
+                echo
+            fi
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
+                if (( DEBUG == 1 )) ; then
+                    printf '%s %s\n' "${DEBUG_LEADER}" "RSS Feed Found"
+                    echo
+                fi
                 # if file is RSS then we look for '<enclosure '
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
                                          -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
                                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
+                if (( DEBUG == 1 )) ; then
+                    printf '%s %s\n' "${DEBUG_LEADER}" "Atom Feed Found"
+                    echo
+                fi
                 # if file is Atom then we look for '<link\s.*rel="enclosure" '
                 # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
 
@@ -2163,6 +2173,16 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                 # Get full enclosure lines to filter on
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
+
+                if (( DEBUG == 1 )) ; then
+                    printf '%s %s\n' "${DEBUG_LEADER}" "------ Indexfile Contents --------"
+                    while IFS= read -r LINE; do
+                        printf '%s %s\n' "${DEBUG_LEADER}" "${LINE}"
+                    done< <(printf "%s\n" "${INDEXFILE}")
+                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
+                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
+                    echo
+                fi
 
                 # SIMPLE FILTERING: filter down to just audio & video types.
                 if (( ATOM_FILTER_SIMPLE > 0 )); then
