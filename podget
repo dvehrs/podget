@@ -1078,22 +1078,17 @@ filenameFixFormat() {
 FILTER_OPTIONS() {
     local FILTER_ITEM="${1}"
 
-    # NOTE: The regex expressions in the following checks was updated so that it played
-    #       nice on FreeBSD 12.1 with Bash 5.0.17.
+    # NOTE: The regex expressions in the following checks were updated so that
+    #       they played nice on FreeBSD 12.1 with Bash 5.0.17.
     #
-    #       Previously all the regexes started with:  (.*[[:space:]]|)
+    #       Previously the regexes included:  (.*[[:space:]]|)
     #
-    #       This would either look for the pattern after other parts or immediately at the
-    #       beginning.  It was the second part that caused issues, the part after the or '|'
-    #       but before the closing parenthesis ')'.  The blank part worked on Linux but not
-    #       on FreeBSD.
+    #       This would either look for the pattern after other parts or
+    #       immediately at the beginning of the string.  It was the second part
+    #       that caused issues, the part after the or but before the closing
+    #       parenthesis. The blank part worked on Linux but not on FreeBSD.
     #
-    #       To fix it, we did this:  (.*[[:space:]]|[[:space:]]?)
-    #
-    #       This does two checks.  The first is just what it was and looks for the keyword
-    #       after other items in the string.  The second looks for zero or one spaces at the
-    #       beginning of the string.  The single space is also caught by the first test but
-    #       the zero space condition is functionally equivalent to the blank part we had before.
+    #       To fix it, we changed to this:  (.+[[:space:]]|[[:space:]]?)
 
     # Extract Password from FILTER_ITEM if found.
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(PASS:)([^[:space:]]+).*$ ]]; then
