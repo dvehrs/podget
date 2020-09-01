@@ -7,6 +7,7 @@ Source Install:
     default configuration files into $HOME/.podget, edit
     them as needed.
 
+
 Building and installing a Debian package:
      $ cd podget-<version>
      $ fakeroot ./debian/rules binary
@@ -14,9 +15,11 @@ Building and installing a Debian package:
      $ sudo dpkg -i podget_<version>-all.deb
 
 Mac OSX GNU Dependencies:
-    Podget requires GNU Sed and Coreutils (for expr).  The easiest way to
-    install them is to use Homebrew.  For details on how to install and
-    use Homebrew, please visit: https://brew.sh
+    Podget requires GNU Sed, Coreutils (for expr) and Bash (at least version
+    4.4).  The easiest way to install them is to use Homebrew.  For details on
+    how to install and use Homebrew, please visit: https://brew.sh
+
+    An updated version of Bash can be installed with: brew install bash
 
     GNU Sed can be installed with: brew install gnu-sed
 
@@ -28,3 +31,46 @@ Mac OSX GNU Dependencies:
     this, it may be necessary that you add symbolic links from the brew
     installed sed to gsed and from the brew installed expr to gexpr.
 
+FreeBSD Dependencies and Install:
+    Podget requires a few things that are not part of a default installation.
+
+    As root (or with doas) using 'pkg install' add:
+      - bash (at least version 4.4)
+      - wget
+      - coreutils
+      - gsed
+      - gnustat
+        gmake
+      - ca_root_nss
+          NOTE: pkg will be automatically installed the first time you attempt
+                to use it.
+
+    FreeBSD Source Install:
+      $ gmake
+      $ doas gmake install OR su root -c 'gmake install'
+
+      After the package is installed, run it once to install
+      default configuration files into $HOME/.podget, edit
+      them as needed.
+
+    Tested on: FreeBSD 12.1-RELEASE GENERIC amd64
+
+OpenBSD Dependencies and Install:
+    Podget requires a few things that are not part of a default installation.
+
+    As root (or with doas) using pkg_add install:
+      - bash (at least version 4.4)
+      - wget
+      - coreutils
+      - gsed
+      - gmake
+
+    OpenBSD Source Install:
+      $ gmake
+      $ doas gmake install OR su root -c 'gmake install'
+
+      After the package is installed, run it once to install
+      default configuration files into $HOME/.podget, edit
+      them as needed.
+
+    Tested on: OpenBSD 6.7 GENERIC#179 amd64
