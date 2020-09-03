@@ -1,5 +1,5 @@
 
-Source Install:
+General Source Install:
      $ make
      $ sudo make install
 
@@ -45,7 +45,7 @@ FreeBSD Dependencies and Install:
           NOTE: pkg will be automatically installed the first time you attempt
                 to use it.
 
-    FreeBSD Source Install:
+    Source Install:
       $ gmake
       $ doas gmake install OR su root -c 'gmake install'
 
@@ -55,7 +55,7 @@ FreeBSD Dependencies and Install:
 
     Tested on: FreeBSD 12.1-RELEASE GENERIC amd64
 
-OpenBSD Dependencies and Install:
+NetBSD/OpenBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
 
     As root (or with doas) using pkg_add install:
@@ -65,7 +65,7 @@ OpenBSD Dependencies and Install:
       - gsed
       - gmake
 
-    OpenBSD Source Install:
+    Source Install:
       $ gmake
       $ doas gmake install OR su root -c 'gmake install'
 
@@ -73,4 +73,4 @@ OpenBSD Dependencies and Install:
       default configuration files into $HOME/.podget, edit
       them as needed.
 
-    Tested on: OpenBSD 6.7 GENERIC#179 amd64
+    Tested on: OpenBSD 6.7 GENERIC#179 amd64 and NetBSD 9.0 (GENERIC) #0 amd64
