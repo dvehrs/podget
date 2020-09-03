@@ -55,7 +55,28 @@ FreeBSD Dependencies and Install:
 
     Tested on: FreeBSD 12.1-RELEASE GENERIC amd64
 
-NetBSD/OpenBSD Dependencies and Install:
+NetBSD Dependencies and Install:
+    Podget requires a few things that are not part of a default installation.
+
+    As root (or with doas) using pkg_add install:
+      - bash (at least version 4.4)
+      - wget
+      - ca-certificates
+      - coreutils
+      - gsed
+      - gmake
+
+    Source Install:
+      $ gmake
+      $ doas gmake install OR su root -c 'gmake install'
+
+      After the package is installed, run it once to install
+      default configuration files into $HOME/.podget, edit
+      them as needed.
+
+    Tested on: NetBSD 9.0 (GENERIC) #0 amd64
+
+OpenBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
 
     As root (or with doas) using pkg_add install:
@@ -73,4 +94,4 @@ NetBSD/OpenBSD Dependencies and Install:
       default configuration files into $HOME/.podget, edit
       them as needed.
 
-    Tested on: OpenBSD 6.7 GENERIC#179 amd64 and NetBSD 9.0 (GENERIC) #0 amd64
+    Tested on: OpenBSD 6.7 GENERIC#179 amd64
