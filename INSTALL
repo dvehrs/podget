@@ -74,6 +74,13 @@ NetBSD Dependencies and Install:
       default configuration files into $HOME/.podget, edit
       them as needed.
 
+    Note: During testing I noticed that there were several feeds that had small
+          issues I did not see while testing other operating systems.  These
+          issues were resolved by enabling the --no-check-certificate and the
+          --prefer-family=IPv4 options for wget.  These issues may have been
+          caused by local configuration choices but its what I experienced for
+          what it's worth.
+
     Tested on: NetBSD 9.0 (GENERIC) #0 amd64
 
 OpenBSD Dependencies and Install:
