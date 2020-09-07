@@ -278,7 +278,15 @@ LOG_COMPLETE=done
 #   --proxy=off                 To disable proxy set by environmental variable http_proxy
 #   --no-check-certificate      To disable HTTPS certificate checks.  Useful for sites that may be using self-signed cerficates
 #                                   and not those from a trusted service authority.
-#  --content-disposition        [EXPERIMENTAL FEATURE] Wget will look for and use "Content-Disposition" headers received from the
+#   --prefer-family=IPv4/IPv6   When DNS provides a choice of addresses to connect to a host, attempt to connect to the specified
+#                                   address family first.  If all addresses of the given family fail then the other family will be
+#                                   tried.  If set to 'none' then the addresses will be tried in the order provided by the server
+#                                   regardless of which family they are in (this is effectively the default option).
+#
+#                                   If you wish to force the use of IPv4 addresses only then you can use the "-4" or "--inet4-only"
+#                                   options.  Conversely, if you want to force the use of IPv6 addresses then you can set the "-6"
+#                                   or "--inet6-only" options.
+#   --content-disposition       [EXPERIMENTAL FEATURE] Wget will look for and use "Content-Disposition" headers received from the
 #                                   server.  This can result in extra round-trips to the server for a "HEAD" request.  This option
 #                                   is useful for servers that use the "Content-Disposition" header to hold the filename of the
 #                                   downloaded file rather than appending it to the URL.  This has the potential to make  some of
@@ -296,6 +304,8 @@ LOG_COMPLETE=done
 #
 # WGET_BASEOPTS="-c --proxy=off --no-check-certificate"
 # WGET_BASEOPTS="-nH --proxy=off --content-disposition"
+# WGET_BASEOPTS="-c --prefer-family=IPv4"
+# WGET_BASEOPTS="-c --prefer-family=IPv6"
 WGET_BASEOPTS="-c -nH"
 
 # Most Recent
