@@ -1126,6 +1126,21 @@ FILTER_OPTIONS() {
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
     fi
 
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_NO_CERT_CHECK.*$ ]]; then
+        WGET_OPTION_NO_CHECK_CERIFICATE=1
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_NO_CERT_CHECK}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_PREFER_IPV4.*$ ]]; then
+        WGET_OPTION_PREFER_IP_TYPE=4
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_PREFER_IPV4}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_PREFER_IPV6.*$ ]]; then
+        WGET_OPTION_PREFER_IP_TYPE=6
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_PREFER_IPV6}"
+    fi
+
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
         FEED_SORT_ORDER="ASCENDING"
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
@@ -1982,6 +1997,16 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             WGET_OPTION_DISPOSITION_FAIL=0
 
             if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset WGET_OPTION_NO_CHECK_CERIFICATE"
+            fi
+            WGET_OPTION_NO_CHECK_CERIFICATE=0
+
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset WGET_OPTION_PREFER_IP_TYPE"
+            fi
+            WGET_OPTION_PREFER_IP_TYPE=0
+
+            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_MDATE"
             fi
             POST_WGET_RENAME_MDATE=0
@@ -2026,6 +2051,35 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             if [[ -n ${URL_PASSWORD+set} ]]; then
                 WGET_OPTIONS+=("--password=${URL_PASSWORD}")
+            fi
+
+            # Add --no-check-certificate to WGET_OPTIONS
+            if (( WGET_OPTION_NO_CHECK_CERIFICATE==1 )); then
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    # if --no-check-certificate has been set before, remove it.
+                    if [[ ${WGET_OPTIONS[${index}]} == "--no-check-certificate" ]]; then
+                        unset WGET_OPTIONS["${index}"]
+                    fi
+                done
+                WGET_OPTIONS+=("--no-check-certificate")
+            fi
+
+            # Set preferred IP type for WGET_OPTIONS
+            if (( WGET_OPTION_PREFER_IP_TYPE>0 )); then
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    # if --prefer-family has been set before, remove it.
+                    if [[ ${WGET_OPTIONS[${index}]} =~ --prefer-family=IPv[46] ]]; then
+                        unset WGET_OPTIONS["${index}"]
+                    fi
+                done
+                case "${WGET_OPTION_PREFER_IP_TYPE}" in
+                    4 )
+                        WGET_OPTIONS+=("--prefer-family=IPv4")
+                        ;;
+                    6 )
+                        WGET_OPTIONS+=("--prefer-family=IPv6")
+                        ;;
+                esac
             fi
 
             if (( VERBOSITY >= 2 )) ; then
@@ -2891,6 +2945,8 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 unset URL_USERNAME
                 unset WGET_OPTION_DISPOSITION
                 unset WGET_OPTION_DISPOSITION_FAIL
+                unset WGET_OPTION_NO_CHECK_CERIFICATE
+                unset WGET_OPTION_PREFER_IP_TYPE
                 unset WGET_OPTION_FILENAME_LOCATION
                 unset FEED_SORT_ORDER
                 unset POST_WGET_RENAME_MDATE
