@@ -213,6 +213,11 @@ By default, Podget uses $HOME/.podget/serverlist for the default list of servers
 	      http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
 	
 	Additional Options:
+      OPT_PREFER_IPV4 or
+      OPT_PREFER_IPV6             - Configure Wget so that when a DNS lookup gives it a choice of several addresses
+                                    that it should connect to the specified family first.  If multiple options are
+                                    specified, it will most commonly attempt to use IPv6 addresses first.
+      OPT_NO_CERT_CHECK           - Disable Wget verification of SSL certificates (WGET: --no-check-certificate).
 	  OPT_CONTENT_DISPOSITION     - Attempt to get filename from the Content-Disposition tag that is part of
 	                                wget --server-response.
 	  OPT_DISPOSITION_FAIL        - This option works in conjunction with OPT_CONTENT_DISPOSITION by removing
@@ -248,10 +253,13 @@ By default, Podget uses $HOME/.podget/serverlist for the default list of servers
 	  OPT_FEED_PLAYLIST_OLDFIRST -  Same as OPT_FEED_PLAYLIST_NEWFIRST except playlist is ordered from oldest to newest.
 	
 	    Note: It is possible to use more than one option per feed, this will combine the effects of the options in order from
-		      top to bottom as they are listed here.  Exception is the OPT_FEED_PLAYLIST options, they are mutually exclusive
-			  and cannot be combined with each other but can be combined with other options.
+		      top to bottom as they are listed here.  Exception is the OPT_FEED_PLAYLIST OR the OPT_PREFER options, they are
+              mutually exclusive and cannot be combined with each other but can be combined with other options.
 	
 	    Examples:
+	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPV4
+	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPV6
+	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_NO_CERT_CHECK
 	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
 	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
 	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_LOCATION
@@ -260,7 +268,7 @@ By default, Podget uses $HOME/.podget/serverlist for the default list of servers
 	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_ORDER_ASCENDING
 	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_PLAYLIST_NEWFIRST
 	      http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_PLAYLIST_OLDFIRST
-	
+
 	
 
 HANDLING UTF-16 FEEDS
