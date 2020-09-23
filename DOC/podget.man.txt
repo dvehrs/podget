@@ -213,11 +213,11 @@ By default, Podget uses $HOME/.podget/serverlist for the default list of servers
 	      http://somesite.com/feed.rss CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
 	
 	Additional Options:
-      OPT_PREFER_IPV4 or
-      OPT_PREFER_IPV6             - Configure Wget so that when a DNS lookup gives it a choice of several addresses
+	  OPT_PREFER_IPV4 or
+	  OPT_PREFER_IPV6             - Configure Wget so that when a DNS lookup gives it a choice of several addresses
                                     that it should connect to the specified family first.  If multiple options are
                                     specified, it will most commonly attempt to use IPv6 addresses first.
-      OPT_NO_CERT_CHECK           - Disable Wget verification of SSL certificates (WGET: --no-check-certificate).
+	  OPT_NO_CERT_CHECK           - Disable Wget verification of SSL certificates (WGET: --no-check-certificate).
 	  OPT_CONTENT_DISPOSITION     - Attempt to get filename from the Content-Disposition tag that is part of
 	                                wget --server-response.
 	  OPT_DISPOSITION_FAIL        - This option works in conjunction with OPT_CONTENT_DISPOSITION by removing
