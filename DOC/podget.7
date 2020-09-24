@@ -1,5 +1,5 @@
 .\" Hand Tweaked Man Page.
-.TH podget 7 "23 September 2020" "" ""
+.TH podget 7 "24 September 2020" "" ""
 
 .SH NAME
 .B Podget 
@@ -15,14 +15,20 @@
 Podget is a simple podcast aggregator/downloader optimized for scheduled background jobs (i.e. cron).
 
 It features support for:
-.nf
+.PD 0
+.P
 - Downloading podcasts from RSS and ATOM XML feeds.
+.P
 - For sorting the files into folders and categories.
+.P
 - For importing URLs from iTunes PCAST files and OPML lists.
+.P
 - Automatic M3U & ASX playlist creation.
+.P
 - Cleanup of old files.
+.P
 - Automatic UTF-16 conversion for feeds hosted on MS Windows Servers.
-.fi
+.PD
 
 .SH OPTIONS
 .TP
@@ -271,46 +277,75 @@ By default, Podget uses $HOME/.podget/serverlist for the default list of servers
 
 Feeds are listed one per line in the serverlist file.
 
-.PP
-.nf
-.fam C
+
+.PD 0
+
 Default format with category and name:
-  <url> <category> <name>
+.RS
+<url> <category> <name>
+.RE
 
 Alternate Formats:
-  1. With a category but no name.
-      <url> <category>
-  2. With a name but no category (2 ways).
-      <url> No_Category <name>
-      <url> . <name>
-  3. With neither a category or name.
-      <url>
+.P
+1. With a category but no name.
+.RS
+<url> <category>
+.RE
+2. With a name but no category (2 ways).
+.RS
+.P
+<url> No_Category <name>
+.P
+<url> . <name>
+.RE
+3. With neither a category or name.
+.RS
+<url>
+.RE
 
-NOTES:
-   1. URL Rules:
-     A.  Any spaces in the URL need to be converted to %20
-   2. Category Rules:
-     A.  Must be one word without spaces.
-     B.  You may use underscores and dashes.
-     C.  You can insert date substitutions.
-         %YY%  ==  Year
-         %MM%  ==  Month
-         %DD%  ==  Day
-     D.  If you want to disable the use of a category for a feed that has a name, the
-         category must be either a single period (.) or 'No_Category'.  If the name is
-         blank, then the category can also be blank.
-   3. Name Rules:
-     A.  If you are creating ASX playlists, make sure the feed name does not
-         have any spaces in it and the filename cannot be blank.
-     B.  You can leave the feed name blank, and files will be saved in the
-         category directory.
-     C.  Names with spaces are only compatible with filesystems that allow for spaces
-         in filenames.  For example, spaces in feed names are OK for feeds saved to
-         Linux ext partitions but are not OK for those saved to Microsoft FAT partitions.
-     D.  Feed names can be disabled by leaving them blank.
-   4. Disable the downloading of any feed by commenting it out with a leading #.
-.fam T
-.fi
+1. URL Rules:
+.RS
+A. Any spaces in the URL need to be converted to %20
+.RE
+2. Category Rules:
+.RS
+A. Must be one word without spaces.
+.P
+B. You may use underscores and dashes.
+.P
+C. You can insert date substitutions.
+.RS
+%YY%  ==  Year
+.P
+%MM%  ==  Month
+.P
+%DD%  ==  Day
+.RE
+.P
+D. Category disabling:
+.RS
+.P
+- With a name, the category must either be a single period (.) or 'No_Category'.
+.P
+- If the name is blank, the category can also be blank.
+.RE
+.RE
+.P
+3. Name Rules:
+.RS
+.P
+A. If you are creating ASX playlists, make sure the feed name does not have any spaces in it and the filename cannot be blank.
+.P
+B. You can leave the feed name blank, and files will be saved in the category directory.
+.P
+C. Names with spaces are only compatible with filesystems that allow for spaces in filenames.  For example, spaces in feed names are OK for feeds saved to Linux ext partitions but are not OK for those saved to Microsoft FAT partitions.
+.P
+D. Feed names can be disabled by leaving them blank.
+.RE
+.P
+4. Disable the downloading of any feed by commenting it out with a leading #.
+
+.PD
 
 Example:
  http://www.lugradio.org/episodes.rss Linux LUG Radio
@@ -331,16 +366,6 @@ NOTE: The second method will fail if a colon (:) is part of the username or pass
 .TP
 .B Common Options:
 
-.RS
-
-.TP
-.I OPT_PREFER_IPV4 \fRor\fI OPT_PREFER_IPV6
-Configure wget so that when a DNS lookup give a choice of several addresses that it should connect to the specified family first.
-
-.TP
-.I OPT_NO_CERT_CHECK
-Disable wget SSL certificate verification.  This is common used for feeds that are using self-signed certificates.
-
 .TP
 .I OPT_CONTENT_DISPOSITION
 Attempt to get filename from the Content-Disposition tag that is part of wget --server-response.
@@ -348,10 +373,6 @@ Attempt to get filename from the Content-Disposition tag that is part of wget --
 .TP
 .I OPT_DISPOSITION_FAIL
 This option works in conjunction with OPT_CONTENT_DISPOSITION by removing any URLs that fail to receive a filename from the COMPLETED log.  This allows them to be automatically retried the next time a session runs.  If this option is added to a feed that has already been downloaded then the user will need to remove the URLs for the problematic files from the COMPLETED log manually. On one feed this allowed for the improvement of the number of filename problems from approximately 15% to under 2% over the course of 6 sessions.  Those sessions can occur sequentially on one day or as part of your established cron rotation.
-
-.TP
-.I OPT_FILENAME_LOCATION
-Some feeds do not have the detailed filename listed in the FEED but rather rename the file on redirection.  This option address that issue by attempting to grab the filename from the last 'Location:' tag in the output of 'wget --server-response'.  OPT_FILENAME_RENAME_MDATE   - For feeds that use a singular filename for each item that is identified by a long somewhat incomprehensible string in the URL.  These feeds were previously fixed with FILENAME_FORMATFIX4 which would append the string to the common filename to produce unique filenames for each item.  However this produced filenames that were not very easy to understand.  This option gives us another method for dealing with these common filenames.  This appends the date of the files last change (modification date) as a prefix to the filename in the format of YYYYMMDD_HHhMMm_<common-part>.  This makes the filenames sortable and gives the user something that makes a moderate amount of sense.  Does not work for all feeds, for some feeds the last modification time for each file is the time of download.  Which may be acceptable in some situations but can cause confusion when downloading more than one item at a time from a feed.
 
 .TP
 .I OPT_FEED_ORDER_ASCENDING
@@ -365,8 +386,23 @@ Most playlist options create lists of just the new items that are downloaded in 
 .I OPT_FEED_PLAYLIST_OLDFIRST
 Same as OPT_FEED_PLAYLIST_NEWFIRST except playlist is ordered from oldest to newest.
 
-.RE
+.TP
+.I OPT_FILENAME_LOCATION
+Some feeds do not have the detailed filename listed in the FEED but rather rename the file on redirection.  This option address that issue by attempting to grab the filename from the last 'Location:' tag in the output of 'wget --server-response'.
 
+.TP
+.I  OPT_FILENAME_RENAME_MDATE
+For feeds that use a singular filename for each item that is identified by a long somewhat incomprehensible string in the URL.  These feeds were previously fixed with FILENAME_FORMATFIX4 which would append the string to the common filename to produce unique filenames for each item.  However this produced filenames that were not very easy to understand.  This option gives us another method for dealing with these common filenames.  This appends the date of the files last change (modification date) as a prefix to the filename in the format of YYYYMMDD_HHhMMm_<common-part>.  This makes the filenames sortable and gives the user something that makes a moderate amount of sense.  Does not work for all feeds, for some feeds the last modification time for each file is the time of download.  Which may be acceptable in some situations but can cause confusion when downloading more than one item at a time from a feed.
+
+.TP
+.I OPT_NO_CERT_CHECK
+Disable wget SSL certificate verification.  This is common used for feeds that are using self-signed certificates.
+
+.TP
+.I OPT_PREFER_IPV4 \fRor\fI OPT_PREFER_IPV6
+Configure wget so that when a DNS lookup gives a choice of several addresses that it should connect to the specified family first.
+
+.P
 Examples:
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPV4
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPV6
@@ -384,8 +420,6 @@ Examples:
 .B Atom Feed Options:
 The following options are available for advanced handling of Atom feeds.
 
-.RS
-
 .TP
 .I ATOM_FILTER_SIMPLE
 This option will enable filtering for just audio or video files from a feed.
@@ -398,10 +432,9 @@ This option allows more detailed filtering of the variety of types available.  T
 .I ATOM_FILTER_LANG="language"
 If an Atom feed supports multiple languages for enclosures, then you can use this option to filter to only those you desire.  You can limit to one language (example: "en" for just English) or combine several supported languages to get them all (example: "(en|es|fr)" to download files in English, Spanish and French.  How the languages are defined may vary from feed to feed.
 
-.RE
-
 Note:  If you do not enable ANY of the ATOM_FILTER options, when you run podget with "-vv" or higher, for every Atom feed that supports multiple enclosures per item, Podget will tell you with the count per type or language to help you decide if you should use the filters to reduce the quantity of your downloads.
 
+.P
 Examples:
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_SIMPLE
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg"
@@ -409,9 +442,6 @@ Examples:
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_LANG="en"
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_LANG="(en|es|fr)"
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
-
-
-
 
 .SH HANDLING UTF-16 FEEDS
 .PP
