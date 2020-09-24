@@ -9,6 +9,10 @@
     required GNU applications are called, adding support for FreeBSD, NetBSD and
 	OpenBSD.  Additionally his patch simplified the ways we call sed and expr
 	making script maintenance easier.
+  * On a per feed basis, added option flags to set WGET to disable SSL
+    certificate verification and which network address family (IPv4 or IPv6) it
+	should prefer when DNS provides a few choices.
+  * Updated manpage and moved away from txt2man conversion.
 
 podget (0.8.6) unstable; urgency=low
 
