@@ -399,13 +399,13 @@ For feeds that use a singular filename for each item that is identified by a lon
 Disable wget SSL certificate verification.  This is common used for feeds that are using self-signed certificates.
 
 .TP
-.I OPT_PREFER_IPV4 \fRor\fI OPT_PREFER_IPV6
+.I OPT_PREFER_IPv4 \fRor\fI OPT_PREFER_IPv6
 Configure wget so that when a DNS lookup gives a choice of several addresses that it should connect to the specified family first.
 
 .P
 Examples:
- http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPV4
- http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPV6
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPv4
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPv6
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_NO_CERT_CHECK
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
@@ -432,7 +432,8 @@ This option allows more detailed filtering of the variety of types available.  T
 .I ATOM_FILTER_LANG="language"
 If an Atom feed supports multiple languages for enclosures, then you can use this option to filter to only those you desire.  You can limit to one language (example: "en" for just English) or combine several supported languages to get them all (example: "(en|es|fr)" to download files in English, Spanish and French.  How the languages are defined may vary from feed to feed.
 
-Note:  If you do not enable ANY of the ATOM_FILTER options, when you run podget with "-vv" or higher, for every Atom feed that supports multiple enclosures per item, Podget will tell you with the count per type or language to help you decide if you should use the filters to reduce the quantity of your downloads.
+.P
+Note:  If you do not enable any of the ATOM_FILTER options on a feed with multiple enclosures per item, when you run podget it will tell you the count per type or language to help you decide if you should enable the filters to reduce the number of files to be downloaded.
 
 .P
 Examples:
