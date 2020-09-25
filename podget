@@ -1131,14 +1131,14 @@ FILTER_OPTIONS() {
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_NO_CERT_CHECK}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_PREFER_IPV4.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_PREFER_IP[vV]4.*$ ]]; then
         WGET_OPTION_PREFER_IP_TYPE=4
-        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_PREFER_IPV4}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM//OPT_PREFER_IP[vV]4}"
     fi
 
-    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_PREFER_IPV6.*$ ]]; then
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_PREFER_IP[vV]6.*$ ]]; then
         WGET_OPTION_PREFER_IP_TYPE=6
-        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_PREFER_IPV6}"
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM//OPT_PREFER_IP[vV]6}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
