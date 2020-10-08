@@ -968,6 +968,7 @@ filenameFixFormat() {
     # Filename format fix for podcasts hosted on http://www.catradio.cat
     if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\\+\\.mp3\\?[&]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
+            # shellcheck disable=SC2001
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
@@ -1056,6 +1057,7 @@ filenameFixFormat() {
     # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
     if [[ -n ${FILENAME_FORMATFIX+set} ]] && (( FILENAME_FORMATFIX > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : ".*\\.mp3..*$") > 0 )); then
+            # shellcheck disable=SC2001
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
@@ -1304,6 +1306,7 @@ REMOVE_URL() {
     local URL_CLEAN
     # URL_CLEAN as it was before trying to correct implicit escaping.
     # URL_CLEAN=$(echo "${URL_INPUT}" | sed -e "s${TEST_CHAR}\([^\\]\)\*${TEST_CHAR}\1\\\*${TEST_CHAR}g")
+    # shellcheck disable=SC2001
     URL_CLEAN=$(echo "${URL_INPUT}" | sed -e "s${TEST_CHAR}\\([^\\]\\)\\*${TEST_CHAR}\\1\\\\*${TEST_CHAR}g")
 
     sed -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
