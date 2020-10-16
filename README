@@ -7,6 +7,3 @@ automatic UTF-16 conversion for podcasts hosted on MS Windows servers.
 
 Run podget once to install the users configuration files to $HOME/.podget, and then customize them there.
 
-MAN PAGE:
-Build manpage with txt2man.  
-Syntax:  txt2man -s 7 -p podget.man.txt > podget.7
