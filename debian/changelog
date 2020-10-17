@@ -1,3 +1,11 @@
+podget (0.8.7-1) unstable; urgency=medium
+
+  * Bump debhelper compat to 13
+  * Bump Standards-Version to 4.5.0
+  * New Upstream release
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sat, 17 Oct 2020 13:09:43 -0600
+
 podget (0.8.6-1) unstable; urgency=medium
 
   * Bump Standards-Version to 4.4.0
