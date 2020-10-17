@@ -1,3 +1,5 @@
+podget (0.8.7) unstable; urgency=low
+
   * Unified option filtering into single function.
   * Replaced 'eval' statements with 'printf' statements.
   * Removed FEED_FULL_PLAYLIST from Debug statements prior to it being needed.
@@ -6,13 +8,14 @@
   * Added test for shopt inherit_errexit support to verify that at least Bash
     version 4.4 was installed. Thanks to Jude DaShiell for reporting the issue.
   * Thanks to Eric Cook (llua@gmx.com) for submitting a patch that updated the way
-    required GNU applications are called, adding support for FreeBSD, NetBSD and
-	OpenBSD.  Additionally his patch simplified the ways we call sed and expr
-	making script maintenance easier.
+		required GNU applications are called simplifying script support, and added
+	support for FreeBSD, NetBSD and OpenBSD.
   * On a per feed basis, added option flags to set WGET to disable SSL
     certificate verification and which network address family (IPv4 or IPv6) it
 	should prefer when DNS provides a few choices.
   * Updated manpage and moved away from txt2man conversion.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Sat, 17 Oct 2020 12:14:28 -0600
 
 podget (0.8.6) unstable; urgency=low
 
