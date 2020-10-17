@@ -220,7 +220,7 @@ Podget checks for sessions using the same core configuration file that may alrea
 If you have feeds that require distinct configurations, then you can enable them to run simultaneously by using separate configuration files for each.  Then if you have sufficient bandwidth, you can call them all at the same time.
 
 Example Crontab configuration:
-.pp
+.PP
 .nf
 .fam C
   00 02 * * * /usr/bin/podget -c podgetrc-group1
@@ -233,7 +233,7 @@ Example Crontab configuration:
 Sometimes, you have feed lists that use the same configuration but you wish to keep separate.  There are two ways to handle this.
 
 First, run then separately from crontab with sufficient time in between so they don't interfere with each other.
-.pp
+.PP
 .nf
 .fam C
   00 02 * * * /usr/bin/podget --serverlist RSS-Feeds
@@ -242,7 +242,7 @@ First, run then separately from crontab with sufficient time in between so they 
 .fi
 
 The second option is to place them into a shell script so they are called sequentially and do not interfere with each other and then add it to your crontab.
-.pp
+.PP
 .nf
 .fam C
   #!/usr/bin/env bash
