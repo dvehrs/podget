@@ -2,12 +2,12 @@ Source: podget
 Section: misc
 Priority: optional
 Maintainer: Dave Vehrs <dvehrs@gmail.com>
-Build-Depends: debhelper (>= 13)
+Build-Depends: debhelper-compat (= 13)
 Rules-Requires-Root: no
 Standards-Version: 4.5.0
 Homepage: https://github.com/dvehrs/podget
-VCS-git: https://salsa.debian.org/debian/podget.git
-VCS-Browser: https://salsa.debian.org/debian/podget
+Vcs-Git: https://salsa.debian.org/debian/podget.git
+Vcs-Browser: https://salsa.debian.org/debian/podget
 
 Package: podget
 Architecture: all
