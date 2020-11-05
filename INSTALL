@@ -15,11 +15,15 @@ Building and installing a Debian package:
      $ sudo dpkg -i podget_<version>-all.deb
 
 Mac OSX GNU Dependencies:
-    Podget requires GNU Sed, Coreutils (for expr) and Bash (at least version
-    4.4).  The easiest way to install them is to use Homebrew.  For details on
-    how to install and use Homebrew, please visit: https://brew.sh
+    Podget requires GNU Date, GNU Stat, GNU Sed, Coreutils (for expr) and Bash
+    (at least version 4.4).  The easiest way to install them is to use Homebrew.
+    For details on how to install and use Homebrew, please visit: https://brew.sh
 
     An updated version of Bash can be installed with: brew install bash
+
+    GNU Date can be installed with: brew install gdate
+
+    GNU Stat can be installed with: brew install gstat
 
     GNU Sed can be installed with: brew install gnu-sed
 
@@ -29,7 +33,7 @@ Mac OSX GNU Dependencies:
     added automatically by brew with its default options.  The prefix can be
     overridden with the brew option '--with-default-names'.  However if you do
     this, it may be necessary that you add symbolic links from the brew
-    installed sed to gsed and from the brew installed expr to gexpr.
+    installed sed to gsed and for the others.
 
 FreeBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
