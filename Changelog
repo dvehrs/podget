@@ -1,3 +1,9 @@
+
+  * Mac OS Issues:  Added gstat and gdate dependencies, updated man page to
+    include a cronjob example with additional directories added to the PATH
+	variable.  Thanks to Andrew Scott (scottmeup on Github) for discovering
+	these issues and assisting in finding a solutions.
+
 podget (0.8.7) unstable; urgency=low
 
   * Unified option filtering into single function.
@@ -8,7 +14,7 @@ podget (0.8.7) unstable; urgency=low
   * Added test for shopt inherit_errexit support to verify that at least Bash
     version 4.4 was installed. Thanks to Jude DaShiell for reporting the issue.
   * Thanks to Eric Cook (llua@gmx.com) for submitting a patch that updated the way
-		required GNU applications are called simplifying script support, and added
+	required GNU applications are called simplifying script support, and added
 	support for FreeBSD, NetBSD and OpenBSD.
   * On a per feed basis, added option flags to set WGET to disable SSL
     certificate verification and which network address family (IPv4 or IPv6) it
