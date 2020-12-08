@@ -171,6 +171,16 @@ Then add one line similar to this example:
 
 This will run podget at 4:15 AM every day.
 
+In some cases, you might need to add a few directories to your PATH variable so that Podget can find everything it needs.
+
+Then the job might look like:
+.PP
+.nf
+.fam C
+  15 04 * * * PATH=/opt/local/bin:/usr/local/bin:$PATH /usr/bin/podget \-s
+.fam T
+.fi
+
 .SH AUTOMATIC CLEANUP
 
 You can enable automatic cleanup with every run by configuring it in your $HOME/.podget/podgetrc file. Simply set the following options:
