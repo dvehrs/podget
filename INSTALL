@@ -35,6 +35,9 @@ Mac OSX GNU Dependencies:
     this, it may be necessary that you add symbolic links from the brew
     installed sed to gsed and for the others.
 
+    Additionally installing packages with brew may require some changes to the
+    PATH variable setting described below.
+
 FreeBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
 
@@ -99,3 +102,41 @@ OpenBSD Dependencies and Install:
       them as needed.
 
     Tested on: OpenBSD 6.7 GENERIC#179 amd64
+
+Crontab Potential Issue:
+    Occasionally when you install Podget, it will run fine from the shell prompt
+    but experiences a problem when you attempt to run it as a cron job.  When this
+    happens it may be caused by Podget not being able to find every command
+    it needs.  This can be caused by differences in the PATH variable which
+    contains a list of directories to search for commands.  This list is
+    delimited by colons and read from left to right so if a command of the same
+    name exists in two directories, the one you want should be read first.
+
+    An example of this happened on MacOS.  What we discovered was that for
+    cronjobs the PATH variable was set to "/usr/bin:/bin" which may be a
+    sensible default but lacked a few directories we needed.  On MacOS, there are
+    a few applications that can be useful to determine what we need to add to
+    the PATH variable.  Those applications are gexpr, gdate, gsed and gstat.  We
+    can use the which, whereis or find commands to determine where they are on
+    our system.  On the system we were having a problem with, we discovered that
+    some of these applications were in /opt/local/bin and others were in
+    /usr/local/bin so we needed to add those directories to our PATH variable
+    for Podget to work.
+
+    So we changed our cronjob from:
+      15 04 * * * /usr/bin/podget -s
+    To:
+      15 04 * * * PATH=/opt/local/bin:/usr/local/bin:$PATH /usr/bin/podget -s
+
+    If you wish to see the differences in how PATH is configured:
+        FOR THE SHELL: Simply run "echo $PATH"
+        FOR A CRONJOB:
+            1.  Create simple shell script  /tmp/test_cron.sh which contains:
+                #!/usr/bin/env bash
+                echo "PATH: $PATH"
+            2. Configure a cronjob to run the script with "crontab -e"
+                * * * * * /tmp/test_cron.sh > /tmp/test_cron.out
+                NOTE:  This job will run every minute so disable it as soon as
+                       it has run once or twice.
+            3. Open the file /tmp/test_cron.out in an editor to see how it has
+               the PATH variable configured.
