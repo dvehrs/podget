@@ -318,7 +318,7 @@ MOST_RECENT=0
 # 1 == Force download all items even those you've downloaded before.
 FORCE=0
 
-# Autocleanup.
+# Autocleanup of old playlists and the files they list.
 # 0 == disabled
 # 1 == delete any old content
 CLEANUP=0
