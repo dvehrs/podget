@@ -1,8 +1,27 @@
+podget (0.8.8-1) unstable; urgency=medium
+
+  [ Francois Marier ]
+  * Bump Standards-Version up to 4.5.1.
+  * Add upstream metadata file.
+  * Set package as Multi-Arch: foreign.
+  * Bump copyright years in debian/copyright.
+  * Bump debian/watch up to version 4.
+
+  [ Dave Vehrs ]
+  * New Upstream release
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Tue, 19 Jan 2021 14:01:11 -0700
+
 podget (0.8.7-1) unstable; urgency=medium
 
+  [ Dave Vehrs ]
   * Bump debhelper compat to 13
   * Bump Standards-Version to 4.5.0
   * New Upstream release
+
+  [ Francois Marier ]
+  * Use correct case for Vcs-Git and Vcs-Browser fields.
+  * Switch from debian/compat to debhelper-compat build dep.
 
  -- Dave Vehrs <dvehrs@gmail.com>  Sat, 17 Oct 2020 13:09:43 -0600
 
