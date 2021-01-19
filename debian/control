@@ -4,13 +4,14 @@ Priority: optional
 Maintainer: Dave Vehrs <dvehrs@gmail.com>
 Build-Depends: debhelper-compat (= 13)
 Rules-Requires-Root: no
-Standards-Version: 4.5.0
+Standards-Version: 4.5.1
 Homepage: https://github.com/dvehrs/podget
 Vcs-Git: https://salsa.debian.org/debian/podget.git
 Vcs-Browser: https://salsa.debian.org/debian/podget
 
 Package: podget
 Architecture: all
+Multi-Arch: foreign
 Depends: bash (>= 4.4), coreutils (>= 8.5), debianutils (>= 4.0), findutils (>=4.0.0), grep (>= 2.0.0), gawk (>=4.0.0) | mawk (>=1.3.0), sed (>= 4.0.0), wget, ${shlibs:Depends}, ${misc:Depends}
 Suggests: libc-bin (>=2.0)
 Description: Podcast aggregrator/downloader optimized for cron

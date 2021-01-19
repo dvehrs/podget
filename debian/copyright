@@ -1,27 +1,29 @@
-This package was debianized by Dave Vehrs <dvehrs@gmail.com> on
-Tue, 18 Dec 2012 16:24:28 -0700.
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: podget
+Source: https://github.com/dvehrs/podget/releases
 
+Files: *
+Copyright: 2005-2007, 2010-2020 Dave Vehrs <dvehrs@gmail.com>
+License: GPL-3.0+
 
-It was downloaded from http://podget.sf.net
+Files: debian/*
+Copyright: 2007, 2013-2020 Dave Vehrs <dvehrs@gmail.com>
+           2015-2016, 2018-2021 Francois Marier <francois@debian.org>
+License: GPL-3.0+
 
-Upstream Author: Dave Vehrs <dvehrs@gmail.com>
-
-Copyright: 2005,2006,2007,2008,2009,2010,2011,2012 Dave Vehrs
-
-License:
-
- This program is free software; you can redistribute it and/or modify
+License: GPL-3.0+
+ This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 3 of the License, or
+ the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
-
- This program is distributed in the hope that it will be useful,
+ .
+ This package is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-On Debian systems, the complete text of the GNU General Public License can be
-found in '/usr/share/common-licenses/GPL-3'.
-
-The Debian packaging is Copyright 2012, Dave Vehrs <dvehrs@gmail.com> and
-is licensed under the GPL version 3, see `/usr/share/common-licenses/GPL-3'.
-
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".

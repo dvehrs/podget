@@ -1,6 +1,2 @@
-
-# Format Version
-version=3
-
-# Update Redirector URL
-http://sf.net/podget/podget-(.+)\.tar\.gz
+version=4
+https://github.com/dvehrs/podget/releases /dvehrs/podget/archive/v(.*)\.tar\.gz
