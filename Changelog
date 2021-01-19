@@ -1,3 +1,4 @@
+podget (0.8.8) unstable; urgency=low
 
   * Mac OS Issues:  Added gstat and gdate dependencies, updated man page to
     include a cronjob example with additional directories added to the PATH
@@ -5,6 +6,8 @@
 	might need to be done.  Thanks to Andrew Scott (scottmeup on Github) for
 	discovering these issues and assisting in finding solutions.
   * Expanded description for automatic cleanup for new podgetrc files.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Tue, 19 Jan 2021 13:43:53 -0700
 
 podget (0.8.7) unstable; urgency=low
 
