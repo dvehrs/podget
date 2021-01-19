@@ -1,8 +1,9 @@
 
   * Mac OS Issues:  Added gstat and gdate dependencies, updated man page to
     include a cronjob example with additional directories added to the PATH
-	variable.  Thanks to Andrew Scott (scottmeup on Github) for discovering
-	these issues and assisting in finding a solutions.
+	variable, updated INSTALL file with a more verbose description of what
+	might need to be done.  Thanks to Andrew Scott (scottmeup on Github) for
+	discovering these issues and assisting in finding solutions.
   * Expanded description for automatic cleanup for new podgetrc files.
 
 podget (0.8.7) unstable; urgency=low
