@@ -1,8 +1,3 @@
-In case this is of use to anyone. I wanted a list of recent e.g. last 48h podcasts as a list in Pushover Android app(also available for IoS  and Desktops). Then I can easily see what new podcasts have been downloaded.
-https://pushover.net/
-Android : https://play.google.com/store/apps/details?id=net.superblock.pushover
-
-This is my python3 code running on a Raspberry OS Pi 4 (buster) where the podcasts are downloaded:
 ```
 #!/usr/bin/env python3
 #https://stackoverflow.com/questions/16953842/using-os-walk-to-recursively-traverse-directories-in-python
@@ -118,4 +113,3 @@ def sendPush(PUSH_MSG):
 # Run function to send message to Pushover
 sendPush(PUSH_MSG)
 ```
-I've put this in cron for twice per day after my twice per 
