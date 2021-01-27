@@ -1,4 +1,3 @@
-```
 #!/usr/bin/env python3
 #https://stackoverflow.com/questions/16953842/using-os-walk-to-recursively-traverse-directories-in-python
 #given a folder name, walk through its entire hierarchy
@@ -50,4 +49,4 @@ def sendPush(PUSH_MSG):
    
 # Run function to send message to Pushover
 sendPush(PUSH_MSG)
-```
+
