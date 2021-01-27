@@ -1,1 +1,10 @@
+A python3 script to list the last 48h(or what you choose) podcasts in Pushover Android app(also available for IoS and Desktops). Then can easily see what new podcasts have been downloaded.
+https://pushover.net/
+Android : https://play.google.com/store/apps/details?id=net.superblock.pushover
 
+To use:
+1) set the time period you want to scan the POD directory for recent downoads in the script
+2) you need to sucbribe to Pushover with a one-time $4.99 in-app purchase and install the Android app(or IoS etc). I have no affiliation with Pushover
+3) get the app and user keys from the Pushover api website
+4) replace the dummy keys in the script with the real ones
+5) run the python script. Optionally run it from cron after podget is run
