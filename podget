@@ -1241,7 +1241,8 @@ PLAYLIST_ConvertToASX() {
 
      # Removing unix2dos dependency. Converting to sed statement with in-place editing of the file in question.
      # ctrl-v ctrl-m for windows line end.
-     sed -i 's/$//' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+     sed -i 's/$/
+/' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 }
 
 PLAYLIST_Sort() {
@@ -2838,6 +2839,9 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             fi
         fi
         FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
+        # Change IFS Temporarily to handle whitespaces in names
+        OLD_IFS=$IFS
+        IFS=$'\n'
         # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
         CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
         # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.
@@ -2885,6 +2889,8 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 fi
             fi
         done
+        #Restore IFS to original setting
+        IFS=$OLD_IFS
     fi
 fi
 
