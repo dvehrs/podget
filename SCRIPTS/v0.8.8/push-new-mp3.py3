@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# Copyright (c) 2021 Mike Webb
+
 #https://stackoverflow.com/questions/16953842/using-os-walk-to-recursively-traverse-directories-in-python
 #given a folder name, walk through its entire hierarchy
 
@@ -16,7 +19,7 @@ def recursive_walk(folder):
         created = os.path.getctime(folderName)
         if created <= now and created >= nowLess24h:
             #print(folderName, created)
-            lenFolderName = len(folderName) 
+            lenFolderName = len(folderName)
             folderName = (folderName[13:lenFolderName])
             if folderName != ".LOG" and folderName != "m3u-tmp":
                 #print(folderName)
@@ -46,7 +49,7 @@ def sendPush(PUSH_MSG):
 
    conn.getresponse()
    return
-   
+
 # Run function to send message to Pushover
 sendPush(PUSH_MSG)
 

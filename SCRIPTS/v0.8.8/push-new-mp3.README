@@ -8,3 +8,5 @@ To use:
 3) get the app and user keys from the Pushover api website
 4) replace the dummy keys in the script with the real ones
 5) run the python script. Optionally run it from cron after podget is run
+
+Copyright (c) 2021 Mike Webb
