@@ -1,3 +1,9 @@
+  * SCRIPTS: Thanks to Mike Webb (theorbitofmercury on Github) for providing
+    us with a python3 script to send a list of recent downloaded podcasts to
+    Pushover on Android or iOS.
+  * Thanks to Andrew Scott (scottmeup on Github) for finding a bug in our
+    cleanup loop and working with us to find a solution.
+
 podget (0.8.8) unstable; urgency=low
 
   * Mac OS Issues:  Added gstat and gdate dependencies, updated man page to
