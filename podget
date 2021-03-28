@@ -2838,15 +2838,12 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             fi
         fi
         FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
-        # Change IFS Temporarily to handle whitespaces in names
-        OLD_IFS=$IFS
-        IFS=$'\n'
         # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
         CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
         # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.
         # This works with uniform whole days and isn't subject to when the cleanup is run.
         DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
-        for FILE in ${FILELIST} ; do
+        while IFS= read -r FILE; do
             if [[ "${FILE##/*/}" =~ ^${PLAYLIST_NAMEBASE}* ]]; then
                 # Compare global playlist file modification date with DATE_CLEAN2.  If file modification date is newer than
                 # DATE_CLEAN2 then we skip it.
@@ -2887,9 +2884,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                     rm -fv "${FILE}"
                 fi
             fi
-        done
-        #Restore IFS to original setting
-        IFS=$OLD_IFS
+        done <<<"${FILELIST}"
     fi
 fi
 
