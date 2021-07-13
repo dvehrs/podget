@@ -1344,28 +1344,28 @@ case "$uname" in
 
         if ! hash gsed >/dev/null 2>&1; then
             echo "GNU Sed Required."
-            echo "Try 'brew install gnu-sed'  (see htts://brew.sh for details)"
+            echo "Try 'brew install gnu-sed'  (see https://brew.sh for details)"
             DARWIN_EXIT=1
         else
             hash -p "$(hash -t gsed)" sed
         fi
         if ! hash gexpr >/dev/null 2>&1; then
             echo "GNU Expr Required."
-            echo "Try 'brew install coreutils'  (see htts://brew.sh for details)"
+            echo "Try 'brew install coreutils'  (see https://brew.sh for details)"
             DARWIN_EXIT=1
         else
             hash -p "$(hash -t gexpr)" expr
         fi
         if ! hash gdate >/dev/null 2>&1; then
             echo "GNU Date Required."
-            echo "Try 'brew install gdate'  (see htts://brew.sh for details)"
+            echo "Try 'brew install gdate'  (see https://brew.sh for details)"
             DARWIN_EXIT=1
         else
             hash -p "$(hash -t gdate)" date
         fi
         if ! hash gstat >/dev/null 2>&1; then
             echo "GNU Stat Required."
-            echo "Try 'brew install gstat'  (see htts://brew.sh for details)"
+            echo "Try 'brew install gstat'  (see https://brew.sh for details)"
             DARWIN_EXIT=1
         else
             hash -p "$(hash -t gstat)" stat
