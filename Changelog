@@ -1,8 +1,12 @@
+podget (0.8.9) unstable; urgency=low
+
   * SCRIPTS: Thanks to Mike Webb (theorbitofmercury on Github) for providing
     us with a python3 script to send a list of recent downloaded podcasts to
     Pushover on Android or iOS.
   * Thanks to Andrew Scott (scottmeup on Github) for finding a bug in our
     cleanup loop and working with us to find a solution.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Thu, 09 Sep 2021 13:16:15 -0600
 
 podget (0.8.8) unstable; urgency=low
 
