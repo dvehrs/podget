@@ -6,6 +6,10 @@ Files: *
 Copyright: 2005-2007, 2010-2020 Dave Vehrs <dvehrs@gmail.com>
 License: GPL-3.0+
 
+Files: SCRIPTS/v0.8.8/push-new-mp3.py3
+Copyright: 2021 Mike Webb
+License: GPL-3.0+
+
 Files: debian/*
 Copyright: 2007, 2013-2020 Dave Vehrs <dvehrs@gmail.com>
            2015-2016, 2018-2021 Francois Marier <francois@debian.org>
