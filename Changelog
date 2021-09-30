@@ -1,3 +1,10 @@
+podget (0.8.10) unstable; urgency=low
+
+  * SCRIPTS:  Update to script provided by Mike Webb to show that it is
+    licensed with the GPL version 3.
+
+ -- Dave Vehrs <dvehrs@gmail.com> Thu, 30 Sep 2021 14:10:33 -0600
+
 podget (0.8.9) unstable; urgency=low
 
   * SCRIPTS: Thanks to Mike Webb (theorbitofmercury on Github) for providing
