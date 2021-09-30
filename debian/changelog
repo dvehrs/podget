@@ -1,14 +1,22 @@
-podget (0.8.9-1) unstable; urgency=medium
+podget (0.8.10-1) unstable; urgency=medium
 
+  [ Dave Vehrs ]
   * New Upstream release
 
- -- Dave Vehrs <dvehrs@gmail.com>  Thu, 09 Sep 2021 13:21:13 -0600
+ -- Dave Vehrs <dvehrs@gmail.com>  Thu, 30 Sep 2021 14:22:32 -0600
 
-podget (0.8.8-2) UNRELEASED; urgency=medium
+podget (0.8.9-1) unstable; urgency=medium
 
+  [ Dave Vehrs ]
+  * New Upstream release
+
+  [ Francois Marier ]
   * Update watch file to account for GitHub changes.
+  * Add missing SCRIPTS entries to debian/copyright.
+  * Bump Standards-Version up to 4.6.0.
+  * Bump copyright years in debian/copyright.
 
- -- Francois Marier <francois@debian.org>  Tue, 23 Mar 2021 18:46:56 -0700
+ -- Dave Vehrs <dvehrs@gmail.com>  Thu, 09 Sep 2021 13:21:13 -0600
 
 podget (0.8.8-1) unstable; urgency=medium
 
