@@ -978,8 +978,8 @@ filenameFixFormat() {
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\\+\\.[gmopv34]\\+[?]referrer=rss") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[ogmpv34]+)[?]referrer=rss/\1/g')
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\\+\\.[agmopv34]\\+[?]referrer=rss") > 0 )); then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[agmopv34]+)[?]referrer=rss/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -988,8 +988,8 @@ filenameFixFormat() {
 
     # ZDF podcast filename fix
     if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+\\.[gmopv34]\\+[?][-_+0-9]\\+") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[ogmpv3-4]+)[?][-+0-9]*/\1/g')
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+\\.[agmopv34]\\+[?][-_+0-9]\\+") > 0 )); then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[agmopv34]+)[?][-+0-9]*/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1006,7 +1006,7 @@ filenameFixFormat() {
     # wget -O - http://radiofrance-podcast.net/podcast09/rss_12036.xml | grep enclosure | sed -ru 's/.*(media_url=.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/'
     if [[ -n ${FILENAME_FORMATFIX7+set} ]] && (( FILENAME_FORMATFIX7 > 0 )); then
         if (( $(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http") > 0 )); then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/')
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][agmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][agmopv34]+)/\1/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
             fi
@@ -1034,8 +1034,8 @@ filenameFixFormat() {
     # Enclosure URLs have "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
     # It should work for Audioboo podcasts and others with similar formating.
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+[.][gmopv34]\\+[?][%&;=0-9a-zA-Z]\\+") > 0 )) ; then
-            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][ogmpv3-4]+)[?][-%&#;=A-Za-z0-9]+/\1/g')
+        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+[.][agmopv34]\\+[?][%&;=0-9a-zA-Z]\\+") > 0 )) ; then
+            MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][agmopv34]+)[?][-%&#;=A-Za-z0-9]+/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
             fi
