@@ -1,5 +1,9 @@
   * Thanks to Pariksheet Nanda (omsai on Github) for finding an update for our
     filename cleanups.  They now handle m4a filetypes.
+  * Added support for storing configuration files in either $HOME/.podget, 
+    $XDG_CONFIG_HOME/podget, or $HOME/.config/podget so that we are more in 
+	alignment with the XDG Base Directory Specification. Thanks to jeffgazso
+	(on Github) for reporting the issue.
 
 
 podget (0.8.10) unstable; urgency=low
