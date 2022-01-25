@@ -143,13 +143,30 @@ HELP_STEXT
 # Defaults                                                                                                                       {{{
 
      #########################################################################################################################
-     ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
+     ## Do not configure here.  Run podget once to install default user configuration files and edit there. ##
      #########################################################################################################################
 
 # Set DIR_LIBRARY, DIR_SESSION, and DIR_LOG  in config file.
-DIR_CONFIG="${HOME}/.podget"
 CONFIG_CORE="podgetrc"
 CONFIG_SERVERLIST="serverlist"
+
+# Configuration Directory:
+# This used to be stored by default in the base of the users home directory.
+#DIR_CONFIG="${HOME}/.podget"
+#
+# However we've update Podget to use three possible locations to help reduce clutter in the home directory.
+# For locations are:
+#   1.  ${HOME}/.podget
+#   2.  ${XDG_CONFIG_HOME}/podget
+#   3.  ${HOME}/.config/podget
+# For existing users, when Podget runs it will test all three in that order.  The first one it finds will become the
+# default configuration directory.
+#
+# For new users, Podget will attempt to use XDG_CONFIG_HOME but if that is not set will fallback to ${HOME}/.config/podget
+#
+# To enable this, set DIR_CONFIG to "UNSET-use-DEFAULT"
+# Or you can still configure it to use any directory you want by configuring it here.
+DIR_CONFIG="UNSET-use-DEFAULT"
 
 # DEFAULT FILENAME_BADCHARS used to test the configuration filenames and then unset.  The value used later in the script may be
 # set in the configuration file.  If you have a genuine need to use one of these characters in the filenames of the serverlist or
@@ -1518,15 +1535,88 @@ unset FILENAME_BADCHARS
 # ----------------------------------------------------------------------------------------------------------------------------------
 # CONFIG TEST PART 1 of 4: Test for existing DIR_CONFIG, if missing create it and install CONFIG_CORE                            {{{
 
-if [[ ! -d ${DIR_CONFIG} ]] ; then
-    echo "  Configuration directory not found.  Creating \"${DIR_CONFIG}\""
-    mkdir "${DIR_CONFIG}"
-    EXITSTATUS=$?
-    if (( EXITSTATUS != 0 )); then
-        printf '%-30s %s' "Error:" "Failed to create \"${DIR_CONFIG}\""
-        CLEANUP_AND_EXIT 1
+#if [[ ! -d ${DIR_CONFIG} ]] ; then
+#    echo "  Configuration directory not found.  Creating \"${DIR_CONFIG}\""
+#    mkdir "${DIR_CONFIG}"
+#    EXITSTATUS=$?
+#    if (( EXITSTATUS != 0 )); then
+#        printf '%-30s %s' "Error:" "Failed to create \"${DIR_CONFIG}\""
+#        CLEANUP_AND_EXIT 1
+#    fi
+#    INSTALL_SESSION=1
+#fi
+
+if [[ "${DIR_CONFIG}" == "UNSET-use-DEFAULT" ]]; then
+    if (( DEBUG == 1 )) ; then
+        printf '%s %s\n\n' "${DEBUG_LEADER}" "DIR_CONFIG is not configured, checking for other possible locations"
+        echo
     fi
-    INSTALL_SESSION=1
+    DIR_CONFIG_NAME="podget"
+
+    if [[ -d "${HOME}/.${DIR_CONFIG_NAME}" ]]; then
+        if (( DEBUG == 1 )) ; then
+            printf '%s %s\n\n' "${DEBUG_LEADER}" ""
+            echo
+        fi
+        echo "HOME/.${DIR_CONFIG_NAME} exists!"
+        DIR_CONFIG="${HOME}/.${DIR_CONFIG_NAME}"
+    elif [[ -n ${XDG_CONFIG_HOME+set} && -d "${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}" ]]; then
+        if (( DEBUG == 1 )) ; then
+            printf '%s %s\n\n' "${DEBUG_LEADER}" "XDG_CONFIG_HOME is set and '${DIR_CONFIG_NAME}' exists within it"
+            echo
+        fi
+        DIR_CONFIG="${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
+    elif [[ -d "${HOME}/.config" && -d "${HOME}/.config/${DIR_CONFIG_NAME}" ]]; then
+        if (( DEBUG == 1 )) ; then
+            printf '%s %s\n\n' "${DEBUG_LEADER}" "HOME/.config exists and '${DIR_CONFIG_NAME}' exists within it"
+            echo
+        fi
+        DIR_CONFIG="${HOME}/.config/${DIR_CONFIG_NAME}"
+    else
+        if (( DEBUG == 1 )) ; then
+            printf '%s %s\n\n' "${DEBUG_LEADER}" ""
+            echo
+        fi
+        if (( DEBUG == 1 )) ; then
+            printf '%s %s\n\n' "${DEBUG_LEADER}" "'${DIR_CONFIG_NAME}' directory does not exist in any of the likely locations."
+            echo
+        fi
+        if [[ -n ${XDG_CONFIG_HOME+set} ]]; then
+            if [[ -d "${XDG_CONFIG_HOME}" ]]; then
+                mkdir "${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
+                EXITSTATUS=$?
+                if (( EXITSTATUS != 0 )); then
+                    printf '%-30s %s' "Error:" "Error creating directory: ${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
+                    CLEANUP_AND_EXIT 1
+                fi
+                DIR_CONFIG="${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
+            else
+                printf '%-30s %s' "Error:" "Error: XDG_CONFIG_HOME directory does not exist ('${XDG_CONFIG_HOME}')"
+                CLEANUP_AND_EXIT 1
+            fi
+        else
+            if [[ ! -d "${HOME}/.config/${DIR_CONFIG_NAME}" ]]; then
+                mkdir -p "${HOME}/.config/${DIR_CONFIG_NAME}"
+                EXITSTATUS=$?
+                if (( EXITSTATUS != 0 )); then
+                    printf '%-30s %s' "Error:" "Error creating directory: ${HOME}/.config/${DIR_CONFIG_NAME}"
+                    CLEANUP_AND_EXIT 1
+                fi
+                DIR_CONFIG="${HOME}/.config/${DIR_CONFIG_NAME}"
+            fi
+        fi
+        INSTALL_SESSION=1
+    fi
+else
+    if [[ ! -d "${DIR_CONFIG}" ]]; then
+        mkdir -p "${DIR_CONFIG}"
+        EXITSTATUS=$?
+        if (( EXITSTATUS != 0 )); then
+            printf '%-30s %s' "Error:" "Error creating directory: ${DIR_CONFIG}"
+            CLEANUP_AND_EXIT 1
+        fi
+        INSTALL_SESSION=1
+    fi
 fi
 
 # Exit if set to --create-config
