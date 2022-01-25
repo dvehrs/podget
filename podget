@@ -1426,30 +1426,30 @@ CMDL_FORCE=0
 
 while (( $# >= 1 )); do
 	case ${1} in
-        -c | --config               ) CONFIG_CORE=${2:-NONE}                            ; shift ; shift           ;;
-             --create-config        ) CONFIG_CORE=${2:-NONE}; CMDL_CREATECONFIG=1       ; shift ; shift           ;;
+        -c | --config               ) CONFIG_CORE=${2:-NONE}                            ; shift ; shift || :      ;;
+             --create-config        ) CONFIG_CORE=${2:-NONE}; CMDL_CREATECONFIG=1       ; shift ; shift || :      ;;
         -C | --cleanup              ) CLEANUP_ONLY=1 ; CLEANUP=1                        ; shift                   ;;
-        --cleanup_days              ) CMDL_CLEANUP_DAYS=${2:-NONE}                      ; shift ; shift           ;;
+        --cleanup_days              ) CMDL_CLEANUP_DAYS=${2:-NONE}                      ; shift ; shift || :      ;;
         --cleanup_simulate          ) CMDL_CLEANUP_SIMULATE=1 ; CLEANUP_ONLY=1 ; CLEANUP=1 ; shift                ;;
-        -d | --dir_config           ) DIR_CONFIG=${2:-NONE}                             ; shift ; shift           ;;
-             --dir_session          ) CMDL_SESSION=${2:-NONE}                           ; shift ; shift           ;;
+        -d | --dir_config           ) DIR_CONFIG=${2:-NONE}                             ; shift ; shift || :      ;;
+             --dir_session          ) CMDL_SESSION=${2:-NONE}                           ; shift ; shift || :      ;;
         -f | --force                ) CMDL_FORCE=1                                      ; shift                   ;;
-             --import_opml          ) IMPORT_OPML=${2:-NONE}                            ; shift ; shift           ;;
-             --export_opml          ) EXPORT_OPML=${2:-NONE}                            ; shift ; shift           ;;
-             --import_pcast         ) IMPORT_PCAST=${2:-NONE}                           ; shift ; shift           ;;
-        -l | --library              ) CMDL_LIBRARY=${2:-NONE}                           ; shift ; shift           ;;
+             --import_opml          ) IMPORT_OPML=${2:-NONE}                            ; shift ; shift || :      ;;
+             --export_opml          ) EXPORT_OPML=${2:-NONE}                            ; shift ; shift || :      ;;
+             --import_pcast         ) IMPORT_PCAST=${2:-NONE}                           ; shift ; shift || :      ;;
+        -l | --library              ) CMDL_LIBRARY=${2:-NONE}                           ; shift ; shift || :      ;;
         -n | --no-playlist          ) CMDL_NOPLAYLIST=1                                 ; shift                   ;;
         -p | --playlist-asx         ) CMDL_ASX=1                                        ; shift                   ;;
              --playlist-per-podcast ) CMDL_PLAYLISTPERPODCAST=1                         ; shift                   ;;
-        -r | --recent               ) CMDL_MOSTRECENT=${2:-NONE}                        ; shift ; shift           ;;
-             --serverlist           ) CMDL_SERVERLIST=${2:-NONE}                        ; shift ; shift           ;;
+        -r | --recent               ) CMDL_MOSTRECENT=${2:-NONE}                        ; shift ; shift || :      ;;
+             --serverlist           ) CMDL_SERVERLIST=${2:-NONE}                        ; shift ; shift || :      ;;
         -s | --silent               ) VERBOSITY=0                                       ; shift                   ;;
         -V | --version              ) VERBOSITY=2 ; REPORT_VERSION=1                    ; shift                   ;;
 		-v                          ) VERBOSITY=1                                       ; shift                   ;;
 		-vv                         ) VERBOSITY=2                                       ; shift                   ;;
 		-vvv                        ) VERBOSITY=3                                       ; shift                   ;;
 		-vvvv                       ) VERBOSITY=4                                       ; shift                   ;;
-        --verbosity                 ) VERBOSITY=${2:-NONE}                                 ; shift ; shift           ;;
+        --verbosity                 ) VERBOSITY=${2:-NONE}                                 ; shift ; shift || :   ;;
 		*                           ) display_shelp                         ; CLEANUP_AND_EXIT ${ERR_DISPLAYHELP} ;;
 	esac
 done
