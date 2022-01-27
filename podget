@@ -1214,11 +1214,11 @@ FILTER_OPTIONS() {
 
     # Remove any residual leading whitespace from ${!FILTER_ITEM}
 #    eval "${FILTER_ITEM}=\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
-    printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM#${!FILTER_ITEM%%[![:space:]]*}}"
+    printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM#"${!FILTER_ITEM%%[![:space:]]*}"}"
 
     # Remove any residual trailing whitespace from ${!FILTER_ITEM}
 #    eval "${FILTER_ITEM}=\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
-    printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM%${!FILTER_ITEM##*[![:space:]]}}"
+    printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM%"${!FILTER_ITEM##*[![:space:]]}"}"
 
     # No_Category, or blank item handling.
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
@@ -2084,7 +2084,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
                 for index in "${!WGET_OPTIONS[@]}"; do
                     if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
-                        unset WGET_OPTIONS["${index}"]
+                        unset 'WGET_OPTIONS['"${index}"']'
                         WGET_OPTION_DISPOSITION=1
                         if (( DEBUG == 1 )) ; then
                             echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
@@ -2165,7 +2165,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 for index in "${!WGET_OPTIONS[@]}"; do
                     # if --no-check-certificate has been set before, remove it.
                     if [[ ${WGET_OPTIONS[${index}]} == "--no-check-certificate" ]]; then
-                        unset WGET_OPTIONS["${index}"]
+                        unset 'WGET_OPTIONS['"${index}"']'
                     fi
                 done
                 WGET_OPTIONS+=("--no-check-certificate")
@@ -2176,7 +2176,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 for index in "${!WGET_OPTIONS[@]}"; do
                     # if --prefer-family has been set before, remove it.
                     if [[ ${WGET_OPTIONS[${index}]} =~ --prefer-family=IPv[46] ]]; then
-                        unset WGET_OPTIONS["${index}"]
+                        unset 'WGET_OPTIONS['"${index}"']'
                     fi
                 done
                 case "${WGET_OPTION_PREFER_IP_TYPE}" in

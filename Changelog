@@ -1,9 +1,15 @@
   * Thanks to Pariksheet Nanda (omsai on Github) for finding an update for our
     filename cleanups.  They now handle m4a filetypes.
-  * Added support for storing configuration files in either $HOME/.podget, 
-    $XDG_CONFIG_HOME/podget, or $HOME/.config/podget so that we are more in 
+  * Added support for storing configuration files in either $HOME/.podget,
+    $XDG_CONFIG_HOME/podget, or $HOME/.config/podget so that we are more in
 	alignment with the XDG Base Directory Specification. Thanks to jeffgazso
 	(on Github) for reporting the issue.
+  * During command line option parsing, added "|| :" to second shift for some
+    options to bypass error generated when option was last on a line with no
+	value specified.
+  * Fixed quoting of a few unset commands to address Shellcheck SC2184
+  * Added quotes inside a ${} variable to prevent pattern matching, addressing
+    Shellcheck SC2295
 
 
 podget (0.8.10) unstable; urgency=low
