@@ -1555,10 +1555,9 @@ if [[ "${DIR_CONFIG}" == "UNSET-use-DEFAULT" ]]; then
 
     if [[ -d "${HOME}/.${DIR_CONFIG_NAME}" ]]; then
         if (( DEBUG == 1 )) ; then
-            printf '%s %s\n\n' "${DEBUG_LEADER}" ""
+            printf '%s %s\n\n' "${DEBUG_LEADER}" "HOME/.${DIR_CONFIG_NAME} exists!"
             echo
         fi
-        echo "HOME/.${DIR_CONFIG_NAME} exists!"
         DIR_CONFIG="${HOME}/.${DIR_CONFIG_NAME}"
     elif [[ -n ${XDG_CONFIG_HOME+set} && -d "${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}" ]]; then
         if (( DEBUG == 1 )) ; then
