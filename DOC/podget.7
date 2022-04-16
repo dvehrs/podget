@@ -145,45 +145,51 @@ Import server from iTunes PCAST file or HTTP/FTP URL.
 
 .RE
 
-.SH INITIAL CONFIGURATION
+.SH CONFIGURATION FILES
 
-The first time a user runs podget, it will create a configuration directory ($HOME/.podget).  In this directory, it will install a default configuration file and serverlist.  It will attempt to download a single file from the single server configured on the list to verify that everything is working.  After this initial run, it is ready for the user to customize for their use.
+.SS INITIAL CONFIGURATION
 
-.SH EXAMPLE CRON JOB
+The first time a user runs podget, it will create a configuration directory.  In this directory, it will install a default configuration file (podgetrc) and serverlist.  It will attempt to download a single file from the single server configured on the list to verify that everything is working.  After this initial run, it is ready for the user to customize for their use.
 
-Once podget\ is running correctly, it's most useful if you run it from a cron job so that the new episodes are available to play or load onto a portable player and you don't have to wait for them to download.
-.PP
-To edit your crontab, do:
+Where this configuration directory is automatically placed is dependent upon the version of Podget that you used when you first ran it.
+
+For version 0.8.10 and before:
+.RS
+$HOME/.podget
+.RE
+
+For later versions:
+.RS
+If $XDG_CONFIG_HOME is set then it will be placed in:  $XDG_CONFIG_HOME/podget
+.RE
+.RS
+IF unset, then it will be placed in: $HOME/.config/podget
+.RE
+
+If a user wants to clean up their $HOME directory by moving their existing configuration directory to either of the new locations, it can be done but it is necessary to remember to remove the leading period so it is no longer a hidden directory.
+.RS
+Example:  mv $HOME/.podget $HOME/.config/podget
+.RE
+
+These locations can be overridden by the use of the --dir_config or -d options when you run podget.
+
+.SS WHICH CONFIGURATION DIRECTORY IS USED
+
+Since there are at least three possible locations for the configuration directory then it is necessary to know which one podget will use.  To keep things simple, it uses the first one it finds and tests in the following order:
 .PP
 .nf
 .fam C
-  $ crontab \-e
+  1.  $HOME/.podget
+  2.  $XDG_CONFIG_HOME/podget
+  3.  $HOME/.config/podget
 .fam T
 .fi
 
-Then add one line similar to this example:
-.PP
-.nf
-.fam C
-  15 04 * * * /usr/bin/podget \-s
-.fam T
-.fi
+This location testing is skipped by the use of the --dir_config or -d options.
 
-This will run podget at 4:15 AM every day.
+.SS AUTOMATIC CLEANUP
 
-In some cases, you might need to add a few directories to your PATH variable so that Podget can find everything it needs.
-
-Then the job might look like:
-.PP
-.nf
-.fam C
-  15 04 * * * PATH=/opt/local/bin:/usr/local/bin:$PATH /usr/bin/podget \-s
-.fam T
-.fi
-
-.SH AUTOMATIC CLEANUP
-
-You can enable automatic cleanup with every run by configuring it in your $HOME/.podget/podgetrc file. Simply set the following options:
+You can enable automatic cleanup with every run by configuring it in your podgetrc file. Simply set the following options:
 .PP
 .nf
 .fam C
@@ -223,7 +229,7 @@ Then add something similar to this example to your crontab:
 .fam T
 .fi
 
-.SH MULTIPLE CONCURRENT SESSIONS
+.SS MULTIPLE CONCURRENT SESSIONS
 
 Podget checks for sessions using the same core configuration file that may already be running when it starts and exits if any are found.  This insures that any long running sessions are not interrupted by new ones.
 
@@ -238,7 +244,7 @@ Example Crontab configuration:
 .fam T
 .fi
 
-.SH SEQUENTIAL SESSIONS
+.SS SEQUENTIAL SESSIONS
 
 Sometimes, you have feed lists that use the same configuration but you wish to keep separate.  There are two ways to handle this.
 
@@ -261,7 +267,7 @@ The second option is to place them into a shell script so they are called sequen
 .fam T
 .fi
 
-.SH ENABLING DEBUG OUTPUT
+.SS ENABLING DEBUG OUTPUT
 
 Debug output can be enabled in two ways.
 .PP
@@ -281,9 +287,9 @@ Simply execute podget like so:
 You can enable other options as well if you need to but for debugging purposes, 
 it is highly recommended that you enabled as much verbosity as possible.
 
-.SH SERVER LIST CONFIGURATION
+.SS SERVER LIST CONFIGURATION
 
-By default, Podget uses $HOME/.podget/serverlist for the default list of servers to contact. However you can configure the name with the config_serverlist variable in your $HOME/.podget/podgetrc file.
+By default, Podget uses serverlist for the default list of servers to contact. However you can configure the name with the config_serverlist variable in your podgetrc file.
 
 Feeds are listed one per line in the serverlist file.
 
@@ -454,18 +460,51 @@ Examples:
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_LANG="(en|es|fr)"
  http://somesite.com/feed CATEGORY Feed Name ATOM_FILTER_TYPE="audio/mpeg" ATOM_FILTER_LANG="en"
 
-.SH HANDLING UTF-16 FEEDS
+.SS HANDLING UTF-16 FEEDS
 .PP
 Some servers provide their feeds in UTF-16 format rather than the more common UTF-8.
 .PP
-To automatically convert these files, create a secondary serverlist at:
+To automatically convert these files, create a secondary serverlist in your configuration directory:
 .PP
 .nf
 .fam C
-        $HOME/.podget/serverlist.utf16
+        serverlist.utf16
 
 .fam T
 .fi
 Remember to change the name of the serverlist to match what you set it to with config_serverlist if you changed it.
+
+.SH EXAMPLE CRON JOB
+
+Once podget\ is running correctly, it's most useful if you run it from a cron job so that the new episodes are available to play or load onto a portable player and you don't have to wait for them to download.
+.PP
+To edit your crontab, do:
+.PP
+.nf
+.fam C
+  $ crontab \-e
+.fam T
+.fi
+
+Then add one line similar to this example:
+.PP
+.nf
+.fam C
+  15 04 * * * /usr/bin/podget \-s
+.fam T
+.fi
+
+This will run podget at 4:15 AM every day.
+
+In some cases, you might need to add a few directories to your PATH variable so that Podget can find everything it needs.
+
+Then the job might look like:
+.PP
+.nf
+.fam C
+  15 04 * * * PATH=/opt/local/bin:/usr/local/bin:$PATH /usr/bin/podget \-s
+.fam T
+.fi
+
 .SH AUTHORS
 Dave Vehrs
