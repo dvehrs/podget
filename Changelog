@@ -1,3 +1,5 @@
+podget (0.9.0) unstable; urgency=low
+
   * Thanks to Pariksheet Nanda (omsai on Github) for finding an update for our
     filename cleanups.  They now handle m4a filetypes.
   * Added support for storing configuration files in either $HOME/.podget,
@@ -11,6 +13,7 @@
   * Added quotes inside a ${} variable to prevent pattern matching, addressing
     Shellcheck SC2295
 
+ -- Dave Vehrs <dvehrs@gmail.com> Tue, 19 Apr 2022 11:12:06 -0600
 
 podget (0.8.10) unstable; urgency=low
 
