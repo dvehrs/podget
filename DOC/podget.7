@@ -1,5 +1,5 @@
 .\" Hand Tweaked Man Page.
-.TH podget 7 "16 April 2022" "" ""
+.TH podget 7 "19 April 2022" "" ""
 
 .SH NAME
 .B Podget 
@@ -147,9 +147,30 @@ Import server from iTunes PCAST file or HTTP/FTP URL.
 
 .SH CONFIGURATION FILES
 
-.SS INITIAL CONFIGURATION
+By default, Podget relies on two configuration files.
 
-The first time a user runs podget, it will create a configuration directory.  In this directory, it will install a default configuration file (podgetrc) and serverlist.  It will attempt to download a single file from the single server configured on the list to verify that everything is working.  After this initial run, it is ready for the user to customize for their use.
+.RE
+
+.TP
+.I podgetrc
+This is a file with most options for how Podget should run.
+
+If it is required to run podget with different options for certain feeds, then additional configuration files can be created and used with the --config or -c option.  When this option is run with a new filename that does not exist yet, the file is created with default options that can then be customized as necessary.
+
+.TP
+.I serverlist
+This is a file of all the feeds that Podget should monitor and download from.
+
+If you need to separate your feeds into multiple lists, then additional files can be created with the --serverlist option.  When this option is 
+run with a new filename that does not exist yet, the file is created with a default list of a single feed.  Whenever a new list is created, Podget will download a single item from the single feed included by default to verify that everything is working.
+
+For a description of the options available for this file, please refer to the SERVER LIST CONFIGURATION section of this document.
+
+.RS
+
+.SS USER CONFIGURATION DIRECTORY
+
+The first time a user runs podget, it will create a configuration directory.  In this directory, it will install the default configuration files.
 
 Where this configuration directory is automatically placed is dependent upon the version of Podget that you used when you first ran it.
 
@@ -171,11 +192,11 @@ If a user wants to clean up their $HOME directory by moving their existing confi
 Example:  mv $HOME/.podget $HOME/.config/podget
 .RE
 
-These locations can be overridden by the use of the --dir_config or -d options when you run podget.
+These locations can be overridden by the use of the --dir_config or -d option when you run podget.
 
 .SS WHICH CONFIGURATION DIRECTORY IS USED
 
-Since there are at least three possible locations for the configuration directory then it is necessary to know which one podget will use.  To keep things simple, it uses the first one it finds and tests in the following order:
+Since there are at least three possible locations for the configuration directory then it is necessary to know which one podget will use.  To keep things simple, Podget uses the first one it finds and tests in the following order:
 .PP
 .nf
 .fam C
@@ -185,7 +206,7 @@ Since there are at least three possible locations for the configuration director
 .fam T
 .fi
 
-This location testing is skipped by the use of the --dir_config or -d options.
+This location testing is skipped by the use of the --dir_config or -d option.
 
 .SS AUTOMATIC CLEANUP
 
