@@ -3,6 +3,9 @@ podget (0.9.0-1) unstable; urgency=medium
   [ Dave Vehrs ]
   * New Upstream release
 
+  [ Francois Marier ]
+  * Bump copyright years in debian/copyright.
+
  -- Dave Vehrs <dvehrs@gmail.com>  Tue, 19 Apr 2022 11:18:25 -0600
 
 podget (0.8.10-1) unstable; urgency=medium

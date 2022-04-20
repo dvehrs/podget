@@ -3,16 +3,20 @@ Upstream-Name: podget
 Source: https://github.com/dvehrs/podget/releases
 
 Files: *
-Copyright: 2005-2007, 2010-2020 Dave Vehrs <dvehrs@gmail.com>
-License: GPL-3.0+
-
-Files: SCRIPTS/v0.8.8/push-new-mp3.py3
-Copyright: 2021 Mike Webb
+Copyright: 2005-2007, 2010-2022 Dave Vehrs <dvehrs@gmail.com>
 License: GPL-3.0+
 
 Files: debian/*
-Copyright: 2007, 2013-2020 Dave Vehrs <dvehrs@gmail.com>
-           2015-2016, 2018-2021 Francois Marier <francois@debian.org>
+Copyright: 2007, 2013-2022 Dave Vehrs <dvehrs@gmail.com>
+           2015-2016, 2018-2022 Francois Marier <francois@debian.org>
+License: GPL-3.0+
+
+Files: SCRIPTS/PRE_0.7.0/podget-add-feed
+Copyright: 2009 Steven Black <yam655@gmail.com>
+License: GPL-3.0+
+
+Files: SCRIPTS/v0.8.5/pod2player.sh
+Copyright: 2017 Bruce Ingalls
 License: GPL-3.0+
 
 License: GPL-3.0+
