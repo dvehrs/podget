@@ -1137,7 +1137,6 @@ titleFixFormat() {
         fi
     fi
 
-
     # Test for title modifications.
     if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
@@ -2601,13 +2600,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
-                        INDEXFILE=$(echo "${INDEXFILE}" | head -n "${MOST_RECENT}")
+                        INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
                     else
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
-                        INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
+                        INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
                     fi
                 fi
 
@@ -2665,15 +2664,20 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                 # End of this while loop is at approximately line 2980
                 while read -r DATA; do
+                    # Check for blank line, if found just proceed to next line.
+                    if [[ -z "${DATA}" ]]; then
+                        continue
+                    fi
+
+                    # Divide URL and TITLE from DATA
+                    URL="${DATA%<Url-Title>*}"
+                    TITLE="${DATA#*<Url-Title>}"
+
                     if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
 
                         if (( VERBOSITY >= 2 )) ; then
                             echo
                         fi
-
-                        # Divide URL and TITLE from DATA
-                        URL="${DATA%<Url-Title>*}"
-                        TITLE="${DATA#*<Url-Title>}"
 
                         # Without the 'sed' statements.
                         URL_FILENAME="${URL##*/}"
