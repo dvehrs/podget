@@ -251,6 +251,9 @@ FEED_FULL_PLAYLIST=0
      ## Do not configure here.  Run podget once to install default user configuration files ($HOME/.podget) and edit there. ##
      #########################################################################################################################
 
+# Internal script defaults
+NEWLINE=$'\n'
+
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Text for default configuration files:                                                                                          {{{
@@ -1082,7 +1085,6 @@ filenameFixFormat() {
         fi
     fi
 
-
     # Test for filename modifications.
     if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
@@ -1096,6 +1098,59 @@ filenameFixFormat() {
     # Pass the modified filename back to the calling variable.
 #    eval "${VAR_RETURN}=${MODIFIED_FILENAME@Q}"
     printf -v "${VAR_RETURN}" '%s' "${MODIFIED_FILENAME}"
+
+    # close without error
+    return 0
+}
+
+# Function: titleFixFormat ${1} ${2}
+# Arguments:
+# ${1} == name of variable to hold return string
+# ${2} == string to fix the format of
+titleFixFormat() {
+    # variable to hold returned value.
+    local VAR_RETURN=${1}
+
+    # Filename to be modified.
+    # Set original value for title format fixes and character substitutions.
+    # Set according to what is passed as the second argument to function.
+    local MODIFIED_TITLE=${2}
+
+
+    if (( VERBOSITY >= 3 )) ; then
+       printf '%-30s %s\n' "ORIGINAL TITLE:" "${MODIFIED_TITLE}"
+    fi
+
+    if [[ "${MODIFIED_TITLE}" =~ .*"\&amp;".* ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE//\&amp;/\&}"
+#        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -e 's/\&amp;/\&/g')
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+        fi
+    fi
+
+    # Case insensitive BASH regex test followed by case insensitive replacement by sed.
+    if [[ "${MODIFIED_TITLE,,}" =~ "<![cdata[".*"]]>" ]]; then
+        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -n -e 's/<!\[cdata\[\(.*\)]]>/\1/Ip')
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+        fi
+    fi
+
+
+    # Test for title modifications.
+    if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
+         # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+         # down to a single time.
+         MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+        if (( VERBOSITY >= 3 )) ; then
+            printf '%-30s %s\n' "MODIFIED FILENAME:" "${MODIFIED_TITLE}"
+        fi
+    fi
+
+    # Pass the modified filename back to the calling variable.
+#    eval "${VAR_RETURN}=${MODIFIED_FILENAME@Q}"
+    printf -v "${VAR_RETURN}" '%s' "${MODIFIED_TITLE}"
 
     # close without error
     return 0
@@ -1188,6 +1243,16 @@ FILTER_OPTIONS() {
         POST_WGET_RENAME_MDATE=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_RENAME_TITLETAG.*$ ]]; then
+        POST_WGET_RENAME_TITLETAG=1
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_RENAME_TITLETAG}"
+    fi
+
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_RENAME_REVTITLETAG.*$ ]]; then
+        POST_WGET_RENAME_REVTITLETAG=1
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_RENAME_REVTITLETAG}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)ATOM_FILTER_SIMPLE.*$ ]]; then
@@ -2118,6 +2183,16 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             POST_WGET_RENAME_MDATE=0
 
             if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_TITLETAG"
+            fi
+            POST_WGET_RENAME_TITLETAG=0
+
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_REVTITLETAG"
+            fi
+            POST_WGET_RENAME_REVTITLETAG=0
+
+            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset ATOM_FILTER_SIMPLE"
             fi
             ATOM_FILTER_SIMPLE=0
@@ -2311,10 +2386,68 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     echo
                 fi
                 # if file is RSS then we look for '<enclosure '
-                INDEXFILE=$(echo "${INDEXFILE}" | \
-                            sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
-                                         -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
-                                         -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
+                #    To debug a sed command and see how it flows use --debug option.
+                #    NOTES for sed command:
+                #       1.  -n       suppress automatic printing of pattern space
+                #       2.  -e :a    set label named 'a'
+                #       3.  -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
+                #                    Look for enclosure and url in pattern space.  If found, print the
+                #                    url value.  This version looks for when the HTML feed uses double quotes around
+                #                    the url value.
+                #                    Flags:
+                #                      I    Ignore case while searching
+                #                      p    Print only substituted line
+                #       4.  -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       5.  -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
+                #                    This command is here to catch when the HTML feed is using single quotes rather than double
+                #                    quotes.
+                #       6.  -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       7.  -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip'
+                #                    Looking for <title> tag and grabbing contents.
+                #       4.  -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       6.  -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}'
+                #                    this final command is to read the next line of the file into the pattern space.
+                #                    We use this for feeds where the url= portion does not appear on the same line as
+                #                    the enclosure start tag or when the closing title tag is not on the same line as
+                #                    the opening one.  After merging, we go back to label 'a'. Might need to add
+                #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
+#                INDEXFILE=$(echo "${INDEXFILE}" | \
+#                            sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+#                                         -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
+#                                         -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
+                INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                            sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                                         -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                         -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                                         -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
+                 # If TITLE tag appears after the ENCLOSURE tag in the file, reverse the order of list for parsing.
+                 if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
+                     INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
+                 fi
+                 # Merge TITLE AND URL lines onto single line divided by '<Url-Title>'
+                 while read -r TAG DATA; do
+                     case ${TAG} in
+                         "TITLE" )
+                             ITEM_TITLE="${DATA}"
+                             ;;
+                         "URL" )
+                             # with cleanup for URL (used to be called FINAL below ATOM section)
+                             ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
+                             INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE}${NEWLINE}"
+                             unset ITEM_TITLE ITEM_URL
+                             ;;
+                     esac
+                 done
+                 if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
+                     # Return INDEX to its default order
+                     INDEXFILE=$(echo "${INDEXFILE_TMP2}" | sed -n '1!G;h;$p')
+                 else
+                     # INDEX already in correct order.
+                     INDEXFILE="${INDEXFILE_TMP2}"
+                 fi
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
                 if (( DEBUG == 1 )) ; then
                     printf '%s %s\n' "${DEBUG_LEADER}" "Atom Feed Found"
@@ -2411,6 +2544,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                 # Get the URLs from each enclosure after filtering.
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip")
+                # final INDEXFILE cleanup options
+                INDEXFILE=$(echo "${INDEXFILE}" | \
+                            sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                            sed -e ':a;N;$!ba;s/\n/ /g')
+
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
                 # if Feed is neither RSS or Atom, add URL to LOG_FAIL
@@ -2418,16 +2556,18 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 continue
             fi
 
-            # final INDEXFILE cleanup options
-            INDEXFILE=$(echo "${INDEXFILE}" | \
-                        sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
-                        sed -e ':a;N;$!ba;s/\n/ /g')
+## Since this final cleanup is just for the URL part of the line, we need to move this before the combined url/title line is created
+#            # final INDEXFILE cleanup options
+#            INDEXFILE=$(echo "${INDEXFILE}" | \
+#                        sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+#                        sed -e ':a;N;$!ba;s/\n/ /g')
 
             if [[ -n ${INDEXFILE} ]]; then
 
                 # Remove any error log entries for the FEED_URL if it failed before
                 REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
+### Recent will need to change when we go by lines instead of one long line with items separated by spaces.
 
                 # TODO:  Add choice here to get most recent from beginning or end of INDEXFILE
                 #        Possibly with -> echo ${INDEXFILE} | rev | cut -d \  -f -"${MOST_RECENT}" | rev
@@ -2438,56 +2578,102 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 #            IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
                 #          Move back to Index
                 #            INDEXFILE="${TEMP_ARRAY[@]: -${MOST_RECENT}}"
+#                if (( MOST_RECENT > 0 )) ; then
+#                    if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
+#                        if (( DEBUG == 1 )) ; then
+#                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
+#                        fi
+#                        FULLINDEXFILE="${INDEXFILE}"
+#                        IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
+#                        INDEXFILE="${TEMP_ARRAY[*]: -${MOST_RECENT}}"
+#                    else
+#                        if (( DEBUG == 1 )) ; then
+#                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
+#                        fi
+#                        FULLINDEXFILE="${INDEXFILE}"
+#                        INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
+#                    fi
+#                fi
+
                 if (( MOST_RECENT > 0 )) ; then
                     if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
-                        IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
-                        INDEXFILE="${TEMP_ARRAY[*]: -${MOST_RECENT}}"
+                        INDEXFILE=$(echo "${INDEXFILE}" | head -n "${MOST_RECENT}")
                     else
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
-                        INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
+                        INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
                     fi
                 fi
+
+#                if (( DEBUG == 1 )) ; then
+#                    if (( MOST_RECENT > 0 )) ; then
+#                        printf '%s %s\n' "${DEBUG_LEADER}" "Full Index List:"
+#                        URLCOUNT=0
+#                        for URL in ${FULLINDEXFILE}; do
+#                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+#                            URLCOUNT=$((URLCOUNT+1))
+#                        done
+#                        printf '%s %s\n' "${DEBUG_LEADER}" "Modified Index List:"
+#                        URLCOUNT=0
+#                        for URL in ${INDEXFILE}; do
+#                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+#                            URLCOUNT=$((URLCOUNT+1))
+#                        done
+#                        unset URLCOUNT
+#                    else
+#                        printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
+#                        URLCOUNT=0
+#                        for URL in ${INDEXFILE}; do
+#                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+#                            URLCOUNT=$((URLCOUNT+1))
+#                        done
+#                        unset URLCOUNT
+#                    fi
+#                fi
 
                 if (( DEBUG == 1 )) ; then
                     if (( MOST_RECENT > 0 )) ; then
                         printf '%s %s\n' "${DEBUG_LEADER}" "Full Index List:"
                         URLCOUNT=0
-                        for URL in ${FULLINDEXFILE}; do
-                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+                        while read -r DATA; do
+                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
-                        done
+                        done <<<"${FULLINDEXFILE}"
                         printf '%s %s\n' "${DEBUG_LEADER}" "Modified Index List:"
                         URLCOUNT=0
-                        for URL in ${INDEXFILE}; do
-                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+                        while read -r DATA; do
+                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
-                        done
+                        done <<<"${INDEXFILE}"
                         unset URLCOUNT
                     else
                         printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
                         URLCOUNT=0
-                        for URL in ${INDEXFILE}; do
+                        while read -r DATA; do
                             printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
                             URLCOUNT=$((URLCOUNT+1))
-                        done
+                        done <<<"${INDEXFILE}"
                         unset URLCOUNT
                     fi
                 fi
 
-                for URL in ${INDEXFILE}
-                do
+                # End of this while loop is at approximately line 2980
+                while read -r DATA; do
                     if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
 
                         if (( VERBOSITY >= 2 )) ; then
                             echo
                         fi
+
+                        # Divide URL and TITLE from DATA
+                        URL="${DATA%<Url-Title>*}"
+                        TITLE="${DATA#*<Url-Title>}"
 
                         # Without the 'sed' statements.
                         URL_FILENAME="${URL##*/}"
@@ -2849,7 +3035,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         echo "${DEBUG_LEADER} Clear File Vars"
                     fi
                     unset URL_FILENAME
-                done
+                done <<< "${INDEXFILE}"
 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
 
