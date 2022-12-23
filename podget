@@ -2673,6 +2673,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     URL="${DATA%<Url-Title>*}"
                     TITLE="${DATA#*<Url-Title>}"
 
+                    # Safety check:  if ${DATA} does not contain '<Url-Title>'
+                    if [[ "${URL}" == "${TITLE}" ]]; then
+                        TITLE=""
+                    fi
+
                     if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
 
                         if (( VERBOSITY >= 2 )) ; then
