@@ -724,8 +724,16 @@ DIRECTORY_CHECK() {
         while (( TEST_FAIL != 0 )); do
             if (( (8<=TEST_FAIL) && (TEST_FAIL<=150) )); then
                 COUNT=$((COUNT+1))
-                echo "  ${COUNT}. '\\000' cannot be used in directory names as mkdir expects"
-                echo "     to get a null terminated string and '\\000' is considered 'end of string'."
+                # Shellcheck does not like the backslash being escaped here as part of an echo statement (SC2028)
+                # There is an open issue on github for it but some people think it is appropriate as "info".
+                #   (https://github.com/koalaman/shellcheck/issues/2486)
+                #
+                # Attempting to use printf here as recommended by Shellcheck.  Seems unnecessary but that's how
+                # the game is played.
+                printf "  %s. '\\000' cannot be used in directory names as mkdir expects\n" "${COUNT}"
+                # echo "  ${COUNT}. '\\000' cannot be used in directory names as mkdir expects"
+                printf "     to get a null terminated string and '\\000' is considered 'end of string'.\n"
+                # echo "     to get a null terminated string and '\\000' is considered 'end of string'."
 
                 if (( TEST_FAIL >= 8 )); then
                     TEST_FAIL=$((TEST_FAIL-8))
@@ -768,6 +776,9 @@ DIRECTORY_CHECK() {
 
 }
 
+# The commands of this function will trigger Shellcheck SC2317 (Command appears to be unreachable)
+# because the function is called from a trap so we can ignore this message.
+# shellcheck disable=SC2317
 EXIT_ERROR() {
   # Name of script
   local JOB_NAME
@@ -1393,6 +1404,9 @@ REMOVE_URL() {
     sed -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
 }
 
+# The commands of this function will trigger Shellcheck SC2317 (command appears to be unreachable)
+# because I never actually use this function but keep it here for historical reasons.
+# shellcheck disable=SC2317
 COMPARE_StringInString() {
     echo "Enter Compare ..."
     echo "1 == ${1}"
@@ -2715,6 +2729,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             if (( DEBUG == 1 )) ; then
                                 echo "${DEBUG_LEADER} FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
                             fi
+                        fi
+
+                        # Title format fixes and character substitutions.
+                        # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
+                        # variable.
+                        titleFixFormat MOD_TITLE "${TITLE}"
+                        if [[ -n "${MOD_TITLE}" ]]; then
+                            TITLE="${MOD_TITLE}"
                         fi
 
                         # If directories do not exist, then create them.
