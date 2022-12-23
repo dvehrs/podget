@@ -1159,7 +1159,6 @@ titleFixFormat() {
     fi
 
     # Pass the modified filename back to the calling variable.
-#    eval "${VAR_RETURN}=${MODIFIED_FILENAME@Q}"
     printf -v "${VAR_RETURN}" '%s' "${MODIFIED_TITLE}"
 
     # close without error
@@ -2963,6 +2962,30 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     fi
                                 fi
                             fi
+
+                            # Rename a file to title
+                            if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${TITLE}" ]]; then
+                                    if (( VERBOSITY >= 2 )); then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${TITLE}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${TITLE}"
+                                    FINAL_FILENAME="${TITLE}"
+                                else
+                                    if (( FORCE != 0 )); then
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${TITLE}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${TITLE}"
+                                        FINAL_FILENAME="${TITLE}"
+                                    else
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE PREVENTED [ ${TITLE} already exists ]"
+                                        fi
+                                    fi
+                                fi
+                            fi
+
 
                             # Rename file to start from modification date
                             if (( POST_WGET_RENAME_MDATE == 1 )); then
