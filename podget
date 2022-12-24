@@ -1154,7 +1154,7 @@ titleFixFormat() {
          # down to a single time.
          MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
         if (( VERBOSITY >= 3 )) ; then
-            printf '%-30s %s\n' "MODIFIED FILENAME:" "${MODIFIED_TITLE}"
+            printf '%-30s %s\n' "MODIFIED TITLE:" "${MODIFIED_TITLE}"
         fi
     fi
 
@@ -2452,7 +2452,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                              unset ITEM_TITLE ITEM_URL
                              ;;
                      esac
-                 done
+                 done <<<"${INDEXFILE_TMP}"
                  if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
                      # Return INDEX to its default order
                      INDEXFILE=$(echo "${INDEXFILE_TMP2}" | sed -n '1!G;h;$p')
@@ -2730,12 +2730,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                         fi
 
-                        # Title format fixes and character substitutions.
-                        # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
-                        # variable.
-                        titleFixFormat MOD_TITLE "${TITLE}"
-                        if [[ -n "${MOD_TITLE}" ]]; then
-                            TITLE="${MOD_TITLE}"
+                        if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
+                            # Title format fixes and character substitutions.
+                            # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
+                            # variable.
+                            titleFixFormat MOD_TITLE "${TITLE}"
+                            if [[ -n "${MOD_TITLE}" ]]; then
+                                TITLE="${MOD_TITLE}"
+                            fi
                         fi
 
                         # If directories do not exist, then create them.
