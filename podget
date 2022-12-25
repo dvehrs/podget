@@ -2613,13 +2613,22 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
-                        INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
+                        # Adding one to MOST_RECENT because we tend to have one blank line
+                        # at the end of our INDEXFILE
+                        MOST_RECENT=$((MOST_RECENT+1))
+                        INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
+                        # This can also be done with sed but MOST_RECENT needs to be incremented by 2 not 1
+                        # MOST_RECENT=$((MOST_RECENT+2))
+                        # INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e ':a' -e '$p;N;'"${MOST_RECENT}"',$D;ba')
                     else
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
                         fi
                         FULLINDEXFILE="${INDEXFILE}"
-                        INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
+                        # Attempting to use head here results in exit condition 141, but using the sed construct
+                        # below works.  Not sure why given that tail works above.
+                        # INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
+                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n '1,'"${MOST_RECENT}"'p')
                     fi
                 fi
 
@@ -2668,7 +2677,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
                         URLCOUNT=0
                         while read -r DATA; do
-                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
+                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
                         unset URLCOUNT
@@ -3096,8 +3105,23 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
 
                 if (( (MOST_RECENT != 0) && (INSTALL_SESSION == 0) )); then
-                    for URL in ${FULLINDEXFILE}
-                    do
+#                    for URL in ${FULLINDEXFILE}
+#                    do
+                    while read -r DATA; do
+                        # Check for blank line, if found just proceed to next line.
+                        if [[ -z "${DATA}" ]]; then
+                            continue
+                        fi
+
+                        # Divide URL and TITLE from DATA
+                        URL="${DATA%<Url-Title>*}"
+                        TITLE="${DATA#*<Url-Title>}"
+
+                        # Safety check:  if ${DATA} does not contain '<Url-Title>'
+                        if [[ "${URL}" == "${TITLE}" ]]; then
+                            TITLE=""
+                        fi
+
                         if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
                             URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
                             if (( VERBOSITY >= 2 )) ; then
@@ -3105,7 +3129,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
                         fi
-                    done
+                    done <<< "${FULLINDEXFILE}"
                 fi
 
                 # If doing individual playlists for each podcast Sort new playlist
