@@ -1132,6 +1132,14 @@ titleFixFormat() {
        printf '%-30s %s\n' "ORIGINAL TITLE:" "${MODIFIED_TITLE}"
     fi
 
+    if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
+        if (( DEBUG == 1 )) ; then
+            echo " ----- remove spaces"
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+        fi
+    fi
+
     if [[ "${MODIFIED_TITLE}" =~ .*"\&amp;".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE//\&amp;/\&}"
 #        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -e 's/\&amp;/\&/g')
@@ -2976,23 +2984,51 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                             # Rename a file to title
                             if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
-                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${TITLE}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${TITLE}"
+                                if [[ -n "${TITLE}" ]]; then
+                                    if (( DEBUG == 1 )); then
+                                        echo "${DEBUG_LEADER} Title with cleanup: ${TITLE}"
                                     fi
-                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${TITLE}"
-                                    FINAL_FILENAME="${TITLE}"
-                                else
-                                    if (( FORCE != 0 )); then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${TITLE}"
-                                        fi
-                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${TITLE}"
-                                        FINAL_FILENAME="${TITLE}"
+                                    # Get extension from downloaded filename
+                                    OLDEXT="${FINAL_FILENAME##*.}"
+                                    TITLEEXT="${TITLE##*.}"
+                                    # To protect against hidden filenames that end in a period ('.')
+                                    if [[ -z "${TITLEEXT}" ]]; then
+                                        TITLEEXT="${TITLE}"
+                                    fi
+                                    # If TITLE already has filename extension then do not add a second time,
+                                    # also check that OLDEXT
+                                    if [[ "${OLDEXT}" != "${TITLEEXT}" ]] && [[ -n "${OLDEXT}" ]]; then
+                                        # With pattern substitution to remove a trailing period from title before
+                                        # we add one for the extension.
+                                        FINAL_TITLE="${TITLE/%./}.${OLDEXT}"
                                     else
+                                        FINAL_TITLE="${TITLE}"
+                                    fi
+                                    if (( DEBUG == 1 )); then
+                                        echo "${DEBUG_LEADER} Title with extension: ${FINAL_TITLE}"
+                                    fi
+                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}" ]]; then
                                         if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${TITLE} already exists ]"
+                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
                                         fi
+                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
+                                        FINAL_FILENAME="${FINAL_TITLE}"
+                                    else
+                                        if (( FORCE != 0 )); then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
+                                            FINAL_FILENAME="${FINAL_TITLE}"
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ ${FINAL_TITLE} already exists ]"
+                                            fi
+                                        fi
+                                    fi
+                                else
+                                    if (( DEBUG == 1 )); then
+                                        echo "${DEBUG_LEADER} Title not set for this item"
                                     fi
                                 fi
                             fi
