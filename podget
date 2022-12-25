@@ -3105,8 +3105,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
 
                 if (( (MOST_RECENT != 0) && (INSTALL_SESSION == 0) )); then
-#                    for URL in ${FULLINDEXFILE}
-#                    do
+                    if (( DEBUG == 1 )); then
+                        echo "${DEBUG_LEADER} Marking additional files in Index as already downloaded (RECENT > 0)."
+                    fi
+                    # for URL in ${FULLINDEXFILE}
+                    # do
                     while read -r DATA; do
                         # Check for blank line, if found just proceed to next line.
                         if [[ -z "${DATA}" ]]; then
