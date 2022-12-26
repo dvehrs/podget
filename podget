@@ -1135,7 +1135,6 @@ titleFixFormat() {
     if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
         if (( DEBUG == 1 )) ; then
-            echo " ----- remove spaces"
             echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
         fi
     fi
@@ -2568,7 +2567,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 INDEXFILE=$(echo "${INDEXFILE}" | \
                             sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
                             sed -e ':a;N;$!ba;s/\n/ /g')
-
+                # Convert to new one item per line format. Once we figure out the best way to extract
+                # titles from we can convert or move this section as necessary.
+                INDEXFILE_TMP2=""
+                for ITEM_URL in ${INDEXFILE}; do
+                     INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${NEWLINE}"
+                done
+                # Set back to INDEXFILE
+                INDEXFILE="${INDEXFILE_TMP2}"
             else
                 echo "Feed is neither RSS, or Atom.  Skipping to next feed."
                 # if Feed is neither RSS or Atom, add URL to LOG_FAIL
