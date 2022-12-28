@@ -2933,6 +2933,10 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
         # This works with uniform whole days and isn't subject to when the cleanup is run.
         DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
         while IFS= read -r FILE; do
+            # Catch for when FILELIST is blank
+            if [[ -z "${FILE}" ]]; then
+                continue
+            fi
             if [[ "${FILE##/*/}" =~ ^${PLAYLIST_NAMEBASE}* ]]; then
                 # Compare global playlist file modification date with DATE_CLEAN2.  If file modification date is newer than
                 # DATE_CLEAN2 then we skip it.
