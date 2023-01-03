@@ -1139,7 +1139,9 @@ titleFixFormat() {
         fi
     fi
 
-    if [[ "${MODIFIED_TITLE}" =~ .*"\&amp;".* ]]; then
+    # Fix for ampersand (&) is interesting because the character will be removed by the default FILENAME_BADCHARS list.
+    # We include it here for people who remove the & from their FILENAME_BADCHARS.
+    if [[ "${MODIFIED_TITLE}" =~ .*"&amp;".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE//\&amp;/\&}"
 #        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -e 's/\&amp;/\&/g')
         if (( DEBUG == 1 )) ; then
@@ -2447,6 +2449,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                      INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
                  fi
                  # Merge TITLE AND URL lines onto single line divided by '<Url-Title>'
+                 INDEXFILE_TMP2=""
                  while read -r TAG DATA; do
                      case ${TAG} in
                          "TITLE" )
