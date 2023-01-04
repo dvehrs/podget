@@ -46,11 +46,13 @@ FreeBSD Dependencies and Install:
       - wget
       - coreutils
       - gsed
-      - gnustat
         gmake
       - ca_root_nss
           NOTE: pkg will be automatically installed the first time you attempt
                 to use it.
+      - gnustat
+          NOTE: When testing with FreeBSD 13.1, gnustat was part of the 
+                coreutils package and so did not require a separate install.
 
     Source Install:
       $ gmake
