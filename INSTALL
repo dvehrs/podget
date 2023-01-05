@@ -67,7 +67,7 @@ FreeBSD Dependencies and Install:
 NetBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
 
-    As root (or with doas) using pkg_add install:
+    As root (or with doas) using pkgin install:
       - bash (at least version 4.4)
       - wget
       - ca-certificates
