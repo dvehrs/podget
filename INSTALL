@@ -83,7 +83,7 @@ NetBSD Dependencies and Install:
       default configuration files into $HOME/.podget, edit
       them as needed.
 
-    Tested on: NetBSD 9.0 (GENERIC) #0 amd64
+    Tested on: NetBSD 9.3 (GENERIC) #0 amd64
 
 OpenBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
