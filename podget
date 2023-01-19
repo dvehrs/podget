@@ -964,13 +964,15 @@ filenameFixFormat() {
     # Set according to what is passed as the second argument to function.
     local MODIFIED_FILENAME=${2}
 
+    local ORIGINAL_FILENAME="${MODIFIED_FILENAME}"
+
 
     if [[ -n ${FILENAME_FORMATFIX+set}  || -n ${FILENAME_FORMATFIX2+set} || -n ${FILENAME_FORMATFIX3+set} ||
           -n ${FILENAME_FORMATFIX4+set} || -n ${FILENAME_FORMATFIX5+set} || -n ${FILENAME_FORMATFIX6+set} ||
           -n ${FILENAME_FORMATFIX7+set} || -n ${FILENAME_FORMATFIX8+set} || -n ${FILENAME_FORMATFIX9+set} ||
           -n ${FILENAME_FORMATFIX10+set} ]]; then
         if (( VERBOSITY >= 3 )) ; then
-           printf '%-30s %s\n' "ORIGINAL FILENAME:" "${MODIFIED_FILENAME}"
+           printf '%-30s %s\n' "ORIGINAL FILENAME:" "${ORIGINAL_FILENAME}"
         fi
     fi
 
@@ -1101,9 +1103,13 @@ filenameFixFormat() {
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
          # down to a single time.
          MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-        if (( VERBOSITY >= 3 )) ; then
-            printf '%-30s %s\n' "MODIFIED FILENAME:" "${MODIFIED_FILENAME}"
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
         fi
+    fi
+
+    if (( VERBOSITY >= 3 )) && [[ "${ORIGINAL_FILENAME}" != "${MODIFIED_FILENAME}" ]]; then
+        printf '%-30s %s\n' "MODIFIED FILENAME:" "${MODIFIED_FILENAME}"
     fi
 
     # Pass the modified filename back to the calling variable.
@@ -1127,9 +1133,10 @@ titleFixFormat() {
     # Set according to what is passed as the second argument to function.
     local MODIFIED_TITLE=${2}
 
+    local ORIGINAL_TITLE="${MODIFIED_TITLE}"
 
     if (( VERBOSITY >= 3 )) ; then
-       printf '%-30s %s\n' "ORIGINAL TITLE:" "${MODIFIED_TITLE}"
+       printf '%-30s %s\n' "ORIGINAL TITLE:" "${ORIGINAL_TITLE}"
     fi
 
     if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
@@ -1162,9 +1169,28 @@ titleFixFormat() {
          # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
          # down to a single time.
          MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-        if (( VERBOSITY >= 3 )) ; then
-            printf '%-30s %s\n' "MODIFIED TITLE:" "${MODIFIED_TITLE}"
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
         fi
+    fi
+
+    # After replacing characters, strings may start or end with the FILENAME_REPLACECHAR and look ugly.  Therefore we remove those
+    # here.
+    if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
+        if [[ ${MODIFIED_TITLE:0:1} == "${FILENAME_REPLACECHAR}" ]]; then
+            MODIFIED_TITLE="${MODIFIED_TITLE:1}"
+        fi
+        # Negative indices from the trailing end of the string require a space before the dash.
+        if [[ ${MODIFIED_TITLE: -1} == "${FILENAME_REPLACECHAR}" ]]; then
+            MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
+        fi
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+        fi
+    fi
+
+    if (( VERBOSITY >= 3 ))  && [[ "${ORIGINAL_TITLE}" != "${MODIFIED_TITLE}" ]]; then
+        printf '%-30s %s\n' "MODIFIED TITLE:" "${MODIFIED_TITLE}"
     fi
 
     # Pass the modified filename back to the calling variable.
