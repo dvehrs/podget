@@ -1503,6 +1503,13 @@ case "$uname" in
         else
             hash -p "$(hash -t gexpr)" expr
         fi
+        if ! hash gtr >/dev/null 2>&1; then
+            echo "GNU tr Required."
+            echo "Try 'brew install coreutils'  (see https://brew.sh for details)"
+            DARWIN_EXIT=1
+        else
+            hash -p "$(hash -t gtr)" tr
+        fi
         if ! hash gdate >/dev/null 2>&1; then
             echo "GNU Date Required."
             echo "Try 'brew install gdate'  (see https://brew.sh for details)"
@@ -1524,7 +1531,7 @@ case "$uname" in
     ;;
     "OpenBSD"|"NetBSD"|"FreeBSD")
         missing_counter=0
-        needed_commands=( gsed gexpr gdate )
+        needed_commands=( gsed gexpr gdate gtr )
         if [[ $uname == FreeBSD ]]; then
             needed_commands+=(gnustat)
         else
