@@ -164,8 +164,8 @@ CONFIG_SERVERLIST="serverlist"
 #
 # For new users, Podget will attempt to use XDG_CONFIG_HOME but if that is not set will fallback to ${HOME}/.config/podget
 #
-# To enable this, set DIR_CONFIG to "UNSET-use-DEFAULT"
-# Or you can still configure it to use any directory you want by configuring it here.
+# To use default configuration directory, set DIR_CONFIG to "UNSET-use-DEFAULT"
+# Or you can configure it to use any directory you want by configuring it here.
 DIR_CONFIG="UNSET-use-DEFAULT"
 
 # DEFAULT FILENAME_BADCHARS used to test the configuration filenames and then unset.  The value used later in the script may be
@@ -176,6 +176,10 @@ DIR_CONFIG="UNSET-use-DEFAULT"
 # This is a subset of the FILENAME_BADCHARS set in the default configuration file.  Many of the symbols that have been removed are
 # because they will cause other errors when used on the command line that prevent these checks from working.
 FILENAME_BADCHARS="~#^=+{}[]:\"'?\\"
+
+# Filename Replace Character: Character to use to replace any/all
+# bad characters found.
+FILENAME_REPLACECHAR=_
 
 # Default VERBOSITY
 #  0 == silent
@@ -213,9 +217,6 @@ FORCE=0
 
 # Install session.  This gets called when script is first installed.
 INSTALL_SESSION=0
-
-# Fix filenames for FAT32 compatibility
-MODIFY_FILENAME=0
 
 # Stop downloads if available space drops below
 MIN_SPACE=10000
@@ -964,6 +965,7 @@ filenameFixFormat() {
     # Set according to what is passed as the second argument to function.
     local MODIFIED_FILENAME=${2}
 
+    # ORIGINAL and MODIFIED start out the same.
     local ORIGINAL_FILENAME="${MODIFIED_FILENAME}"
 
 
@@ -1098,13 +1100,16 @@ filenameFixFormat() {
         fi
     fi
 
-    # Test for filename modifications.
-    if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
-         # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-         # down to a single time.
-         MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
+    # Test if BADCHARS set by variable
+    if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
+        # Test for BADCHARS in MODIFIED_FILENAME
+        if [[ ${MODIFIED_FILENAME} =~ ["${FILENAME_BADCHARS}"] ]]; then
+             # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+             # down to a single time.
+             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
+            fi
         fi
     fi
 
@@ -1133,6 +1138,7 @@ titleFixFormat() {
     # Set according to what is passed as the second argument to function.
     local MODIFIED_TITLE=${2}
 
+    # ORIGINAL and MODIFIED start out the same.
     local ORIGINAL_TITLE="${MODIFIED_TITLE}"
 
     if (( VERBOSITY >= 3 )) ; then
@@ -1164,26 +1170,30 @@ titleFixFormat() {
         fi
     fi
 
-    # Test for title modifications.
-    if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
-         # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-         # down to a single time.
-         MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-        if (( DEBUG == 1 )) ; then
+    # Test if BADCHARS set
+    if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
+        # Test for BADCHARS in MODIFIED_TITLE
+        if [[ ${MODIFIED_TITLE} =~ ["${FILENAME_BADCHARS}"] ]]; then
+            # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+            # down to a single time.
+            MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+            if (( DEBUG == 1 )) ; then
             echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+            fi
         fi
     fi
 
     # After replacing characters, strings may start or end with the FILENAME_REPLACECHAR and look ugly.  Therefore we remove those
     # here.
-    if [[ -n ${MODIFY_FILENAME} ]] && (( MODIFY_FILENAME > 0 )); then
-        if [[ ${MODIFIED_TITLE:0:1} == "${FILENAME_REPLACECHAR}" ]]; then
-            MODIFIED_TITLE="${MODIFIED_TITLE:1}"
+    if [[ ${MODIFIED_TITLE:0:1} == "${FILENAME_REPLACECHAR}" ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE:1}"
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
         fi
-        # Negative indices from the trailing end of the string require a space before the dash.
-        if [[ ${MODIFIED_TITLE: -1} == "${FILENAME_REPLACECHAR}" ]]; then
-            MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
-        fi
+    fi
+    # Negative indices from the trailing end of the string require a space before the dash.
+    if [[ ${MODIFIED_TITLE: -1} == "${FILENAME_REPLACECHAR}" ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
         if (( DEBUG == 1 )) ; then
             echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
         fi
@@ -1988,8 +1998,6 @@ if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
         printf '%-30s %s\n' "Filename Bad Characters:" "${FILENAME_BADCHARS}"
         printf '%-30s %s\n' "Filename Replace Character:" "${FILENAME_REPLACECHAR}"
     fi
-
-    MODIFY_FILENAME=1
 fi
 
 if (( VERBOSITY >= 3 )) ; then
