@@ -1183,16 +1183,24 @@ titleFixFormat() {
         fi
     fi
 
-    # After replacing characters, strings may start or end with the FILENAME_REPLACECHAR and look ugly.  Therefore we remove those
-    # here.
-    if [[ ${MODIFIED_TITLE:0:1} == "${FILENAME_REPLACECHAR}" ]]; then
+    if [[ ${MODIFIED_TITLE} =~ [/] ]]; then
+        # Replace forward slashes in titles with dash as the using a forward slash in a name is not POSIX compliant
+        MODIFIED_TITLE="${MODIFIED_TITLE//\//-}"
+        if (( DEBUG == 1 )) ; then
+            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+        fi
+    fi
+
+    # After replacing characters, strings may look ugly because they start or end with the FILENAME_REPLACECHAR or a dash.
+    # Therefore we remove those here.
+    if [[ ${MODIFIED_TITLE:0:1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE:1}"
         if (( DEBUG == 1 )) ; then
             echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
         fi
     fi
     # Negative indices from the trailing end of the string require a space before the dash.
-    if [[ ${MODIFIED_TITLE: -1} == "${FILENAME_REPLACECHAR}" ]]; then
+    if [[ ${MODIFIED_TITLE: -1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
         if (( DEBUG == 1 )) ; then
             echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
