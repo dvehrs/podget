@@ -1,3 +1,16 @@
+  * Added OPT_FILENAME_RENAME_TITLETAG to change name of downloaded file to
+    what was specified in the <TITLE> tag from the feed.  Included some basic
+    cleanup so it would be friendly to most filesystems.
+  * Updated NetBSD and FreeBSD sections of the INSTALL file.
+  * Updated checks for MacOS, and the BSDs to check for gtr (GNU Translate).
+    The BSD version of tr was having some issues with feeds from countries that
+    did not use single byte character sets.  The GNU version only does it from a
+    single byte perspective so is not affected by the same issue and happens to
+    be a bit faster to run.
+
+
+
+
 podget (0.9.0) unstable; urgency=low
 
   * Thanks to Pariksheet Nanda (omsai on Github) for finding an update for our
