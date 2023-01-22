@@ -2809,9 +2809,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             # Title format fixes and character substitutions.
                             # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
                             # variable.
-                            titleFixFormat MOD_TITLE "${TITLE}"
-                            if [[ -n "${MOD_TITLE}" ]]; then
-                                TITLE="${MOD_TITLE}"
+                            if [[ -n "${TITLE}" ]]; then
+                                titleFixFormat MOD_TITLE "${TITLE}"
+                                if [[ -n "${MOD_TITLE}" ]]; then
+                                    TITLE="${MOD_TITLE}"
+                                fi
                             fi
                         fi
 
