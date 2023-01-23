@@ -15,8 +15,9 @@ Building and installing a Debian package:
      $ sudo dpkg -i podget_<version>-all.deb
 
 Mac OSX GNU Dependencies:
-    Podget requires GNU Date, GNU Stat, GNU Sed, Coreutils (for expr) and Bash
-    (at least version 4.4).  The easiest way to install them is to use Homebrew.
+    Podget requires GNU Date, GNU Stat, GNU Sed, Coreutils (for expr, and tr)
+    and Bash (at least version 4.4).  The easiest way to install them is to use
+    Homebrew.
     For details on how to install and use Homebrew, please visit: https://brew.sh
 
     An updated version of Bash can be installed with: brew install bash
@@ -104,6 +105,33 @@ OpenBSD Dependencies and Install:
       them as needed.
 
     Tested on: OpenBSD 6.7 GENERIC#179 amd64
+
+Microsoft Windows 10+ Installation:
+    Podget can be run on current installations of Windows by installing Debian
+    GNU/Linux into the Windows Subsystem for Linux (WSL).
+
+    Centralized Notes on how to install Debian within Windows:
+    https://wiki.debian.org/InstallingDebianOn/Microsoft/Windows/SubsystemForLinux
+
+    NOTE: You do not need to follow the 'Advanced Usage' part as Podget is not a
+    GUI app and will not require that configuration.  However you may want to
+    enable GUI support so you can use simple GUI text editors to modify the
+    configuration files.  If you prefer to do everything in the console then you
+    may need to learn to use a console text editor like nano, vi, vim or ed
+    editors (just kidding, probably stay away from ed unless you want a real
+    challenge).
+
+    After Debian is installed, within it you will need to run:
+    1. sudo apt update
+    2. sudo apt upgrade
+    3. sudo apt install podget
+
+    Once Podget is installed, the general location for its files can be found in
+    directory like:
+    ```
+    C:\Users%username%\AppData\Local\Packages\TheDebianProject.DebianGNULinux_76v4gfsz19hv4\LocalState\rootfs\home\
+    ```
+    However the string after DebianGNULinux_ may vary on each install.
 
 Crontab Potential Issue:
     Occasionally when you install Podget, it will run fine from the shell prompt
