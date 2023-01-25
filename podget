@@ -593,7 +593,9 @@ TEXT_DEFAULT_CONFIG
 #
 #FEEDS:
 # ----------------------------------------------------------------------------------------------------------------------------------
-http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link
+# Using TITLES from Feed:
+http://thelinuxlink.net/tllts/tllts.rss LINUX The Linux Link OPT_FILENAME_RENAME_TITLETAG
+
 TEXT_DEFAULT_SERVERLIST
 
 : << TEXT_ASX_BEGINNING
