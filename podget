@@ -2684,7 +2684,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         # Adding one to MOST_RECENT because we tend to have one blank line
                         # at the end of our INDEXFILE
                         MOST_RECENT=$((MOST_RECENT+1))
-                        INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
+                        # OpenBSD Tail does not support options with two dashes (so no --lines), we have
+                        # to use the single dash option here or force OpenBSD to use GNU Tail.  Given this
+                        # is a single use error, it is easier to use BSD compatible syntax even if it can be
+                        # more challenging to debug.
+                        # INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
+                        INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
                         # This can also be done with sed but MOST_RECENT needs to be incremented by 2 not 1
                         # MOST_RECENT=$((MOST_RECENT+2))
                         # INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e ':a' -e '$p;N;'"${MOST_RECENT}"',$D;ba')
