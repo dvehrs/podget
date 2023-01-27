@@ -76,6 +76,9 @@ NetBSD Dependencies and Install:
       - gsed
       - gmake
 
+        NOTE: After installing ca-certificates, run update-ca-certificates to
+              manage the set of configured trust anchors for openssl.
+
     Source Install:
       $ gmake
       $ doas gmake install OR su root -c 'gmake install'
