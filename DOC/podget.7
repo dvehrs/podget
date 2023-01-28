@@ -425,7 +425,7 @@ Same as OPT_FEED_PLAYLIST_NEWFIRST except playlist is ordered from oldest to new
 
 .TP
 .I OPT_FILENAME_LOCATION
-Some feeds do not have the detailed filename listed in the FEED but rather rename the file on redirection.  This option address that issue by attempting to grab the filename from the last 'Location:' tag in the output of 'wget --server-response'.
+Some feeds do not have the detailed filename listed in the FEED but rather rename the file on redirection.  This option addresses that issue by attempting to grab the filename from the last 'Location:' tag in the output of 'wget --server-response'.
 
 .TP
 .I  OPT_FILENAME_RENAME_MDATE
@@ -452,6 +452,42 @@ Examples:
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_ORDER_ASCENDING
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_PLAYLIST_NEWFIRST
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_FEED_PLAYLIST_OLDFIRST
+
+.TP
+.B RSS Feed Options:
+There are two options for RSS Feeds that are not yet supported for ATOM feeds.  These two feeds are related with the renaming the downloaded files with the contents of the <TITLE> tag from the HTML.
+
+.TP
+.I OPT_FILENAME_RENAME_TITLETAG
+This first version is for handling feeds that place the <TITLE> tag before the <ENCLOSURE> tag.  The majority of tested feeds that use <TITLE> tags follow this order.
+
+.TP
+.I OPT_FILENAME_RENAME_REVTITLETAG
+The second version is for handling feeds that have the <ENCLOSURE> tag first followed by the <TITLE> tag.
+
+.P
+Examples:
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_TITLETAG
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_TITLETAG OPT_FILENAME_RENAME_MDATE
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_REVTITLETAG
+
+To determine if the feed uses <TITLE> tags and in which order, run the following with the URL for the feed:
+.PP
+.nf
+.fam C
+        wget -O - http://somesite.com/feed.rss | sed -n -e :a -e 's/.*<enclosure.*url\\s*=\\s*"\\([^"]\+\\)".*/URL \1/Ip' -e t -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t -e 's/.*<title>\\(.*\\)<[/]title>.*$/TITLE \1/Ip' -e t -e '/\\(<enclosure\\|<title>\\).*/I{N;s/\ *\n/\ /;T;ba}'
+
+.fam T
+.fi
+This will produce a list of lines that start with either TITLE or URL.  The  URL is from the <ENCLOSURE> tag and the TITLE is obviously from the <TITLE> tag.  On many feeds the first thing you will notice is a few uses of the <TITLE> tag before the first URL is specified.  In that case, Podget uses the last TITLE found, so the earlier ones are discard.  The important part is when we get to the first URL, from there we need to determine if the title for that item came before or after the URL.  If it comes first then we use OPT_FILENAME_RENAME_TITLETAG for it.  If the title comes second then we use OPT_FILENAME_RENAME_REVTITLETAG.
+
+On some feeds, the downloaded filename will not have anything identifiable to determine which TITLE goes with it.  In those cases it may be necessary to download a few items and listen to them to determine which order they use.
+
+On some feeds, it will be discovered that the downloaded filename and the TITLE are very similar.  In those cases, it is left to the user to determine which they prefer.
+
+On some feeds, the TITLE will have very little to specify when it was recorded and it may be useful to use the OPT_FILENAME_RENAME_MDATE option to add a date tag to each filename as it is converted.
+
+And on some feeds, there will be a complete absence of TITLE lines.  Those feeds do not use the tag so using either option will not produce any changes.
 
 .TP
 .B Atom Feed Options:
