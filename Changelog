@@ -2,7 +2,8 @@
     loop that occurred when no playlists were found (Debian Bug# 1027121).
   * Added OPT_FILENAME_RENAME_TITLETAG to change name of downloaded file to
     what was specified in the <TITLE> tag from the feed.  Included some basic
-    cleanup so it would be friendly to most filesystems.
+    cleanup so it would be friendly to most filesystems.  Updated MAN page to
+    include this option.
   * Updated NetBSD and FreeBSD sections of the INSTALL file.
   * Updated checks for MacOS, and the BSDs to check for gtr (GNU Translate).
     The BSD version of tr was having some issues with feeds from countries that
