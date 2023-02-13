@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Dave Vehrs <dvehrs@gmail.com>
 Build-Depends: debhelper-compat (= 13)
 Rules-Requires-Root: no
-Standards-Version: 4.5.1
+Standards-Version: 4.6.2
 Homepage: https://github.com/dvehrs/podget
 Vcs-Git: https://salsa.debian.org/debian/podget.git
 Vcs-Browser: https://salsa.debian.org/debian/podget
