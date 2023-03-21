@@ -10,6 +10,12 @@
     did not use single byte character sets.  The GNU version only does it from a
     single byte perspective so is not affected by the same issue and happens to
     be a bit faster to run.
+  * Thanks to Bobabadabouskie (on Github) for reporting an issue with how Podget
+    was handling podcast liveitem tags.  And thanks to Adam Curry (adamc199 on
+    Github) for providing links to the Podcast Namespace specs detailing its
+    format.  From this report and data, added a section to the feed filtering
+    that ignores any liveitem data that is found because Podget is not
+    appropriate for listening to live streams.
 
 
 

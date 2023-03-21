@@ -2462,36 +2462,56 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 #    NOTES for sed command:
                 #       1.  -n       suppress automatic printing of pattern space
                 #       2.  -e :a    set label named 'a'
-                #       3.  -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
+                #       3.  -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id'
+                #                    Look for podcast:liveitem tags.  If found, delete.
+                #                    Flags:
+                #                      I    Ignore case while searching
+                #                      d    Delete pattern space
+                #       4.  -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}'
+                #                    This command reads the next line into patter space when the podcast:liveitem opening and
+                #                    closing tags do not occur on same line.  Reads line in, removes the newline character and
+                #                    returns to label 'a'.
+                #       5.  -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
                 #                    Look for enclosure and url in pattern space.  If found, print the
                 #                    url value.  This version looks for when the HTML feed uses double quotes around
                 #                    the url value.
                 #                    Flags:
                 #                      I    Ignore case while searching
                 #                      p    Print only substituted line
-                #       4.  -e 't'   if last s/// did successful substitution then branch to end of script
-                #                    because no label was provided.
-                #       5.  -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
-                #                    This command is here to catch when the HTML feed is using single quotes rather than double
-                #                    quotes.
                 #       6.  -e 't'   if last s/// did successful substitution then branch to end of script
                 #                    because no label was provided.
-                #       7.  -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip'
-                #                    Looking for <title> tag and grabbing contents.
-                #       4.  -e 't'   if last s/// did successful substitution then branch to end of script
+                #       7.  -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
+                #                    This command is here to catch when the HTML feed is using single quotes rather than double
+                #                    quotes.
+                #       8.  -e 't'   if last s/// did successful substitution then branch to end of script
                 #                    because no label was provided.
-                #       6.  -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}'
+                #       9.  -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip'
+                #                    Looking for <title> tag and grabbing contents.
+                #       10. -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       11. -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}'
                 #                    this final command is to read the next line of the file into the pattern space.
                 #                    We use this for feeds where the url= portion does not appear on the same line as
                 #                    the enclosure start tag or when the closing title tag is not on the same line as
                 #                    the opening one.  After merging, we go back to label 'a'. Might need to add
                 #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
-#                INDEXFILE=$(echo "${INDEXFILE}" | \
-#                            sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
-#                                         -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
-#                                         -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
+                #
+                # INDEXFILE before adding TITLE bits
+                # INDEXFILE=$(echo "${INDEXFILE}" | \
+                #             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                #                          -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
+                #                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
+                #
+                # INDEXFILE_TMP before adding bits to delete podcast:liveitem stuff
+                # INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                #             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                #                          -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                #                          -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                #                          -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
                 INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                            sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                            sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                                         -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                                         -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
                                          -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
                                          -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
                                          -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
