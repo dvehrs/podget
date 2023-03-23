@@ -30,6 +30,11 @@ It features support for:
 - Automatic UTF-16 conversion for feeds hosted on MS Windows Servers.
 .PD
 
+Podget works by extracting the <enclosure> tags from the feed then downloading
+the specified URL.  There is one exception when Podget will ignore <enclosure>
+tags and that is when they are within <podcast:liveItem> tags because Podget is
+an aggregator and not a player so has not been optimized for live content.
+
 .SH OPTIONS
 .TP
 .B -c <FILE> \fR| \fB--config <FILE>
