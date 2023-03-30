@@ -1,3 +1,5 @@
+podget (0.9.0) unstable; urgency=low
+
   * Thanks to Joerg Schiermeier for reporting a bug in our automated cleanup
     loop that occurred when no playlists were found (Debian Bug# 1027121).
   * Added OPT_FILENAME_RENAME_TITLETAG to change name of downloaded file to
@@ -7,7 +9,7 @@
   * Updated NetBSD and FreeBSD sections of the INSTALL file.
   * Updated checks for MacOS, and the BSDs to check for gtr (GNU Translate).
     The BSD version of tr was having some issues with feeds from countries that
-    did not use single byte character sets.  The GNU version only does it from a
+    did not use single byte character sets.  The GNU version does it from a
     single byte perspective so is not affected by the same issue and happens to
     be a bit faster to run.
   * Thanks to Bobabadabouskie (on Github) for reporting an issue with how Podget
@@ -17,8 +19,7 @@
     that ignores any liveItem data that is found because Podget is not
     appropriate for listening to live streams.
 
-
-
+ -- Dave Vehrs <dvehrs@gmail.com> Thu, 30 Mar 2023 13:48:49 -0600
 
 podget (0.9.0) unstable; urgency=low
 
