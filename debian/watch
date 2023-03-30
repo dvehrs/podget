@@ -1,2 +1,2 @@
 version=4
-https://github.com/dvehrs/podget/releases /dvehrs/podget/archive/v(.*)\.tar\.gz
+https://github.com/dvehrs/@PACKAGE@/tags .*/releases/tag/v?@ANY_VERSION@

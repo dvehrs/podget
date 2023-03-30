@@ -1,3 +1,24 @@
+podget (0.9.1-1) unstable; urgency=medium
+    Added support for converting <TITLE> from RSS feeds to the filename for
+    each downloaded item.  For some feeds this will result in more descriptive
+    filenames than the default filename.  For others it will make little
+    difference and for some the names will be worse.  Whether or not to enable
+    the option is left up to the user.
+
+    For feeds that you will to use it on there are two options.
+
+    The first is OPT_FILENAME_RENAME_TITLETAG and that is for feeds when the
+    <TITLE> tag proceeds the <ENCLOSURE> tag.  For the vast majority of feeds
+    this will be the option you want.
+
+    The second is OPT_FILENAME_RENAME_REVTITLETAG which is for feeds where the
+    <ENCLOSURE> tag proceeds the <TITLE> tag.
+
+    To enable either option just add them to the configuration line for the
+    feed in your serverlist file.  For more examples, refer to:  man podget
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Thu, 30 Mar 2023 14:15:12 -0600
+
 podget (0.8-1) unstable; urgency=medium
     Added support for Atom feeds.  Format of serverlist remains the same with
     the addition of a few options for them.  If you'd care to view the
