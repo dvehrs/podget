@@ -1,7 +1,7 @@
 podget (0.9.1-1) unstable; urgency=medium
 
   [ Dave Vehrs ]
-  * New Upstream release
+  * New Upstream release (closes: #1027121)
 
  -- Dave Vehrs <dvehrs@gmail.com>  Thu, 30 Mar 2023 13:59:01 -0600
 
