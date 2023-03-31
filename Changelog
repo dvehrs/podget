@@ -1,4 +1,4 @@
-podget (0.9.0) unstable; urgency=low
+podget (0.9.1) unstable; urgency=low
 
   * Thanks to Joerg Schiermeier for reporting a bug in our automated cleanup
     loop that occurred when no playlists were found (Debian Bug# 1027121).
