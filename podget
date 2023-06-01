@@ -3195,12 +3195,36 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                         else
                             # if downloaded failed, add URL to LOG_FAIL
+                            if (( VERBOSITY >= 2 )) ; then
+                                echo "Adding URL to error log."
+                            fi
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                             # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
                             # continue function can work on later attempts.
-                            if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
-                                if [[ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
-                                    rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                REMOVE_FILENAME="${MOD_FILENAME}"
+                            else
+                                REMOVE_FILENAME="${URL_FILENAME}"
+                            fi
+                            if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}" ]]; then
+                                if (( VERBOSITY >= 2 )) ; then
+                                    echo "Partial file exists."
+                                fi
+                                if [[ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}" ]]; then
+                                    if (( VERBOSITY >= 2 )) ; then
+                                        echo "- Removing zero size file."
+                                        rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}"
+                                    else
+                                        rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}"
+                                    fi
+                                else
+                                    if (( VERBOSITY >= 2 )) ; then
+                                        echo "- Keeping for later attempts"
+                                    fi
+                                fi
+                            else
+                                if (( VERBOSITY >= 2 )) ; then
+                                    echo "Partial file does not exist."
                                 fi
                             fi
                         fi
