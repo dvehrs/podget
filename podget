@@ -3274,14 +3274,22 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         TITLE="${DATA#*<Url-Title>}"
 
                         # Safety check:  if ${DATA} does not contain '<Url-Title>'
-                        if [[ "${URL}" == "${TITLE}" ]]; then
-                            TITLE=""
+                        if [[ "${URL}" == "${TITLE}" || "${TITLE}" == "" ]]; then
+                            unset TITLE
                         fi
 
                         if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
                             URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
                             if (( VERBOSITY >= 2 )) ; then
+                                if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
+                                    if [[ -n "${TITLE}" ]]; then
+                                        echo "Marking as already downloaded ${TITLE}."
+                                    else
+                                        echo "Marking as already downloaded ${URL_FILENAME}."
+                                    fi
+                                else
                                     echo "Marking as already downloaded ${URL_FILENAME}."
+                                fi
                             fi
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
                         fi
