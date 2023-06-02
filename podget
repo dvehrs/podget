@@ -2696,32 +2696,40 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 #                fi
 
                 if (( MOST_RECENT > 0 )) ; then
+                    FULLINDEXFILE="${INDEXFILE}"
                     if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
                         fi
-                        FULLINDEXFILE="${INDEXFILE}"
                         # Adding one to MOST_RECENT because we tend to have one blank line
                         # at the end of our INDEXFILE
-                        MOST_RECENT=$((MOST_RECENT+1))
+                        #   -- This was needed when using tail.  Does not appear necessary when using sed.
+                        # MOST_RECENT=$((MOST_RECENT+1))
                         # OpenBSD Tail does not support options with two dashes (so no --lines), we have
                         # to use the single dash option here or force OpenBSD to use GNU Tail.  Given this
                         # is a single use error, it is easier to use BSD compatible syntax even if it can be
                         # more challenging to debug.
                         # INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
-                        INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
+                        # INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
                         # This can also be done with sed but MOST_RECENT needs to be incremented by 2 not 1
                         # MOST_RECENT=$((MOST_RECENT+2))
                         # INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e ':a' -e '$p;N;'"${MOST_RECENT}"',$D;ba')
+                        LINE_COUNT=$(echo "${FULLINDEXFILE}" | sed -n '$=;')
+                        LINE_BREAK=$((LINE_COUNT - MOST_RECENT))
+                        INDEXFILE=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ p")
+                        # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
+                        SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ !p")
                     else
                         if (( DEBUG == 1 )) ; then
                             echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
                         fi
-                        FULLINDEXFILE="${INDEXFILE}"
                         # Attempting to use head here results in exit condition 141, but using the sed construct
                         # below works.  Not sure why given that tail works above.
                         # INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
-                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n '1,'"${MOST_RECENT}"'p')
+                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n "1,${MOST_RECENT}p")
+                        # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
+                        SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "1,${MOST_RECENT}!p")
+
                     fi
                 fi
 
@@ -3293,7 +3301,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
                         fi
-                    done <<< "${FULLINDEXFILE}"
+                    # done <<< "${FULLINDEXFILE}"
+                    done <<< "${SURPLUSINDEX}"
                 fi
 
                 # If doing individual playlists for each podcast Sort new playlist
