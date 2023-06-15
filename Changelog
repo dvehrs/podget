@@ -1,3 +1,13 @@
+
+  * Thanks to Ludovic Bellière (xrogaan on Github) for reporting an issue with
+    duplicate logging to the completed and errors log when using the recent
+    option, a second issue with potential user confusion when marking files as
+    already downloaded (also because of recent option) because we used the URL
+    filename and not the TITLE of the item when we could, and a third issue
+    deleting zero length files when we had modified the filename to remove
+    some dangerous characters. All three issues have been fixed.
+
+
 podget (0.9.1) unstable; urgency=low
 
   * Thanks to Joerg Schiermeier for reporting a bug in our automated cleanup
