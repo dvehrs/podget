@@ -232,6 +232,9 @@ ASX_PLAYLIST=0
 # Enable playlist creation
 NO_PLAYLIST=0
 
+# Default Wget no options
+WGET_BASEOPTS=""
+
 # Default DEBUG Disabled (Deletion of temporary files allowed), configured
 # to allow its setting to be overridden from the command line.
 DEBUG=${DEBUG:-0}
@@ -320,9 +323,21 @@ LOG_COMPLETE=done
 #
 #                                   NOTE: This can be enable globally for all feeds here or if you want to enable it for only a few
 #                                   specific feeds, you can add "OPT_CONTENT_DISPOSITION" to their line in your serverlist.
+#   --user-agent=<string>           By default Podget will identify itself as "Podget".  If that does not work or you want to
+#                                   specify a custom user agent you can do so here.  If the agent is a single word then it does not
+#                                   need to be quoted.  If it is a longer string with spaces then it will need to be quoted and have
+#                                   it's quotes double escaped.
+#                                   Examples:
+#                                     --user-agent=Mozilla
+#                                     --user-agent=Chrome
+#                                     --user-agent=\\\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36\\\"
+#                                     --user-agent=\\\"Agent 007\\\"
+#                                     --user-agent=\\\"Dread Pirate Roberts\\\"
 #
 # Wget options that include spaces need to be surrounded in quotes.
 #
+# WGET_BASEOPTS="-c -nH --user-agent=\\\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36\\\""
+# WGET_BASEOPTS="-c -nH --user-agent=Mozilla"
 # WGET_BASEOPTS="-c --proxy=off --no-check-certificate"
 # WGET_BASEOPTS="-nH --proxy=off --content-disposition"
 # WGET_BASEOPTS="-c --prefer-family=IPv4"
@@ -620,7 +635,8 @@ TEXT_ASX_END
 # ${2} == Array to search within (also called ${@:2})
 ARRAY_CONTAINS() {
     local element
-    for element in "${@:2}"; do [[ "${element}" == "${1}" ]] && return 0; done
+#    for element in "${@:2}"; do [[ "${element}" == "${1}" ]] && return 0; done
+    for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
     return 1
 }
 
@@ -2002,6 +2018,9 @@ else
     WGET_COMMON_OPTIONS="${WGET_BASEOPTS} --progress=bar"
 fi
 
+# Remove any residual leading spaces from WGET_COMMON_OPTIONS
+WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS#[ ]*}"
+
 if (( DEBUG == 1 )) ; then
     # echo -e "WGet Options:\t\t\t${WGET_COMMON_OPTIONS}"
     printf '%-30s %s\n' "WGet Options:" "${WGET_COMMON_OPTIONS}"
@@ -2194,11 +2213,88 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "${DEBUG_LEADER}  WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
             fi
 
+            unset -v WGET_SUBCHAR
+            WGET_NOTCOUNT=0
+
+            # In Vim to enter digraphs that are not commonly on the US keyboards,
+            # we use ctrl-K followed by a two character lookup code.
+            #   Examples:
+            #     !2 - double vertical line  ‖
+            #     =2 - double low line       ‗
+            #     oo - bullet                •
+            #     Db - diamond bullet        ◆
+            #     '% - Greek Theta           ϴ
+            #     Pd - British Pound symbol  £
+            #     Eu - Euro Symbol           €
+            #     Ye - Yen symbol            ¥
+            #     Pt - Peseta symbol         ₧
+            #     W= - Won symbol            ₩
+            #     Ct - Cent symbol           ¢
+            #     Co - Copyright symbol      ©
+            #     Rg - Registered Trademark  ®
+            #     +- - Plus Minus            ±
+            #     Om - Ohm symbol            Ω
+            #     AO - Angstrom symbol       Å
+            #     DG - Degree Sign           °
+            #     AE - Latin Capital AE      Æ
+            #     ae - Latin Small ae        æ
+            #     Ca - Caret                 ‸
+            #     1R - Roman Numeral One     Ⅰ
+            #     2R - Roman Numeral Two     Ⅱ
+            #     3R - Roman Numeral Three   Ⅲ
+            #     4R - Roman Numeral Four    Ⅳ
+            #     5R - Roman Numeral Five    Ⅴ
+            #
+            #     These are not good to use because they frequently overlap with following
+            #     characters if not followed by a space.
+            #     oC - Degree Celsius        ℃
+            #     oF - Degree Fahrenheit     ℉
+            WGET_TEST_STRING="_;‖‗•◆ϴ$£€¥₧₩¢ⅠⅡⅢⅣⅤΩÅ©®±°Ææ‸:|<>?~!@#%^"
+            for (( INTERVAL=0; INTERVAL<${#WGET_TEST_STRING}; INTERVAL++ )); do
+                WGET_TEST_CHAR=${WGET_TEST_STRING:$i:1}
+
+                # grep looks for --fixed-strings so that certain characters are not
+                # interpreted as regular expressions.
+                #
+                # we're looking for a character that is not found in the string so it is
+                # ! grep
+                if ! grep --quiet --fixed-strings "${WGET_TEST_CHAR}" <<<"${WGET_COMMON_OPTIONS}"; then
+                    WGET_SUBCHAR="${WGET_TEST_CHAR}"
+                    break
+                else
+                    WGET_NOTCOUNT=$((WGET_NOTCOUNT+1))
+                fi
+            done
+
+            if [[ -n "${WGET_SUBCHAR+defined}" ]] && [[ "${#WGET_SUBCHAR}" -gt 0 ]]; then
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER}  WGET Success finding parsing character (${WGET_SUBCHAR})"
+                    echo "${DEBUG_LEADER}    Test string length: ${#WGET_TEST_STRING}"
+                    echo "${DEBUG_LEADER}    Characters tested before usable found: ${WGET_NOTCOUNT}"
+                fi
+            else
+                echo
+                echo "Unable to find character to use as delimiter for WGET_BASEOPTS string."
+                echo "Every character in our test set was also used somewhere in WGET_BASEOPTS."
+                echo   "Test Set:   ${WGET_TEST_STRING}"
+                echo   "WGET_BASEOPTS: ${WGET_BASEOPTS}"
+                CLEANUP_AND_EXIT 1
+            fi
+
+            WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS// -/${WGET_SUBCHAR}-}"
+
             # clear array and reimport
             unset -v WGET_OPTIONS
 
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
-            read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
+            # read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
+            IFS="${WGET_SUBCHAR}" read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
+
+            WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS//${WGET_SUBCHAR}-/ -}"
+            unset -v WGET_NOTCOUNT
+            unset -v WGET_SUBCHAR
+            unset -v WGET_TEST_CHAR
+            unset -v WGET_TEST_STRING
 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset FEED_FULL_PLAYLIST=0"
@@ -2231,6 +2327,17 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 WGET_OPTION_DISPOSITION=0
                 if (( DEBUG == 1 )) ; then
                     echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+                fi
+            fi
+
+            if ARRAY_CONTAINS "--user-agent=" "${WGET_OPTIONS[@]}" ; then
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER}  Custom Wget User Agent Enabled."
+                fi
+            else
+                WGET_OPTIONS+=("--user-agent=Podget")
+                if (( DEBUG == 1 )) ; then
+                    echo "${DEBUG_LEADER}  Default Wget User Agent for Podget Enabled."
                 fi
             fi
 
