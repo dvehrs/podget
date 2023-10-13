@@ -2256,7 +2256,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             #     oF - Degree Fahrenheit     ℉
             WGET_TEST_STRING="_;‖‗•◆ϴ$£€¥₧₩¢ⅠⅡⅢⅣⅤΩÅ©®±°Ææ‸:|<>?~!@#%^"
             for (( INTERVAL=0; INTERVAL<${#WGET_TEST_STRING}; INTERVAL++ )); do
-                WGET_TEST_CHAR=${WGET_TEST_STRING:$i:1}
+                WGET_TEST_CHAR=${WGET_TEST_STRING:$INTERVAL:1}
 
                 # grep looks for --fixed-strings so that certain characters are not
                 # interpreted as regular expressions.
@@ -2270,6 +2270,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     WGET_NOTCOUNT=$((WGET_NOTCOUNT+1))
                 fi
             done
+
+            unset -v INTERVAL
 
             if [[ -n "${WGET_SUBCHAR+defined}" ]] && [[ "${#WGET_SUBCHAR}" -gt 0 ]]; then
                 if (( DEBUG == 1 )) ; then
