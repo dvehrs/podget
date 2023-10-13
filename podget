@@ -1322,6 +1322,11 @@ FILTER_OPTIONS() {
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_WGET_DEFUSERAGENT}"
     fi
 
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_RSS_MEDIACONTENT.*$ ]]; then
+        WGET_OPTION_RSS_MEDIACONTENT=1
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_RSS_MEDIACONTENT}"
+    fi
+
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_LOCATION.*$ ]]; then
         WGET_OPTION_FILENAME_LOCATION=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
@@ -2375,6 +2380,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             WGET_OPTION_PREFER_IP_TYPE=0
 
             if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset WGET_OPTION_RSS_MEDIACONTENT"
+            fi
+            WGET_OPTION_RSS_MEDIACONTENT=0
+
+            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_MDATE"
             fi
             POST_WGET_RENAME_MDATE=0
@@ -2645,13 +2655,50 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 #                          -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
                 #                          -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
                 #                          -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
-                INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                            sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
-                                         -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
-                                         -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                         -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
-                                         -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
-                                         -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
+                if (( WGET_OPTION_RSS_MEDIACONTENT < 1 )); then
+                    INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                                sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                                             -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                                             -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                                             -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                                             -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
+                else
+                    # This section adds a couple of tests to look for <media:content ...> tags from the RSS Media Specification.
+                    # This is used in the feeds created by FreshRSS aggregator so it's use is not expected to be common but we may
+                    # find a few users that require it.  These tests were added after test 8 above and before test 9.
+                    #       8.1.  -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
+                    #                    Look for enclosure and url in pattern space.  If found, print the
+                    #                    url value.  This version looks for when the HTML feed uses double quotes around
+                    #                    the url value.
+                    #                    Flags:
+                    #                      I    Ignore case while searching
+                    #                      p    Print only substituted line
+                    #       8.2.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    #       8.3.  -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
+                    #                    This command is here to catch when the HTML feed is using single quotes rather than double
+                    #                    quotes.
+                    #       8.4.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    # Then the final pattern was updated to also look for incomplete media:content tags.
+                    #       11. -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}'
+                    #                    this final command is to read the next line of the file into the pattern space.
+                    #                    We use this for feeds where the url= portion does not appear on the same line as
+                    #                    the enclosure start tag or when the closing title tag is not on the same line as
+                    #                    the opening one.  After merging, we go back to label 'a'. Might need to add
+                    #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
+                    #
+                    INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                                sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                                             -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                                             -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                                             -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                                             -e "s/.*<media:content.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                                             -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
+                fi
                  # If TITLE tag appears after the ENCLOSURE tag in the file, reverse the order of list for parsing.
                  if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
                      INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
@@ -2665,6 +2712,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                              ;;
                          "URL" )
                              # with cleanup for URL (used to be called FINAL below ATOM section)
+                             if [[ -z "${ITEM_TITLE+set}" ]]; then
+                                 ITEM_TITLE=""
+                             fi
                              ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
                              INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE}${NEWLINE}"
                              unset ITEM_TITLE ITEM_URL
@@ -3629,19 +3679,20 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 done
 
                 # Unset options that are not required in this while loop
-                unset URL_PASSWORD
-                unset URL_USERNAME
-                unset WGET_OPTION_DEFAULT_USERAGENT
-                unset WGET_OPTION_DISPOSITION
-                unset WGET_OPTION_DISPOSITION_FAIL
-                unset WGET_OPTION_NO_CHECK_CERIFICATE
-                unset WGET_OPTION_PREFER_IP_TYPE
-                unset WGET_OPTION_FILENAME_LOCATION
-                unset FEED_SORT_ORDER
-                unset POST_WGET_RENAME_MDATE
-                unset ATOM_FILTER_SIMPLE
-                unset ATOM_FILTER_TYPE
-                unset ATOM_FILTER_LANG
+                unset -v URL_PASSWORD
+                unset -v URL_USERNAME
+                unset -v WGET_OPTION_DEFAULT_USERAGENT
+                unset -v WGET_OPTION_DISPOSITION
+                unset -v WGET_OPTION_DISPOSITION_FAIL
+                unset -v WGET_OPTION_NO_CHECK_CERIFICATE
+                unset -v WGET_OPTION_PREFER_IP_TYPE
+                unset -v WGET_OPTION_FILENAME_LOCATION
+                unset -v WGET_OPTION_RSS_MEDIACONTENT
+                unset -v FEED_SORT_ORDER
+                unset -v POST_WGET_RENAME_MDATE
+                unset -v ATOM_FILTER_SIMPLE
+                unset -v ATOM_FILTER_TYPE
+                unset -v ATOM_FILTER_LANG
 
                 if (( FEED_FULL_PLAYLIST >= 1 )) ; then
                     if (( FEED_PLAYLIST_HEADER == 0 )); then
