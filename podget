@@ -2660,7 +2660,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
                                              -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
                                              -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                             -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
                                              -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
                                              -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
                 else
@@ -2693,9 +2693,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                 sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
                                              -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
                                              -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                             -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
                                              -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                             -e "s/.*<media:content.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
                                              -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
                                              -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
                 fi
