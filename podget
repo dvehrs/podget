@@ -717,9 +717,9 @@ DIRECTORY_CHECK() {
                 TEST_FAIL=1
             fi
         done
-    fi
 
-    unset -v i
+        unset -v i
+    fi
 
     # consult Shellcheck SC2076 for why I choose this construct rather than using regex (=~) checks
     if [[ ${TEST_STRING} = *"../"* ]]; then
