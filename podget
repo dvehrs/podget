@@ -719,6 +719,8 @@ DIRECTORY_CHECK() {
         done
     fi
 
+    unset -v i
+
     # consult Shellcheck SC2076 for why I choose this construct rather than using regex (=~) checks
     if [[ ${TEST_STRING} = *"../"* ]]; then
         TEST_FAIL=$((TEST_FAIL+2))
@@ -873,6 +875,8 @@ FILENAME_CHECK() {
                 TEST_FAIL=1
             fi
         done
+
+        unset -v i
     fi
 
     if [[ -z ${TEST_STRING##*/*} ]]; then
@@ -1466,6 +1470,8 @@ REMOVE_URL() {
             break
         fi
     done
+
+    unset -v i
 
     # Both sed statements below use TEST_CHAR as their delimiter
 
