@@ -437,6 +437,10 @@ Some feeds do not have the detailed filename listed in the FEED but rather renam
 For feeds that use a singular filename for each item that is identified by a long somewhat incomprehensible string in the URL.  These feeds were previously fixed with FILENAME_FORMATFIX4 which would append the string to the common filename to produce unique filenames for each item.  However this produced filenames that were not very easy to understand.  This option gives us another method for dealing with these common filenames.  This appends the date of the files last change (modification date) as a prefix to the filename in the format of YYYYMMDD_HHhMMm_<common-part>.  This makes the filenames sortable and gives the user something that makes a moderate amount of sense.  Does not work for all feeds, for some feeds the last modification time for each file is the time of download.  Which may be acceptable in some situations but can cause confusion when downloading more than one item at a time from a feed.
 
 .TP
+.I OPT_WGET_DEFUSERAGENT
+Configure Wget to use it's default user-agent (normally formated similar to "Wget/1.21.2") and to not use either Podget's default user-agent ("Podget") or a custom agent set in WGET_BASEOPTS in podgetrc.
+
+.TP
 .I OPT_NO_CERT_CHECK
 Disable wget SSL certificate verification.  This is common used for feeds that are using self-signed certificates.
 
@@ -448,6 +452,7 @@ Configure wget so that when a DNS lookup gives a choice of several addresses tha
 Examples:
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPv4
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_PREFER_IPv6
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_WGET_DEFUSERAGENT
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_NO_CERT_CHECK
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_CONTENT_DISPOSITION OPT_DISPOSITION_FAIL
