@@ -2712,11 +2712,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                              ;;
                          "URL" )
                              # with cleanup for URL (used to be called FINAL below ATOM section)
-                             if [[ -z "${ITEM_TITLE+set}" ]]; then
-                                 ITEM_TITLE=""
-                             fi
                              ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
-                             INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE}${NEWLINE}"
+                             INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE-}${NEWLINE}"
                              unset ITEM_TITLE ITEM_URL
                              ;;
                      esac
