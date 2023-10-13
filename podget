@@ -1313,6 +1313,11 @@ FILTER_OPTIONS() {
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
     fi
 
+    if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_WGET_DEFUSERAGENT.*$ ]]; then
+        WGET_OPTION_DEFAULT_USERAGENT=1
+        printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_WGET_DEFUSERAGENT}"
+    fi
+
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_LOCATION.*$ ]]; then
         WGET_OPTION_FILENAME_LOCATION=1
 #        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
@@ -2307,6 +2312,11 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             FEED_SORT_ORDER="DESCENDING"
 
             if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER}  Reset WGET_OPTION_DEFAULT_USERAGENT"
+            fi
+            WGET_OPTION_DEFAULT_USERAGENT=0
+
+            if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset WGET_OPTION_FILENAME_LOCATION"
             fi
             WGET_OPTION_FILENAME_LOCATION=0
@@ -2411,6 +2421,18 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             if [[ -n ${URL_PASSWORD+set} ]]; then
                 WGET_OPTIONS+=("--password=${URL_PASSWORD}")
+            fi
+
+            # Reset to default WGET user-agent
+            if (( WGET_OPTION_DEFAULT_USERAGENT==1 )); then
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    if [[ ${WGET_OPTIONS[${index}]} =~ ^"--user-agent=".* ]]; then
+                        if (( DEBUG == 1 )) ; then
+                            echo "${DEBUG_LEADER}  Reset to Default Wget User Agent"
+                        fi
+                        unset 'WGET_OPTIONS['"${index}"']'
+                    fi
+                done
             fi
 
             # Add --no-check-certificate to WGET_OPTIONS
@@ -3599,6 +3621,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 # Unset options that are not required in this while loop
                 unset URL_PASSWORD
                 unset URL_USERNAME
+                unset WGET_OPTION_DEFAULT_USERAGENT
                 unset WGET_OPTION_DISPOSITION
                 unset WGET_OPTION_DISPOSITION_FAIL
                 unset WGET_OPTION_NO_CHECK_CERIFICATE
