@@ -2698,6 +2698,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     fi
                 done
 
+                unset -v i
+
                 # Get full enclosure lines to filter on
                 INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
 

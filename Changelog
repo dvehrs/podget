@@ -6,6 +6,13 @@
     filename and not the TITLE of the item when we could, and a third issue
     deleting zero length files when we had modified the filename to remove
     some dangerous characters. All three issues have been fixed.
+  * Thanks to Francois Marier for reporting an issue stemming from Wget's
+    default user-agent.  Turns out a few feeds are filtering for and denying
+    downloads for anything reporting it.  To address this issue, we added three
+    options.  First Podget now uses a different user-agent ("Podget") by
+    default.  Second, it is now possible to use a longer user-agent to mimic
+    common browsers.  And third, there is an option for a single feed to go back
+    to using the default Wget user-agent.
 
 
 podget (0.9.1) unstable; urgency=low
