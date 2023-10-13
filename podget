@@ -1426,7 +1426,7 @@ PLAYLIST_Sort() {
     local REALPLAYLISTNAME="${DIR_LIBRARY}/$M3U_PLAYLISTNAME"
 
     # Sort Playlist
-    unset TEMPPLAYLISTNAME
+    unset -v TEMPPLAYLISTNAME
     local TEMPPLAYLISTNAME
     if hash mktemp >&2; then
         TEMPPLAYLISTNAME=$(mktemp 2>/dev/null)
@@ -1438,13 +1438,13 @@ PLAYLIST_Sort() {
         TEMPPLAYLISTNAME=$(tempfile 2>/dev/null)
     else
         echo "Error: Neither mktemp or tempfile found.  Unable to sort playlist."
-        unset REALPLAYLISTNAME TEMPPLAYLISTNAME
+        unset -v REALPLAYLISTNAME TEMPPLAYLISTNAME
         return
     fi
 
     cp -p "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && sort -o "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && rm "$TEMPPLAYLISTNAME"
 
-    unset REALPLAYLISTNAME TEMPPLAYLISTNAME
+    unset -v REALPLAYLISTNAME TEMPPLAYLISTNAME
 }
 
 # Function: REMOVE_URL
@@ -1561,7 +1561,7 @@ case "$uname" in
         if (( DARWIN_EXIT > 0 )); then
             CLEANUP_AND_EXIT 1
         fi
-        unset DARWIN_EXIT
+        unset -v DARWIN_EXIT
     ;;
     "OpenBSD"|"NetBSD"|"FreeBSD")
         missing_counter=0
@@ -1583,7 +1583,7 @@ case "$uname" in
         if (( missing_counter > 0 )); then
             CLEANUP_AND_EXIT 1
         fi
-        unset needed_command{,s} missing_counter
+        unset -v needed_command{,s} missing_counter
     ;;
 esac
 
@@ -1700,7 +1700,7 @@ if (( DEBUG == 1 )) ; then
     printf '%s %s\n\n' "${DEBUG_LEADER}" "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
     echo
 fi
-unset FILENAME_BADCHARS
+unset -v FILENAME_BADCHARS
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -2214,12 +2214,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     echo "${DEBUG_LEADER} Discarding (comment or blank line)."
                     echo "${DEBUG_LEADER} Clear Server Loop vars"
                 fi
-                unset FEED_URL
-                unset FEED_CATEGORY
-                unset FEED_NAME
-                unset FEED_FULL_PLAYLIST
-                unset URL_USERNAME
-                unset URL_PASSWORD
+                unset -v FEED_URL
+                unset -v FEED_CATEGORY
+                unset -v FEED_NAME
+                unset -v FEED_FULL_PLAYLIST
+                unset -v URL_USERNAME
+                unset -v URL_PASSWORD
                 continue
             fi
 
@@ -2339,7 +2339,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
                 for index in "${!WGET_OPTIONS[@]}"; do
                     if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
-                        unset 'WGET_OPTIONS['"${index}"']'
+                        unset -v 'WGET_OPTIONS['"${index}"']'
                         WGET_OPTION_DISPOSITION=1
                         if (( DEBUG == 1 )) ; then
                             echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
@@ -2407,12 +2407,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset ATOM_FILTER_TYPE"
             fi
-            unset ATOM_FILTER_TYPE
+            unset -v ATOM_FILTER_TYPE
 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER}  Reset ATOM_FILTER_LANG"
             fi
-            unset ATOM_FILTER_LANG
+            unset -v ATOM_FILTER_LANG
 
             # End resets
             # -----------------------------------------------------------------
@@ -2420,7 +2420,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
             # Pass FEED_CATEGORY and FEED_NAME through the option filters.  This allows handling of options with blank feed
             # categories and names.
-            unset FILTER_TARGET
+            unset -v FILTER_TARGET
             for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
                 FILTER_OPTIONS "${FILTER_TARGET}"
             done
@@ -2448,7 +2448,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         if (( DEBUG == 1 )) ; then
                             echo "${DEBUG_LEADER}  Reset to Default Wget User Agent"
                         fi
-                        unset 'WGET_OPTIONS['"${index}"']'
+                        unset -v 'WGET_OPTIONS['"${index}"']'
                     fi
                 done
             fi
@@ -2458,7 +2458,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 for index in "${!WGET_OPTIONS[@]}"; do
                     # if --no-check-certificate has been set before, remove it.
                     if [[ ${WGET_OPTIONS[${index}]} == "--no-check-certificate" ]]; then
-                        unset 'WGET_OPTIONS['"${index}"']'
+                        unset -v 'WGET_OPTIONS['"${index}"']'
                     fi
                 done
                 WGET_OPTIONS+=("--no-check-certificate")
@@ -2469,7 +2469,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 for index in "${!WGET_OPTIONS[@]}"; do
                     # if --prefer-family has been set before, remove it.
                     if [[ ${WGET_OPTIONS[${index}]} =~ --prefer-family=IPv[46] ]]; then
-                        unset 'WGET_OPTIONS['"${index}"']'
+                        unset -v 'WGET_OPTIONS['"${index}"']'
                     fi
                 done
                 case "${WGET_OPTION_PREFER_IP_TYPE}" in
@@ -2713,8 +2713,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                          "URL" )
                              # with cleanup for URL (used to be called FINAL below ATOM section)
                              ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
+                             # Enabled handling of unset ITEM_TITLE items by including a dash at the end of the variable name to
+                             # signify that the default is a blank value (or we could specify a value we wanted after the dash).
                              INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE-}${NEWLINE}"
-                             unset ITEM_TITLE ITEM_URL
+                             unset -v ITEM_TITLE ITEM_URL
                              ;;
                      esac
                  done <<<"${INDEXFILE_TMP}"
@@ -2959,7 +2961,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
-                        unset URLCOUNT
+                        unset -v URLCOUNT
                     else
                         printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
                         URLCOUNT=0
@@ -2967,7 +2969,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
-                        unset URLCOUNT
+                        unset -v URLCOUNT
                     fi
                 fi
 
@@ -3101,9 +3103,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                         if (( WGET_EXITSTATUS == 0 )); then
                             # make sure CONTENT_FILENAME hasn't been used before
-                            unset CONTENT_FILENAME
-                            unset LOCATION_FILENAME
-                            unset FINAL_FILENAME
+                            unset -v CONTENT_FILENAME
+                            unset -v LOCATION_FILENAME
+                            unset -v FINAL_FILENAME
 
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
 
@@ -3143,7 +3145,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                             echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Content-Disposition Tag"
                                         fi
                                         # if variable is effectively blank, we can unset it
-                                        unset CONTENT_FILENAME
+                                        unset -v CONTENT_FILENAME
 
                                         if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
                                             if (( DEBUG == 1 )) ; then
@@ -3194,7 +3196,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                                 echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Location Tag"
                                             fi
                                             # If LOCATION_FILENAME is effectively blank we can unset it
-                                            unset LOCATION_FILENAME
+                                            unset -v LOCATION_FILENAME
                                         fi
                                     fi
                                 else
@@ -3382,10 +3384,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                             # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
                             if [[ -n ${CONTENT_FILENAME+set} ]] ; then
-                                unset CONTENT_FILENAME
+                                unset -v CONTENT_FILENAME
                             fi
                             if [[ -n ${FINAL_FILENAME+set} ]] ; then
-                                unset FINAL_FILENAME
+                                unset -v FINAL_FILENAME
                             fi
                         else
                             # if downloaded failed, add URL to LOG_FAIL
@@ -3446,7 +3448,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     if (( DEBUG == 1 )) ; then
                         echo "${DEBUG_LEADER} Clear File Vars"
                     fi
-                    unset URL_FILENAME
+                    unset -v URL_FILENAME
                 done <<< "${INDEXFILE}"
 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
@@ -3469,7 +3471,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                         # Safety check:  if ${DATA} does not contain '<Url-Title>'
                         if [[ "${URL}" == "${TITLE}" || "${TITLE}" == "" ]]; then
-                            unset TITLE
+                            unset -v TITLE
                         fi
 
                         if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
@@ -3501,7 +3503,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     fi
 
                     # Done with playlist, unset name.
-                    unset PLAYLIST_NAME
+                    unset -v PLAYLIST_NAME
                 fi
             else
                 if (( VERBOSITY >= 1 )) ; then
@@ -3514,12 +3516,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} Clear Server Loop Vars"
             fi
-            unset FEED_URL
-            unset FEED_CATEGORY
-            unset FEED_NAME
-            unset URL_FILENAME
-            unset URL_USERNAME
-            unset URL_PASSWORD
+            unset -v FEED_URL
+            unset -v FEED_CATEGORY
+            unset -v FEED_NAME
+            unset -v URL_FILENAME
+            unset -v URL_USERNAME
+            unset -v URL_PASSWORD
         done < "${CURRENT_SERVERLIST}"
     done
 
@@ -3660,17 +3662,17 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                         echo "${DEBUG_LEADER} Discarding (comment or blank line)."
                         echo "${DEBUG_LEADER} Clear Loop vars"
                     fi
-                    unset FEED_URL
-                    unset FEED_CATEGORY
-                    unset FEED_NAME
-                    unset FEED_FULL_PLAYLIST
+                    unset -v FEED_URL
+                    unset -v FEED_CATEGORY
+                    unset -v FEED_NAME
+                    unset -v FEED_FULL_PLAYLIST
                     continue
                 fi
 
                 # ---------------------
                 # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
 
-                unset FILTER_TARGET
+                unset -v FILTER_TARGET
                 for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
                     FILTER_OPTIONS "${FILTER_TARGET}"
                 done
@@ -3776,10 +3778,10 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
 
                 fi
 
-                unset FEED_URL
-                unset FEED_CATEGORY
-                unset FEED_NAME
-                unset FEED_FULL_PLAYLIST
+                unset -v FEED_URL
+                unset -v FEED_CATEGORY
+                unset -v FEED_NAME
+                unset -v FEED_FULL_PLAYLIST
             done < "${CURRENT_SERVERLIST}"
         done
     fi
