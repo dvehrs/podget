@@ -2667,19 +2667,26 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     # This section adds a couple of tests to look for <media:content ...> tags from the RSS Media Specification.
                     # This is used in the feeds created by FreshRSS aggregator so it's use is not expected to be common but we may
                     # find a few users that require it.  These tests were added after test 8 above and before test 9.
-                    #       8.1.  -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
-                    #                    Look for enclosure and url in pattern space.  If found, print the
-                    #                    url value.  This version looks for when the HTML feed uses double quotes around
-                    #                    the url value.
+                    #       8.1.  -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip'
+                    #                    Look in pattern space for media:content tags that are preceded by TYPE video or audio then
+                    #                    extract the URL.
                     #                    Flags:
                     #                      I    Ignore case while searching
                     #                      p    Print only substituted line
                     #       8.2.  -e 't'   if last s/// did successful substitution then branch to end of script
                     #                    because no label was provided.
-                    #       8.3.  -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
-                    #                    This command is here to catch when the HTML feed is using single quotes rather than double
-                    #                    quotes.
+                    #       8.3.  -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip"
+                    #                    This command is the sane as 8.1 but to catch when the HTML feed is using single quotes
+                    #                    rather than double quotes.
                     #       8.4.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    #       8.5.  -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip'
+                    #                    This is like 8.1 but TYPE option follows the URL rather than precedes it.
+                    #       8.6.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    #       8.7.  -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip"
+                    #                    This is like 8.3 but TYPE option follows the URL rather than precedes it.
+                    #       8.8.  -e 't'   if last s/// did successful substitution then branch to end of script
                     #                    because no label was provided.
                     # Then the final pattern was updated to also look for incomplete media:content tags.
                     #       11. -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}'
