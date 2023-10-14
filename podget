@@ -2694,8 +2694,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                              -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
                                              -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
                                              -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
-                                             -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                             -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip' -e t \
+                                             -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip" -e t \
+                                             -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip' -e t \
+                                             -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip" -e t \
                                              -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
                                              -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
                 fi
