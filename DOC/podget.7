@@ -465,7 +465,9 @@ Examples:
 
 .TP
 .B RSS Feed Options:
-There are two options for RSS Feeds that are not yet supported for ATOM feeds.  These two feeds are related with the renaming the downloaded files with the contents of the <TITLE> tag from the HTML.
+There are three options for RSS Feeds that are not supported for ATOM feeds.
+
+The first two are related with the renaming the downloaded files with the contents of the <TITLE> tag from the HTML and the third is to expand what tags Podget gets content from.
 
 .TP
 .I OPT_FILENAME_RENAME_TITLETAG
@@ -475,11 +477,17 @@ This first version is for handling feeds that place the <TITLE> tag before the <
 .I OPT_FILENAME_RENAME_REVTITLETAG
 The second version is for handling feeds that have the <ENCLOSURE> tag first followed by the <TITLE> tag.
 
+.TP
+.I OPT_RSS_MEDIACONTENT
+This third option will enable Podget to download content from <MEDIA:CONTENT> tags in addition to <ENCLOSURE> tags.
+
 .P
 Examples:
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_TITLETAG
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_TITLETAG OPT_FILENAME_RENAME_MDATE
  http://somesite.com/feed.rss CATEGORY Feed Name OPT_FILENAME_RENAME_REVTITLETAG
+ http://somesite.com/feed.rss CATEGORY Feed Name OPT_RSS_MEDIACONTENT
+
 
 To determine if the feed uses <TITLE> tags and in which order, run the following with the URL for the feed:
 .PP
