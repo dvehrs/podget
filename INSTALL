@@ -63,8 +63,6 @@ FreeBSD Dependencies and Install:
       default configuration files into $HOME/.podget, edit
       them as needed.
 
-    Tested on: FreeBSD 12.1-RELEASE GENERIC amd64
-
 NetBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
 
@@ -87,8 +85,6 @@ NetBSD Dependencies and Install:
       default configuration files into $HOME/.podget, edit
       them as needed.
 
-    Tested on: NetBSD 9.3 (GENERIC) #0 amd64
-
 OpenBSD Dependencies and Install:
     Podget requires a few things that are not part of a default installation.
 
@@ -106,8 +102,6 @@ OpenBSD Dependencies and Install:
       After the package is installed, run it once to install
       default configuration files into $HOME/.podget, edit
       them as needed.
-
-    Tested on: OpenBSD 6.7 GENERIC#179 amd64
 
 Microsoft Windows 10+ Installation:
     Podget can be run on current installations of Windows by installing Debian
