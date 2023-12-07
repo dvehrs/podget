@@ -13,6 +13,11 @@
     default.  Second, it is now possible to use a longer user-agent to mimic
     common browsers.  And third, there is an option for a single feed to go back
     to using the default Wget user-agent.
+  * Thanks to aab3r on Github for reporting an issue with feeds provided by the
+    FreshRSS Feed Aggregator.  When they offer a feed for content they have
+    already downloaded the media content is not in ENCLOSURE tags but rather in
+    MEDIA:CONTENT tags.  We resolved this issue by providing a configuration
+    option to enable both tags to be examined for URLs to download.
 
 
 podget (0.9.1) unstable; urgency=low
