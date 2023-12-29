@@ -1,3 +1,4 @@
+podget (0.9.2) unstable; urgency=low
 
   * Thanks to Ludovic Bellière (xrogaan on Github) for reporting an issue with
     duplicate logging to the completed and errors log when using the recent
@@ -19,6 +20,7 @@
     MEDIA:CONTENT tags.  We resolved this issue by providing a configuration
     option to enable both tags to be examined for URLs to download.
 
+ -- Dave Vehrs <dvehrs@gmail.com> Fri, 29 Dec 2023 13:29:57 -0700
 
 podget (0.9.1) unstable; urgency=low
 
