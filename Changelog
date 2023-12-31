@@ -1,4 +1,4 @@
-podget (0.9.2) unstable; urgency=low
+podget (0.9.3) unstable; urgency=low
 
   * Thanks to Ludovic Bellière (xrogaan on Github) for reporting an issue with
     duplicate logging to the completed and errors log when using the recent
@@ -19,6 +19,9 @@ podget (0.9.2) unstable; urgency=low
     already downloaded the media content is not in ENCLOSURE tags but rather in
     MEDIA:CONTENT tags.  We resolved this issue by providing a configuration
     option to enable both tags to be examined for URLs to download.
+  * Skipped version 0.9.2 because of a small issue discovered while uploading
+    Debian repositories.  Changes consisted of a single character ($) being
+    deleted in the WGET_TEST_STRING and a descriptive comment being added.
 
  -- Dave Vehrs <dvehrs@gmail.com> Fri, 29 Dec 2023 13:29:57 -0700
 
