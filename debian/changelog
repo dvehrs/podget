@@ -1,10 +1,14 @@
-podget (0.9.1-1) UNRELEASED; urgency=medium
+podget (0.9.3-1) unstable; urgency=medium
+
+  [ Dave Vehrs ]
+  * New Upstream release
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Sun, 31 Dec 2023 14:19:33 -0700
+
+podget (0.9.1-1) unstable; urgency=medium
 
   [ Dave Vehrs ]
   * New Upstream release (closes: #1027121)
-
-  [ Francois Marier ]
-  * Update watch file to account for GitHub changes.
 
   [ Debian Janitor ]
   * Remove constraints unnecessary since buster (oldstable):
@@ -12,7 +16,10 @@ podget (0.9.1-1) UNRELEASED; urgency=medium
       findutils, gawk, grep, mawk and sed in Depends.
     + podget: Drop versioned constraint on libc-bin in Suggests.
 
- -- Dave Vehrs <dvehrs@gmail.com>  Thu, 30 Mar 2023 13:59:01 -0600
+  [ Francois Marier ]
+  * Update watch file to account for GitHub changes.
+
+ -- Francois Marier <francois@debian.org>  Sun, 08 Oct 2023 14:34:18 -0700
 
 podget (0.9.0-1) unstable; urgency=medium
 

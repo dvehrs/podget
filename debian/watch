@@ -1,2 +1,4 @@
 version=4
-https://github.com/dvehrs/@PACKAGE@/tags .*/releases/tag/v?@ANY_VERSION@
+opts="\
+    filenamemangle=s/v([0-9.]+)\.tar\.gz$/@PACKAGE@-$1.tar.gz/;s/_/./g" \
+https://github.com/dvehrs/@PACKAGE@/tags /dvehrs/@PACKAGE@/archive/refs/tags/v([0-9.]+).tar.gz
