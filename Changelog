@@ -1,3 +1,6 @@
+  * Small cleanup, removed old bit that had been commented out but without
+    explanation.  Thanks to Francois Marier for the pull request on Github.
+
 podget (0.9.3) unstable; urgency=low
 
   * Thanks to Ludovic Bellière (xrogaan on Github) for reporting an issue with
