@@ -635,7 +635,6 @@ TEXT_ASX_END
 # ${2} == Array to search within (also called ${@:2})
 ARRAY_CONTAINS() {
     local element
-#    for element in "${@:2}"; do [[ "${element}" == "${1}" ]] && return 0; done
     for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
     return 1
 }
