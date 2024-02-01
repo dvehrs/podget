@@ -1515,7 +1515,8 @@ REPORT_VERSION=0
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Portability code                                                                                                               {{{
-# This allows Gnu/Linux podget to also run on Mac OSX
+# A few tests to allow Podget to run on Mac OSX, FreeBSD, NetBSD and OpenBSD.
+
 uname=$(uname)
 case "$uname" in
     "Linux") :;;
