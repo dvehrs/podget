@@ -4021,4 +4021,4 @@ CLEANUP_AND_EXIT 0
 # 1.  Best viewed in Vim (http://vim.sf.net) with the Relaxedgreen colorscheme (vimscripts #791).
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# vim:tw=132:ts=4:sw=4
+# vim:tw=132:ts=4:sw=4:foldmethod=marker
