@@ -3924,24 +3924,41 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
 <body>' > "${EXPORT_OPML}"
 
 	while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-        if   [[ "${FEED_URL:0:1}" == "#" ]] || [[ -z "${FEED_URL-empty}" ]] ; then
-            if (( VERBOSITY >= 3 )) ; then
-                echo "  Discarding line (comment or blank line)."
+        if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
+            if (( DEBUG == 1 )) ; then
+                echo "${DEBUG_LEADER} Discarding (comment or blank line)."
+                echo "${DEBUG_LEADER} Clear Loop vars"
             fi
+            unset -v FEED_URL
+            unset -v FEED_CATEGORY
+            unset -v FEED_NAME
+            unset -v FEED_FULL_PLAYLIST
             continue
         fi
 
-        # Remove PASSWORD from FEED_NAME if found.
-        FEED_NAME=${FEED_NAME/PASS:+([^[:space:]])}
+        # ---------------------
+        # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
 
-        # Remove USERNAME from FEED_NAME if found.
-        FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
+        unset -v FILTER_TARGET
+        for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
+            FILTER_OPTIONS "${FILTER_TARGET}"
+        done
 
-        # Remove any residual leading spaces from ${FEED_NAME}
-        FEED_NAME="${FEED_NAME#"${FEED_NAME%%[![:space:]]*}"}"
-
-        # Remove any residual trailing spaces from ${FEED_NAME}
-        FEED_NAME="${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
+        # Unset options that are not required in this while loop
+        unset -v URL_PASSWORD
+        unset -v URL_USERNAME
+        unset -v WGET_OPTION_DEFAULT_USERAGENT
+        unset -v WGET_OPTION_DISPOSITION
+        unset -v WGET_OPTION_DISPOSITION_FAIL
+        unset -v WGET_OPTION_NO_CHECK_CERIFICATE
+        unset -v WGET_OPTION_PREFER_IP_TYPE
+        unset -v WGET_OPTION_FILENAME_LOCATION
+        unset -v WGET_OPTION_RSS_MEDIACONTENT
+        unset -v FEED_SORT_ORDER
+        unset -v POST_WGET_RENAME_MDATE
+        unset -v ATOM_FILTER_SIMPLE
+        unset -v ATOM_FILTER_TYPE
+        unset -v ATOM_FILTER_LANG
 
 	    if (( VERBOSITY >= 3 )) ; then
 	             echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
