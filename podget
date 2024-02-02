@@ -78,13 +78,7 @@ set -o nounset
 set -o pipefail
 
 # Enable errtrace so that the ERR trap is inherited by functions
-# NOTE: Causes an error about line 1841 where we try to filter various items out of
-# the category and name.  Speculation is it is caused by our use of the expr command
-# that commonly gives non-zero exit status for commands that actually exited OK.
-#
-# We can get around the issue by adding a '|| true' to the end of each expr command
-# but that seems a hack.  What about replacing expr?
-#set -o errtrace
+set -o errtrace
 
 # Enabling inheritance of errexit by command substitution subshells, this was added in Bash 4.4
 #   NOTE:  Test command is run within a subshell where pipefail is disabled.
@@ -1012,7 +1006,7 @@ filenameFixFormat() {
 
     # Filename format fix for podcasts hosted on http://lbc.audioagain.com.
     if [[ -n ${FILENAME_FORMATFIX2+set} ]] && (( FILENAME_FORMATFIX2 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9a-zA-Z]\\+[&]amp;source=podcast.php[&]amp;channel_id=[0-9]\\+\$") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ [0-9a-zA-Z]+[\&]amp\;source=podcast.php[\&]amp\;channel_id=[0-9]+$ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
@@ -1023,7 +1017,7 @@ filenameFixFormat() {
 
     # Filename format fix for podcasts hosted on http://www.catradio.cat
     if [[ -n ${FILENAME_FORMATFIX3+set} ]] && (( FILENAME_FORMATFIX3 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[0-9]\\+\\.mp3\\?[&]programa=[0-9a-Z+=%&;]*\$") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ [0-9]+\.mp3[?][\&]programa=[0-9a-Z+-=%\&\;]+$ ]]; then
             # shellcheck disable=SC2001
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
             if (( DEBUG == 1 )) ; then
@@ -1034,7 +1028,7 @@ filenameFixFormat() {
 
     # Remove "?referrer=rss" from filename as included with some feeds like Vimcasts.org
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9a-zA-Z_]\\+\\.[agmopv34]\\+[?]referrer=rss") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ [0-9a-zA-Z_]+\.[agmopv34]+[?]referrer=rss$ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[agmopv34]+)[?]referrer=rss/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
@@ -1044,7 +1038,7 @@ filenameFixFormat() {
 
     # ZDF podcast filename fix
     if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+\\.[agmopv34]\\+[?][-_+0-9]\\+") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ [-_0-9a-zA-Z]+\.[agmopv34]+[?][-_+0-9]+$ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[agmopv34]+)[?][-+0-9]*/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
@@ -1061,7 +1055,7 @@ filenameFixFormat() {
     # with extended regex and buffers limited
     # wget -O - http://radiofrance-podcast.net/podcast09/rss_12036.xml | grep enclosure | sed -ru 's/.*(media_url=.*[.][gmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][gmopv34]+)/\1/'
     if [[ -n ${FILENAME_FORMATFIX7+set} ]] && (( FILENAME_FORMATFIX7 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[+_%&=?.0-9a-zA-Z]*media_url=http") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ [+_%\&=?.0-9a-zA-Z]*media_url=http ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][agmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][agmopv34]+)/\1/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
@@ -1078,7 +1072,7 @@ filenameFixFormat() {
     # to separate these feeds to their own configuration and serverlist files.  They can then be loaded by using the -c and
     # --serverlist flags on the command line.
     if [[ -n ${FILENAME_FORMATFIX8+set} ]] && (( FILENAME_FORMATFIX8 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "stream[.]mp3[?]client_id=[0-9a-zA-Z]\\+") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ stream\.mp3[?]client_id=[0-9a-zA-Z]\\+ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
@@ -1090,7 +1084,7 @@ filenameFixFormat() {
     # Enclosure URLs have "?keyed=true&amp;source=rss" appended to them.  This fix removes that string.
     # It should work for Audioboo podcasts and others with similar formating.
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-_0-9a-zA-Z]\\+[.][agmopv34]\\+[?][%&;=0-9a-zA-Z]\\+") > 0 )) ; then
+        if [[ "${MODIFIED_FILENAME}" =~ [-_0-9a-zA-Z]+[.][agmopv34]+[?][%\&\;=0-9a-zA-Z]+ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][agmopv34]+)[?][-%&#;=A-Za-z0-9]+/\1/g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
@@ -1102,7 +1096,7 @@ filenameFixFormat() {
     # Filenames are generally long strings of numbers and letters, with the actual episode name being defined after the '?'
     # This extracts the episode name and uses it for the filename.
     if [[ -n ${FILENAME_FORMATFIX10+set} ]] && (( FILENAME_FORMATFIX10 > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : "[-0-9A-Za-z_]\\+[.][MmPp3]\\+[?][-0-9A-Za-z%=]\\+%26episodeName%3D[-0-9A-Za-z%.*]\\+%26episodeKind%3D") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ [-0-9A-Za-z_]+[.][MmPp3]+[?][-0-9A-Za-z%=]+%26episodeName%3D[-0-9A-Za-z%.*]+%26episodeKind%3D ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
             if (( DEBUG == 1 )) ; then
                 echo "${DEBUG_LEADER} FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
@@ -1112,7 +1106,7 @@ filenameFixFormat() {
 
     # Fix improperly formated filenames (fixes filename.mp3?123456 to filename123456.mp3)
     if [[ -n ${FILENAME_FORMATFIX+set} ]] && (( FILENAME_FORMATFIX > 0 )); then
-        if (( $(expr "${MODIFIED_FILENAME}" : ".*\\.mp3..*$") > 0 )); then
+        if [[ "${MODIFIED_FILENAME}" =~ .*\.mp3[?].*$ ]]; then
             # shellcheck disable=SC2001
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
             if (( DEBUG == 1 )) ; then
@@ -1530,13 +1524,6 @@ case "$uname" in
         else
             hash -p "$(hash -t gsed)" sed
         fi
-        if ! hash gexpr >/dev/null 2>&1; then
-            echo "GNU Expr Required."
-            echo "Try 'brew install coreutils'  (see https://brew.sh for details)"
-            DARWIN_EXIT=1
-        else
-            hash -p "$(hash -t gexpr)" expr
-        fi
         if ! hash gtr >/dev/null 2>&1; then
             echo "GNU tr Required."
             echo "Try 'brew install coreutils'  (see https://brew.sh for details)"
@@ -1565,7 +1552,7 @@ case "$uname" in
     ;;
     "OpenBSD"|"NetBSD"|"FreeBSD")
         missing_counter=0
-        needed_commands=( gsed gexpr gdate gtr )
+        needed_commands=( gsed gdate gtr )
         if [[ $uname == FreeBSD ]]; then
             needed_commands+=(gnustat)
         else
