@@ -2090,8 +2090,7 @@ while read -r -d $'\0' FILE ; do
         TEST_SESSION=1
         # shellcheck disable=SC2094
         while read -r LINE ; do
-            TEST_Index=$(expr "${LINE}" : "^[Cc]onfig\\sfile:")
-            if [[ "A${TEST_Index}" != "A" ]]; then
+            if [[ "${LINE}" =~ ^[Cc]onfig[[:space:]][Ff]ile:.* ]]; then
                 TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
                 if [[ ${TEST_File} == "${CONFIG_CORE}" ]] ; then
                     SESSION_PID=$(echo "${FILE}" | sed -n -e 's/.*podget.\([0-9]*\)$/\1/p')
