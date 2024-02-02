@@ -3937,15 +3937,11 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
         # Remove USERNAME from FEED_NAME if found.
         FEED_NAME=${FEED_NAME/USER:+([^[:space:]])}
 
-        # Remove any residual trailing spaces from ${FEED_NAME}
-        while (( $(expr "${FEED_NAME}" : ".*[ ]\\+$") > 0 )); do
-            FEED_NAME=${FEED_NAME%[ ]*}
-        done
-
         # Remove any residual leading spaces from ${FEED_NAME}
-        while (( $(expr "${FEED_NAME}" : "[ ]\\+.*$") > 0 )); do
-            FEED_NAME=${FEED_NAME#[ ]*}
-        done
+        printf -v "FEED_NAME" '%s' "${FEED_NAME#"${FEED_NAME%%[![:space:]]*}"}"
+
+        # Remove any residual trailing spaces from ${FEED_NAME}
+        printf -v "FEED_NAME" '%s' "${FEED_NAME%"${FEED_NAME##*[![:space:]]}"}"
 
 	    if (( VERBOSITY >= 3 )) ; then
 	             echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
