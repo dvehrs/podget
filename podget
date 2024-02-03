@@ -5,8 +5,8 @@
 
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Filename:      podget                                                                                                          {{{
-# Maintainer:    Dave Vehrs <davevehrs(at)users.sourceforge.net>
-# Copyright:     (c) 2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017 Dave Vehrs
+# Maintainer:    Dave Vehrs (dvehrs on Github.com)
+# Copyright:     (c) 2005-2024 Dave Vehrs
 #
 #                This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public
 #                License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any
@@ -18,7 +18,7 @@
 #
 # Description:   Podget is a simple bash script to automate the downloading and
 #                organizing of podcast content.
-# Dependencies:  bash, coreutils, debianutils, findutils, grep, gawk or mawk, libc-bin (for iconv), sed, and wget.
+# Dependencies:  bash, coreutils, findutils, grep, gawk or mawk, libc-bin (for iconv), sed, and wget.
 # Installation:  cp podget.sh /usr/local/bin
 #                chmod 755 /usr/local/bin/podget.sh                                                                              }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
