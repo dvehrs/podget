@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# Useful to follow command execution and determine where an extra echo outputs during silent mode.
-#set -x
-
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Filename:      podget                                                                                                          {{{
 # Maintainer:    Dave Vehrs (dvehrs on Github.com)
@@ -21,6 +18,52 @@
 # Dependencies:  bash, coreutils, findutils, grep, gawk or mawk, libc-bin (for iconv), sed, and wget.
 # Installation:  cp podget.sh /usr/local/bin
 #                chmod 755 /usr/local/bin/podget.sh                                                                              }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Enable Debugging (xtrace, verbose, and/or functrace with debug trap.                                                           {{{
+
+# To enable debugging or informational messages, add option to command line:
+#
+# INFO= ./bash_template   : Only enable INFO messages.
+# DEBUG=1 ./bash_template  : Enable xtrace and INFO messages.
+# DEBUG=2 ./bash_template : Enable xtrace, verbose, and INFO messages.
+# DEBUG=3 ./bash_template : Enable xtrace, debug trap, and INFO messages.
+
+# Default DEBUG Disabled (Deletion of temporary files allowed), configured
+# to allow its setting to be overridden from the command line.
+DEBUG=${DEBUG:-0}
+
+# Default DEBUG string leader. This will be used until the user's configuration file (generally podgetrc) is read then if they have
+# a custom string leader defined it will be used.
+DEBUG_LEADER="DEBUG --"
+
+# Default INFO string leader.  (NOT USED YET)
+# INFO_LEADER="INFO --"
+
+# NOTE:  We could use a simple test for if DEBUG is set or not, even without a value assigned but unfortunately we previously
+#        used the values of 0 for disabled and 1 for enabled for other tests.  To keep backwards compatibility, we are going to
+#        keep 0 as the default disabled value.  Therefore once we confirm DEBUG is set, we then need to test for values to know
+#        which modes to enable.
+
+if [[ -n "${DEBUG+set}" ]]; then
+    if (( DEBUG >= 1 )); then
+        echo "IN DEBUG"
+        set -o xtrace
+        INFO=1
+
+        if (( DEBUG == 2 )); then
+            set -o verbose
+        elif (( DEBUG >= 3 )); then
+            # NOTE: Debug trap sends it's output to STDERR (2) so that it does not
+            #       cause errors during command substitutions ( $(..) or `..` ).
+            #       This can happen when functrace is enabled.
+            trap 'echo "LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
+            set -o functrace
+        fi
+    fi
+fi
+
+#
+#                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Exit Codes                                                                                                                     {{{
 
@@ -228,13 +271,6 @@ NO_PLAYLIST=0
 
 # Default Wget no options
 WGET_BASEOPTS=""
-
-# Default DEBUG Disabled (Deletion of temporary files allowed), configured
-# to allow its setting to be overridden from the command line.
-DEBUG=${DEBUG:-0}
-
-# Default DEBUG string leader
-DEBUG_LEADER="DEBUG --"
 
 # Order that items appear in feed.
 # Default: DESCENDING - Newest items appear first, oldest last.
@@ -621,6 +657,27 @@ TEXT_ASX_END
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Functions                                                                                                                      {{{
 
+# Function: __MSG_INFO                                                                                                           {{{
+# Display additional informational messages to user.  Each message should be less that 57 Characters so that the whole line averages
+# less than 80 characters (this limit is especially important for two part messages.
+# ARGUMENTS:
+# ${1} == One part message.
+# ${2} == Second part of two part message.
+__MSG_INFO() {
+    local PART1="${1}"
+    local PART2="${2:-UNConfigured}"
+
+    # Test if INFO is set (may be empty string).
+    if [[ -n "${INFO+set}" ]]; then
+        if [[ "${PART2}" == "UNConfigured" ]]; then
+            printf 'INFO -- %s\n' "${PART1}"
+        else
+            printf 'INFO -- %-17s : %s\n' "${PART1}" "${PART2}"
+        fi
+    fi
+}
+#                                                                                                                                }}}
+
 # Function: ARRAY_CONTAINS
 # Test if Array contains element.
 # Returns 0 if found, or 1 if not found.
@@ -656,7 +713,8 @@ CLEANUP_AND_EXIT() {
                 rm -f "${DIR_SESSION}"/podget.$$
             fi
         else
-            printf '\n%s\n' "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/podget.$$"
+            #printf '\n%s\n' "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/podget.$$"
+            __MSG_INFO "Not deleting ${DIR_SESSION}/podget.$$"
         fi
     fi
     if (( (VERBOSITY >= 2) && (VERBOSITY <= 3) )); then
@@ -1008,9 +1066,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX2+set} ]] && (( FILENAME_FORMATFIX2 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ [0-9a-zA-Z]+[\&]amp\;source=podcast.php[\&]amp\;channel_id=[0-9]+$ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/.*stream.mp3[?]guid=\([0-9]\+\)-\([0-9]\+\)\/\([0-9]\+\)\/.*/\1-\2-\3.mp3/')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(2) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1020,9 +1076,7 @@ filenameFixFormat() {
         if [[ "${MODIFIED_FILENAME}" =~ [0-9]+\.mp3[?][\&]programa=[0-9a-Z+-=%\&\;]+$ ]]; then
             # shellcheck disable=SC2001
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\(.*\)\.mp3\(.*\)/\1\.mp3/g')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(3) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1030,9 +1084,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX5+set} ]] &&  (( FILENAME_FORMATFIX5 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ [0-9a-zA-Z_]+\.[agmopv34]+[?]referrer=rss$ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -r 's/([-A-Za-z0-9_]+.[agmopv34]+)[?]referrer=rss/\1/g')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(5) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1040,9 +1092,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX6+set} ]] && (( FILENAME_FORMATFIX6 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ [-_0-9a-zA-Z]+\.[agmopv34]+[?][-_+0-9]+$ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+.[agmopv34]+)[?][-+0-9]*/\1/g')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(6) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1057,9 +1107,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX7+set} ]] && (( FILENAME_FORMATFIX7 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ [+_%\&=?.0-9a-zA-Z]*media_url=http ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*(media_url=http.*[.][agmopv34]+)"\ .*/\1/' | sed -ru 's/.*%2F([-0-9A-Za-z_.]+[.][agmopv34]+)/\1/')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(7) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1074,9 +1122,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX8+set} ]] && (( FILENAME_FORMATFIX8 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ stream\.mp3[?]client_id=[0-9a-zA-Z]\\+ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/(stream[.]mp3)[?]client_id=[0-9A-Za-z]+/\1/')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(8) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1086,9 +1132,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX9+set} ]] && (( FILENAME_FORMATFIX9 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ [-_0-9a-zA-Z]+[.][agmopv34]+[?][%\&\;=0-9a-zA-Z]+ ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/([-_A-Za-z0-9]+[.][agmopv34]+)[?][-%&#;=A-Za-z0-9]+/\1/g')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(9) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1098,9 +1142,7 @@ filenameFixFormat() {
     if [[ -n ${FILENAME_FORMATFIX10+set} ]] && (( FILENAME_FORMATFIX10 > 0 )); then
         if [[ "${MODIFIED_FILENAME}" =~ [-0-9A-Za-z_]+[.][MmPp3]+[?][-0-9A-Za-z%=]+%26episodeName%3D[-0-9A-Za-z%.*]+%26episodeKind%3D ]]; then
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed -ru 's/.*%26episodeName%3D([-._%A-Za-z0-9*]+)%26episodeKind[-%&;=A-Za-z0-9]+/\1.mp3/g' | sed -ru 's/%2B/_/g;s/%25[0-9ACF]{2}//g;s/[*]//g')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT(10) FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1109,9 +1151,7 @@ filenameFixFormat() {
         if [[ "${MODIFIED_FILENAME}" =~ .*\.mp3[?].*$ ]]; then
             # shellcheck disable=SC2001
             MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | sed 's/\.mp3\(.*\)/\1.mp3/')
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1122,9 +1162,7 @@ filenameFixFormat() {
              # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
              # down to a single time.
              MODIFIED_FILENAME=$(echo "${MODIFIED_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
-            fi
+            __MSG_INFO "FILENAME FORMAT FIXED: ${MODIFIED_FILENAME}"
         fi
     fi
 
@@ -1162,27 +1200,20 @@ titleFixFormat() {
 
     if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
 
     # Fix for ampersand (&) is interesting because the character will be removed by the default FILENAME_BADCHARS list.
     # We include it here for people who remove the & from their FILENAME_BADCHARS.
     if [[ "${MODIFIED_TITLE}" =~ .*"&amp;".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE//\&amp;/\&}"
-#        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -e 's/\&amp;/\&/g')
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
 
     # Case insensitive BASH regex test followed by case insensitive replacement by sed.
     if [[ "${MODIFIED_TITLE,,}" =~ "<![cdata[".*"]]>" ]]; then
         MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -n -e 's/<!\[cdata\[\(.*\)]]>/\1/Ip')
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
 
     # Test if BADCHARS set
@@ -1192,34 +1223,26 @@ titleFixFormat() {
             # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
             # down to a single time.
             MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-            if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-            fi
+            __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
         fi
     fi
 
     if [[ ${MODIFIED_TITLE} =~ [/] ]]; then
         # Replace forward slashes in titles with dash as the using a forward slash in a name is not POSIX compliant
         MODIFIED_TITLE="${MODIFIED_TITLE//\//-}"
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
 
     # After replacing characters, strings may look ugly because they start or end with the FILENAME_REPLACECHAR or a dash.
     # Therefore we remove those here.
     if [[ ${MODIFIED_TITLE:0:1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE:1}"
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
     # Negative indices from the trailing end of the string require a space before the dash.
     if [[ ${MODIFIED_TITLE: -1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
 
     if (( VERBOSITY >= 3 ))  && [[ "${ORIGINAL_TITLE}" != "${MODIFIED_TITLE}" ]]; then
@@ -1254,26 +1277,22 @@ FILTER_OPTIONS() {
     # Extract Password from FILTER_ITEM if found.
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(PASS:)([^[:space:]]+).*$ ]]; then
         URL_PASSWORD="${BASH_REMATCH[3]}"
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/PASS:+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/PASS:+([^[:space:]])}"
     fi
 
     # Extract USERNAME from FILTER_ITEM if found.
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(USER:)([^[:space:]]+).*$ ]]; then
         URL_USERNAME="${BASH_REMATCH[3]}"
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/USER:+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/USER:+([^[:space:]])}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_CONTENT_DISPOSITION.*$ ]]; then
         WGET_OPTION_DISPOSITION=1
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_CONTENT_DISPOSITION}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_DISPOSITION_FAIL.*$ ]]; then
         WGET_OPTION_DISPOSITION_FAIL=1
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_DISPOSITION_FAIL}"
     fi
 
@@ -1294,19 +1313,16 @@ FILTER_OPTIONS() {
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_ORDER_ASCENDING.*$ ]]; then
         FEED_SORT_ORDER="ASCENDING"
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_ORDER_ASCENDING}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_PLAYLIST_NEWFIRST.*$ ]]; then
         FEED_FULL_PLAYLIST=1
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_NEWFIRST}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FEED_PLAYLIST_OLDFIRST.*$ ]]; then
         FEED_FULL_PLAYLIST=2
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FEED_PLAYLIST_OLDFIRST}"
     fi
 
@@ -1322,13 +1338,11 @@ FILTER_OPTIONS() {
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_LOCATION.*$ ]]; then
         WGET_OPTION_FILENAME_LOCATION=1
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_LOCATION}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)OPT_FILENAME_RENAME_MDATE.*$ ]]; then
         POST_WGET_RENAME_MDATE=1
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/OPT_FILENAME_RENAME_MDATE}"
     fi
 
@@ -1344,43 +1358,35 @@ FILTER_OPTIONS() {
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)ATOM_FILTER_SIMPLE.*$ ]]; then
         ATOM_FILTER_SIMPLE=1
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_SIMPLE}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(ATOM_FILTER_TYPE=\"?)([^\" ]+).*$ ]]; then
         ATOM_FILTER_TYPE="${BASH_REMATCH[3]}"
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_TYPE=+([^[:space:]])}"
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)(ATOM_FILTER_LANG=\"?)([^\" ]+).*$ ]]; then
         ATOM_FILTER_LANG="${BASH_REMATCH[3]}"
-#        eval "${FILTER_ITEM}=\${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
         printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM/ATOM_FILTER_LANG=+([^[:space:]])}"
     fi
 
     # Remove repeated spaces
-#    eval "${FILTER_ITEM}=\$(echo \"${!FILTER_ITEM}\" | tr -s ' ')"
     printf -v "${FILTER_ITEM}" '%s' "$(tr -s ' ' <<< "${!FILTER_ITEM}")"
 
     # Remove any residual leading whitespace from ${!FILTER_ITEM}
-#    eval "${FILTER_ITEM}=\${!FILTER_ITEM#\${!FILTER_ITEM%%[![:space:]]*}}"
     printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM#"${!FILTER_ITEM%%[![:space:]]*}"}"
 
     # Remove any residual trailing whitespace from ${!FILTER_ITEM}
-#    eval "${FILTER_ITEM}=\${!FILTER_ITEM%\${!FILTER_ITEM##*[![:space:]]}}"
     printf -v "${FILTER_ITEM}" '%s' "${!FILTER_ITEM%"${!FILTER_ITEM##*[![:space:]]}"}"
 
     # No_Category, or blank item handling.
     if [[ "${!FILTER_ITEM}" =~ ^(.+[[:space:]]|[[:space:]]?)No_Category.*$ || -z "${!FILTER_ITEM-empty}" ]]; then
         # Set to single period which is a bashism for current directory.
-#        eval "${FILTER_ITEM}=."
         printf -v "${FILTER_ITEM}" '%s' '.'
     fi
 
     if [[ "${!FILTER_ITEM}" =~ ^.*%(YY|MM|DD)%.*$ ]]; then
-#        eval "${FILTER_ITEM}=$(echo "${!FILTER_ITEM}" | ${SED} -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )"
         printf -v "${FILTER_ITEM}" '%s' "$(sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" <<< "${!FILTER_ITEM}")"
     fi
 
@@ -1395,7 +1401,6 @@ PLAYLIST_ConvertToASX() {
       sed -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 
     while read -r line ; do
-#      local FIXED_ENTRY=$(echo "${line}" | sed 's/\//\\/g')
       local FIXED_ENTRY="${line//\//\\}"
       {
           echo '    <ENTRY>'
