@@ -36,8 +36,10 @@ DEBUG=${DEBUG:-0}
 # a custom string leader defined it will be used.
 DEBUG_LEADER="DEBUG --"
 
-# Default INFO string leader.  (NOT USED YET)
-# INFO_LEADER="INFO --"
+# Default INFO string leader.
+# If you want to customize this string, add its declaration to your user configuration file (generally podgetrc) like the one
+# for DEBUG_LEADER
+INFO_LEADER="INFO --"
 
 # NOTE:  We could use a simple test for if DEBUG is set or not, even without a value assigned but unfortunately we previously
 #        used the values of 0 for disabled and 1 for enabled for other tests.  To keep backwards compatibility, we are going to
@@ -666,13 +668,16 @@ TEXT_ASX_END
 __MSG_INFO() {
     local PART1="${1}"
     local PART2="${2:-UNConfigured}"
+    # This looks a bit unusual but allows us to have a local variable that inherits it's value from when it is called.  Technically
+    # the second part is the global value for the variable of name "INFO_LEADER" being assigned to local variable of the same name.
+    local INFO_LEADER="${INFO_LEADER}"
 
     # Test if INFO is set (may be empty string).
     if [[ -n "${INFO+set}" ]]; then
         if [[ "${PART2}" == "UNConfigured" ]]; then
-            printf 'INFO -- %s\n' "${PART1}"
+            printf '%s %s\n' "${INFO_LEADER}" "${PART1}"
         else
-            printf 'INFO -- %-17s : %s\n' "${PART1}" "${PART2}"
+            printf '%s %-17s : %s\n' "${INFO_LEADER}" "${PART1}" "${PART2}"
         fi
     fi
 }
