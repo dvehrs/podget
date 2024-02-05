@@ -23,10 +23,14 @@
 
 # To enable debugging or informational messages, add option to command line:
 #
-# INFO= ./bash_template   : Only enable INFO messages.
-# DEBUG=1 ./bash_template  : Enable xtrace and INFO messages.
-# DEBUG=2 ./bash_template : Enable xtrace, verbose, and INFO messages.
-# DEBUG=3 ./bash_template : Enable xtrace, debug trap, and INFO messages.
+# INFO= ./bash_template   : Enable only Podget INFO messages.
+# DEBUG=1 ./bash_template : Enable Podget INFO and DEBUG messages.
+# DEBUG=2 ./bash_template : Enable Podget INFO and DEBUG messages with Bash shell option for xtrace.
+# DEBUG=3 ./bash_template : Enable Podget INFO and DEBUG messages with Bash shell options for xtrace, and verbose.
+# DEBUG=4 ./bash_template : Enable Podget INFO and DEBUG messages with Bash shell options for xtrace, functrace and a debug trap.
+#
+# NOTE: The output of the Bash shell options for verbose and the debug trap (as we have it configured) are effectively so similar
+# that enabling both at the same time can be redundant and confusing.
 
 # Default DEBUG Disabled (Deletion of temporary files allowed), configured
 # to allow its setting to be overridden from the command line.
@@ -39,7 +43,7 @@ DEBUG_LEADER="DEBUG --"
 # Default INFO string leader.
 # If you want to customize this string, add its declaration to your user configuration file (generally podgetrc) like the one
 # for DEBUG_LEADER
-INFO_LEADER="INFO --"
+INFO_LEADER="INFO  --"
 
 # NOTE:  We could use a simple test for if DEBUG is set or not, even without a value assigned but unfortunately we previously
 #        used the values of 0 for disabled and 1 for enabled for other tests.  To keep backwards compatibility, we are going to
@@ -48,18 +52,19 @@ INFO_LEADER="INFO --"
 
 if [[ -n "${DEBUG+set}" ]]; then
     if (( DEBUG >= 1 )); then
-        echo "IN DEBUG"
-        set -o xtrace
+        echo "${DEBUG_LEADER} Level ${DEBUG} debugging enabled."
         INFO=1
-
-        if (( DEBUG == 2 )); then
-            set -o verbose
-        elif (( DEBUG >= 3 )); then
-            # NOTE: Debug trap sends it's output to STDERR (2) so that it does not
-            #       cause errors during command substitutions ( $(..) or `..` ).
-            #       This can happen when functrace is enabled.
-            trap 'echo "LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
-            set -o functrace
+        if (( DEBUG >= 2 )); then
+            set -o xtrace
+            if (( DEBUG == 3 )); then
+                set -o verbose
+            elif (( DEBUG >= 4 )); then
+                # NOTE: Debug trap sends it's output to STDERR (2) so that it does not
+                #       cause errors during command substitutions ( $(..) or `..` ).
+                #       This can happen when functrace is enabled.
+                trap 'echo "LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
+                set -o functrace
+            fi
         fi
     fi
 fi
@@ -2173,18 +2178,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
         fi
 
         while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-            if (( DEBUG == 1 )) ; then
-                echo
-                echo "${DEBUG_LEADER} ============================================================"
-                echo "${DEBUG_LEADER} Server Loop:"
-                echo "${DEBUG_LEADER} Serverlist Line --> ${FEED_URL:-} ${FEED_CATEGORY:-} ${FEED_NAME:-}"
-            fi
+            if (( DEBUG >= 1 )) ; then echo; fi
+            __MSG_DEBUG "============================================================"
+            __MSG_DEBUG "Server Loop:"
+            __MSG_DEBUG "Serverlist Line --> ${FEED_URL:-} ${FEED_CATEGORY:-} ${FEED_NAME:-}"
 
             if   [[ "${FEED_URL:0:1}" == "#" || -z "${FEED_URL-empty}" ]] ; then
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER} Discarding (comment or blank line)."
-                    echo "${DEBUG_LEADER} Clear Server Loop vars"
-                fi
+                __MSG_DEBUG "Discarding (comment or blank line)."
+                __MSG_DEBUG "Clear Server Loop vars"
                 unset -v FEED_URL
                 unset -v FEED_CATEGORY
                 unset -v FEED_NAME
@@ -2194,11 +2195,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 continue
             fi
 
-            if (( DEBUG == 1 )) ; then
-                echo
-                echo "${DEBUG_LEADER} Reset options to allow loop specific options"
-                echo "${DEBUG_LEADER}  WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
-            fi
+            if (( DEBUG >= 1 )) ; then echo; fi
+            __MSG_DEBUG "Reset options to allow loop specific options"
+            __MSG_DEBUG " WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
 
             unset -v WGET_SUBCHAR
             WGET_NOTCOUNT=0
@@ -2295,11 +2294,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset -v INTERVAL
 
             if [[ -n "${WGET_SUBCHAR+defined}" ]] && [[ "${#WGET_SUBCHAR}" -gt 0 ]]; then
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER}  WGET Success finding parsing character (${WGET_SUBCHAR})"
-                    echo "${DEBUG_LEADER}    Test string length: ${#WGET_TEST_STRING}"
-                    echo "${DEBUG_LEADER}    Characters tested before usable found: ${WGET_NOTCOUNT}"
-                fi
+                __MSG_DEBUG "WGET Success finding parsing character (${WGET_SUBCHAR})"
+                __MSG_DEBUG "  Test string length: ${#WGET_TEST_STRING}"
+                __MSG_DEBUG "  Characters tested before usable found: ${WGET_NOTCOUNT}"
             else
                 echo
                 echo "Unable to find character to use as delimiter for WGET_BASEOPTS string."
@@ -2324,24 +2321,16 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset -v WGET_TEST_CHAR
             unset -v WGET_TEST_STRING
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset FEED_FULL_PLAYLIST=0"
-            fi
+            __MSG_DEBUG "Reset FEED_FULL_PLAYLIST=0"
             FEED_FULL_PLAYLIST=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset FEED_SORT_ORDER=DESCENDING"
-            fi
+            __MSG_DEBUG "Reset FEED_SORT_ORDER=DESCENDING"
             FEED_SORT_ORDER="DESCENDING"
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset WGET_OPTION_DEFAULT_USERAGENT"
-            fi
+            __MSG_DEBUG "Reset WGET_OPTION_DEFAULT_USERAGENT"
             WGET_OPTION_DEFAULT_USERAGENT=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset WGET_OPTION_FILENAME_LOCATION"
-            fi
+            __MSG_DEBUG "Reset WGET_OPTION_FILENAME_LOCATION"
             WGET_OPTION_FILENAME_LOCATION=0
 
             if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
@@ -2351,77 +2340,49 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
                         unset -v 'WGET_OPTIONS['"${index}"']'
                         WGET_OPTION_DISPOSITION=1
-                        if (( DEBUG == 1 )) ; then
-                            echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
-                        fi
+                        __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
                     fi
                 done
             else
                 WGET_OPTION_DISPOSITION=0
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
-                fi
+                __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
             fi
 
             if ARRAY_CONTAINS "--user-agent=" "${WGET_OPTIONS[@]}" ; then
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER}  Custom Wget User Agent Enabled."
-                fi
+                __MSG_DEBUG "Custom Wget User Agent Enabled."
             else
                 WGET_OPTIONS+=("--user-agent=Podget")
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER}  Default Wget User Agent for Podget Enabled."
-                fi
+                __MSG_DEBUG "Default Wget User Agent for Podget Enabled."
             fi
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset WGET_OPTION_DISPOSITION_FAIL"
-            fi
+            __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION_FAIL"
             WGET_OPTION_DISPOSITION_FAIL=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset WGET_OPTION_NO_CHECK_CERIFICATE"
-            fi
+            __MSG_DEBUG "Reset WGET_OPTION_NO_CHECK_CERIFICATE"
             WGET_OPTION_NO_CHECK_CERIFICATE=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset WGET_OPTION_PREFER_IP_TYPE"
-            fi
+            __MSG_DEBUG "Reset WGET_OPTION_PREFER_IP_TYPE"
             WGET_OPTION_PREFER_IP_TYPE=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset WGET_OPTION_RSS_MEDIACONTENT"
-            fi
+            __MSG_DEBUG "Reset WGET_OPTION_RSS_MEDIACONTENT"
             WGET_OPTION_RSS_MEDIACONTENT=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_MDATE"
-            fi
+            __MSG_DEBUG "Reset POST_WGET_RENAME_MDATE"
             POST_WGET_RENAME_MDATE=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_TITLETAG"
-            fi
+            __MSG_DEBUG "Reset POST_WGET_RENAME_TITLETAG"
             POST_WGET_RENAME_TITLETAG=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset POST_WGET_RENAME_REVTITLETAG"
-            fi
+            __MSG_DEBUG "Reset POST_WGET_RENAME_REVTITLETAG"
             POST_WGET_RENAME_REVTITLETAG=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset ATOM_FILTER_SIMPLE"
-            fi
+            __MSG_DEBUG "Reset ATOM_FILTER_SIMPLE"
             ATOM_FILTER_SIMPLE=0
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset ATOM_FILTER_TYPE"
-            fi
+            __MSG_DEBUG "Reset ATOM_FILTER_TYPE"
             unset -v ATOM_FILTER_TYPE
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER}  Reset ATOM_FILTER_LANG"
-            fi
+            __MSG_DEBUG "Reset ATOM_FILTER_LANG"
             unset -v ATOM_FILTER_LANG
 
             # End resets
@@ -2455,9 +2416,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             if (( WGET_OPTION_DEFAULT_USERAGENT==1 )); then
                 for index in "${!WGET_OPTIONS[@]}"; do
                     if [[ ${WGET_OPTIONS[${index}]} =~ ^"--user-agent=".* ]]; then
-                        if (( DEBUG == 1 )) ; then
-                            echo "${DEBUG_LEADER}  Reset to Default Wget User Agent"
-                        fi
+                        __MSG_DEBUG "Reset to Default Wget User Agent"
                         unset -v 'WGET_OPTIONS['"${index}"']'
                     fi
                 done
@@ -2511,9 +2470,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 printf '%-30s %-50s\n' "Category: ${DISPLAY_CATEGORY}" "Name: ${DISPLAY_NAME}"
             fi
 
-            if (( DEBUG == 1 )) ; then
-                printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
-            fi
+            __MSG_DEBUG "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
 
             # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
             for i in FEED_CATEGORY FEED_NAME; do
@@ -2556,10 +2513,10 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 if [[ -n ${URL_USERNAME+set} ]]; then
                     printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
                 fi
-                if [[ -n ${URL_PASSWORD+set} ]] && (( DEBUG == 1 )); then
+                if [[ -n ${URL_PASSWORD+set} ]]; then
                     # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
                     # useful for debugging connection issues.
-                    echo "${DEBUG_LEADER} Password: ${URL_PASSWORD}"
+                    __MSG_DEBUG "Password: ${URL_PASSWORD}"
                 fi
                 if (( VERBOSITY >= 4 )) ; then
                     printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
@@ -2598,22 +2555,22 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
-            if (( DEBUG == 1 )) ; then
-                printf '%s %s\n' "${DEBUG_LEADER}" "------ Check for RSS or Atom feed --------"
+            # While most these messages are acceptably controlled for display via __MSG_DEBUG, we add an extra check
+            # here because the loop in the center would take extra unnecessary time.
+            if (( DEBUG >= 1 )) ; then
+                __MSG_DEBUG "------ Check for RSS or Atom feed --------"
                 while IFS= read -r LINE; do
-                    printf '%s %s\n' "${DEBUG_LEADER}" "${LINE}"
+                    __MSG_DEBUG "${LINE}"
                 done< <(printf "%s\n" "${TESTLINES}")
-                printf '%s %s\n' "${DEBUG_LEADER}" "------ ( first 9 lines of feed --------"
-                printf '%s %s\n' "${DEBUG_LEADER}" "------   looking for '<rss '   --------"
-                printf '%s %s\n' "${DEBUG_LEADER}" "------   or '<feed ' )         --------"
+                __MSG_DEBUG "------ ( first 9 lines of feed --------"
+                __MSG_DEBUG "------   looking for '<rss '   --------"
+                __MSG_DEBUG "------   or '<feed ' )         --------"
                 echo
             fi
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
-                if (( DEBUG == 1 )) ; then
-                    printf '%s %s\n' "${DEBUG_LEADER}" "RSS Feed Found"
-                    echo
-                fi
+                __MSG_DEBUG "RSS Feed Found"
+                if (( DEBUG == 1 )) ; then echo; fi
                 # if file is RSS then we look for '<enclosure '
                 #    To debug a sed command and see how it flows use --debug option.
                 #    NOTES for sed command:
@@ -2747,10 +2704,8 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                      INDEXFILE="${INDEXFILE_TMP2}"
                  fi
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
-                if (( DEBUG == 1 )) ; then
-                    printf '%s %s\n' "${DEBUG_LEADER}" "Atom Feed Found"
-                    echo
-                fi
+                __MSG_DEBUG "Atom Feed Found"
+                if (( DEBUG == 1 )) ; then echo; fi
                 # if file is Atom then we look for '<link\s.*rel="enclosure" '
                 # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
 
@@ -2782,13 +2737,13 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 #       in the feed and not understand why the filtering they have selected results
 #       in fewer or none found.  However it is useful during testing so it is
 #       available.
-#                if (( DEBUG == 1 )) ; then
-#                    printf '%s %s\n' "${DEBUG_LEADER}" "------ Indexfile Contents --------"
+#                if (( DEBUG == 1 )); then
+#                    __MSG_DEBUG "------ Indexfile Contents --------"
 #                    while IFS= read -r LINE; do
-#                        printf '%s %s\n' "${DEBUG_LEADER}" "${LINE}"
+#                        __MSG_DEBUG "${LINE}"
 #                    done< <(printf "%s\n" "${INDEXFILE}")
-#                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
-#                    printf '%s %s\n' "${DEBUG_LEADER}" "----------------------------------"
+#                    __MSG_DEBUG "----------------------------------"
+#                    __MSG_DEBUG "----------------------------------"
 #                    echo
 #                fi
 
@@ -2863,51 +2818,15 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 continue
             fi
 
-## Since this final cleanup is just for the URL part of the line, we need to move this before the combined url/title line is created
-#            # final INDEXFILE cleanup options
-#            INDEXFILE=$(echo "${INDEXFILE}" | \
-#                        sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
-#                        sed -e ':a;N;$!ba;s/\n/ /g')
-
             if [[ -n ${INDEXFILE} ]]; then
 
                 # Remove any error log entries for the FEED_URL if it failed before
                 REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
-### Recent will need to change when we go by lines instead of one long line with items separated by spaces.
-
-                # TODO:  Add choice here to get most recent from beginning or end of INDEXFILE
-                #        Possibly with -> echo ${INDEXFILE} | rev | cut -d \  -f -"${MOST_RECENT}" | rev
-                #        PROBLEM: This would require added 'util-linux' to the dependencies.
-                #
-                #        Option just in Bash:
-                #          Temp move to array
-                #            IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
-                #          Move back to Index
-                #            INDEXFILE="${TEMP_ARRAY[@]: -${MOST_RECENT}}"
-#                if (( MOST_RECENT > 0 )) ; then
-#                    if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
-#                        if (( DEBUG == 1 )) ; then
-#                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
-#                        fi
-#                        FULLINDEXFILE="${INDEXFILE}"
-#                        IFS=" " read -r -a TEMP_ARRAY <<< "${INDEXFILE}"
-#                        INDEXFILE="${TEMP_ARRAY[*]: -${MOST_RECENT}}"
-#                    else
-#                        if (( DEBUG == 1 )) ; then
-#                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
-#                        fi
-#                        FULLINDEXFILE="${INDEXFILE}"
-#                        INDEXFILE=$(echo "${INDEXFILE}" | cut -d \  -f -"${MOST_RECENT}")
-#                    fi
-#                fi
-
                 if (( MOST_RECENT > 0 )) ; then
                     FULLINDEXFILE="${INDEXFILE}"
                     if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
-                        if (( DEBUG == 1 )) ; then
-                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: ASCENDING"
-                        fi
+                        __MSG_DEBUG "FEED SORT ORDER: ASCENDING"
                         # Adding one to MOST_RECENT because we tend to have one blank line
                         # at the end of our INDEXFILE
                         #   -- This was needed when using tail.  Does not appear necessary when using sed.
@@ -2927,9 +2846,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
                         SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ !p")
                     else
-                        if (( DEBUG == 1 )) ; then
-                            echo -e "${DEBUG_LEADER} FEED SORT ORDER: DESCENDING"
-                        fi
+                        __MSG_DEBUG "FEED SORT ORDER: DESCENDING"
                         # Attempting to use head here results in exit condition 141, but using the sed construct
                         # below works.  Not sure why given that tail works above.
                         # INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
@@ -2940,52 +2857,26 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     fi
                 fi
 
-#                if (( DEBUG == 1 )) ; then
-#                    if (( MOST_RECENT > 0 )) ; then
-#                        printf '%s %s\n' "${DEBUG_LEADER}" "Full Index List:"
-#                        URLCOUNT=0
-#                        for URL in ${FULLINDEXFILE}; do
-#                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
-#                            URLCOUNT=$((URLCOUNT+1))
-#                        done
-#                        printf '%s %s\n' "${DEBUG_LEADER}" "Modified Index List:"
-#                        URLCOUNT=0
-#                        for URL in ${INDEXFILE}; do
-#                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
-#                            URLCOUNT=$((URLCOUNT+1))
-#                        done
-#                        unset URLCOUNT
-#                    else
-#                        printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
-#                        URLCOUNT=0
-#                        for URL in ${INDEXFILE}; do
-#                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${URL}"
-#                            URLCOUNT=$((URLCOUNT+1))
-#                        done
-#                        unset URLCOUNT
-#                    fi
-#                fi
-
-                if (( DEBUG == 1 )) ; then
+                if (( DEBUG >= 1 )) ; then
                     if (( MOST_RECENT > 0 )) ; then
-                        printf '%s %s\n' "${DEBUG_LEADER}" "Full Index List:"
+                        __MSG_DEBUG "Full Index List:"
                         URLCOUNT=0
                         while read -r DATA; do
-                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
+                            __MSG_DEBUG "${URLCOUNT}. ${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${FULLINDEXFILE}"
-                        printf '%s %s\n' "${DEBUG_LEADER}" "Modified Index List:"
+                        __MSG_DEBUG "Modified Index List:"
                         URLCOUNT=0
                         while read -r DATA; do
-                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
+                            __MSG_DEBUG "${URLCOUNT}. ${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
                         unset -v URLCOUNT
                     else
-                        printf '%s %s\n' "${DEBUG_LEADER}" "Index List:"
+                        __MSG_DEBUG "Index List:"
                         URLCOUNT=0
                         while read -r DATA; do
-                            printf '%s   %s. %s\n' "${DEBUG_LEADER}" "${URLCOUNT}" "${DATA}"
+                            __MSG_DEBUG "${URLCOUNT}. ${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
                         unset -v URLCOUNT
@@ -3042,9 +2933,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             MOD_PREFIX="${URL_BASE%%/}"
                             MOD_PREFIX="${MOD_PREFIX##*/}"
                             MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
-                            if (( DEBUG == 1 )) ; then
-                                echo "${DEBUG_LEADER} FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
-                            fi
+                            __MSG_DEBUG "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
                         fi
 
                         if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
@@ -3141,13 +3030,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                             # if --content-disposition get filename and remove quotes around it.
                             if (( WGET_OPTION_DISPOSITION == 1 )); then
-                                if (( DEBUG == 1 )) ; then
-                                    echo "${DEBUG_LEADER} CONTENT-DISPOSITION TESTS"
-                                fi
+                                __MSG_DEBUG "CONTENT-DISPOSITION TESTS"
                                 if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                    if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
-                                    fi
+                                    __MSG_DEBUG "SERVER RESPONSE FILE NONZERO SIZE"
 
                                     # Added '|| true' to catch when grep exits with a non-zero status because the
                                     # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
@@ -3156,29 +3041,21 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
                                     # Test CONTENT_FILENAME is not null or consists solely of whitespace
                                     if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
-                                        if (( DEBUG == 1 )) ; then
-                                            echo "${DEBUG_LEADER} CONTENT_FILENAME: '${CONTENT_FILENAME}'"
-                                        fi
+                                        __MSG_DEBUG "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
                                     else
-                                        if (( DEBUG == 1 )) ; then
-                                            echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Content-Disposition Tag"
-                                        fi
+                                        __MSG_DEBUG "SERVER RESPONSE FILE - No Content-Disposition Tag"
                                         # if variable is effectively blank, we can unset it
                                         unset -v CONTENT_FILENAME
 
                                         if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
-                                            if (( DEBUG == 1 )) ; then
-                                                echo "${DEBUG_LEADER}  - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
-                                            fi
+                                            __MSG_DEBUG " - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
 
                                             # Remove any COMPLETE log entries to allow it to retry next session.
                                             REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
                                         fi
                                     fi
                                 else
-                                    if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
-                                    fi
+                                    __MSG_DEBUG "SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                 fi
 
                                 # Do we need a cleanup on CONTENT_FILENAME here?
@@ -3190,13 +3067,9 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             fi
 
                             if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
-                                if (( DEBUG == 1 )) ; then
-                                    echo "${DEBUG_LEADER} FILENAME LOCATION TESTS"
-                                fi
+                                __MSG_DEBUG "FILENAME LOCATION TESTS"
                                 if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                    if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE NONZERO SIZE"
-                                    fi
+                                    __MSG_DEBUG "SERVER RESPONSE FILE NONZERO SIZE"
 
                                     # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
                                     # not found.  This eliminates the need to disable errexit and the ERR trap.
@@ -3207,21 +3080,15 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     if (( VERBOSITY >= 2 )); then
                                         # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
                                         if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
-                                            if (( DEBUG == 1 )) ; then
-                                                echo "${DEBUG_LEADER} LOCATION_FILENAME: '${LOCATION_FILENAME}'"
-                                            fi
+                                            __MSG_DEBUG "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
                                         else
-                                            if (( DEBUG == 1 )) ; then
-                                                echo "${DEBUG_LEADER} SERVER RESPONSE FILE - No Location Tag"
-                                            fi
+                                            __MSG_DEBUG "SERVER RESPONSE FILE - No Location Tag"
                                             # If LOCATION_FILENAME is effectively blank we can unset it
                                             unset -v LOCATION_FILENAME
                                         fi
                                     fi
                                 else
-                                    if (( DEBUG == 1 )) ; then
-                                        echo "${DEBUG_LEADER} SERVER RESPONSE FILE ZERO SIZE - No Tags"
-                                    fi
+                                    __MSG_DEBUG "SERVER RESPONSE FILE ZERO SIZE - No Tags"
                                 fi
 
                                 # Do we need a cleanup on LOCATION_FILENAME here?
@@ -3293,9 +3160,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                             # Rename a file to title
                             if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
                                 if [[ -n "${TITLE}" ]]; then
-                                    if (( DEBUG == 1 )); then
-                                        echo "${DEBUG_LEADER} Title with cleanup: ${TITLE}"
-                                    fi
+                                    __MSG_DEBUG "Title with cleanup: ${TITLE}"
                                     # Get extension from downloaded filename
                                     OLDEXT="${FINAL_FILENAME##*.}"
                                     TITLEEXT="${TITLE##*.}"
@@ -3312,9 +3177,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                     else
                                         FINAL_TITLE="${TITLE}"
                                     fi
-                                    if (( DEBUG == 1 )); then
-                                        echo "${DEBUG_LEADER} Title with extension: ${FINAL_TITLE}"
-                                    fi
+                                    __MSG_DEBUG "Title with extension: ${FINAL_TITLE}"
                                     if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}" ]]; then
                                         if (( VERBOSITY >= 2 )); then
                                             echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
@@ -3335,9 +3198,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                                         fi
                                     fi
                                 else
-                                    if (( DEBUG == 1 )); then
-                                        echo "${DEBUG_LEADER} Title not set for this item"
-                                    fi
+                                    __MSG_DEBUG "Title not set for this item"
                                 fi
                             fi
 
@@ -3454,7 +3315,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                     fi
 
                     # Remove server response file as it's no longer needed
-                    if (( DEBUG == 0 )); then
+                    if (( DEBUG >= 0 )); then
                         if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
                             rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
@@ -3464,18 +3325,14 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                         fi
                     fi
 
-                    if (( DEBUG == 1 )) ; then
-                        echo "${DEBUG_LEADER} Clear File Vars"
-                    fi
+                    __MSG_DEBUG "Clear File Vars"
                     unset -v URL_FILENAME
                 done <<< "${INDEXFILE}"
 
                 if (( VERBOSITY >= 3 )) ; then echo; fi
 
                 if (( (MOST_RECENT != 0) && (INSTALL_SESSION == 0) )); then
-                    if (( DEBUG == 1 )); then
-                        echo "${DEBUG_LEADER} Marking additional files in Index as already downloaded (RECENT > 0)."
-                    fi
+                    __MSG_DEBUG "Marking additional files in Index as already downloaded (RECENT > 0)."
                     # for URL in ${FULLINDEXFILE}
                     # do
                     while read -r DATA; do
@@ -3532,9 +3389,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             fi
 
 
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} Clear Server Loop Vars"
-            fi
+            __MSG_DEBUG "Clear Server Loop Vars"
             unset -v FEED_URL
             unset -v FEED_CATEGORY
             unset -v FEED_NAME
@@ -3640,22 +3495,18 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
     # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
     #       nice to find a more elegant way to state this.
     if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} Build OPT_FEED_PLAYLISTs"
-        fi
+        __MSG_DEBUG "Build OPT_FEED_PLAYLISTs"
         # Set header to not be displayed unless active feed configured to require one.
         FEED_PLAYLIST_HEADER=0
 
         for FILETYPE in utf8 utf16 ; do
-            if (( DEBUG == 1 )) ; then
-                echo
-                case ${FILETYPE} in
-                    'utf8')
-                        echo "${DEBUG_LEADER} UTF-8 Loop running." ;;
-                    'utf16')
-                        echo "${DEBUG_LEADER} UTF-16 Loop running." ;;
-                esac
-            fi
+            if (( DEBUG >= 1 )) ; then echo; fi
+            case ${FILETYPE} in
+                'utf8')
+                    __MSG_DEBUG "UTF-8 Loop running." ;;
+                'utf16')
+                    __MSG_DEBUG "UTF-16 Loop running." ;;
+            esac
             case ${FILETYPE} in
                 'utf8')
                     CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
@@ -3666,9 +3517,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
             esac
 
             if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
-                if (( DEBUG == 1 )) ; then
-                    echo "${DEBUG_LEADER} No config file found, exiting loop."
-                fi
+                __MSG_DEBUG "No config file found, exiting loop."
                 continue
             fi
 
@@ -3677,10 +3526,8 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                 FEED_FULL_PLAYLIST=0
 
                 if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
-                    if (( DEBUG == 1 )) ; then
-                        echo "${DEBUG_LEADER} Discarding (comment or blank line)."
-                        echo "${DEBUG_LEADER} Clear Loop vars"
-                    fi
+                    __MSG_DEBUG "Discarding (comment or blank line)."
+                    __MSG_DEBUG "Clear Loop vars"
                     unset -v FEED_URL
                     unset -v FEED_CATEGORY
                     unset -v FEED_NAME
@@ -3778,9 +3625,7 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                         fi
                         if [ -n "${FEED_ITEMS}" ]; then
                             while read -r ITEM; do
-                                if (( DEBUG == 1 )) ; then
-                                    echo "${DEBUG_LEADER} FEED Full Playist add ${ITEM}"
-                                fi
+                                __MSG_DEBUG "FEED Full Playist add ${ITEM}"
                                 # Added Sed statement to remove "./" (current directory) from each item added as necessary
                                 echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                             done <<< "${FEED_ITEMS}"
@@ -3896,10 +3741,8 @@ if [[ -n ${EXPORT_OPML+set} ]]; then
 
 	while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
         if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} Discarding (comment or blank line)."
-                echo "${DEBUG_LEADER} Clear Loop vars"
-            fi
+            __MSG_DEBUG "Discarding (comment or blank line)."
+            __MSG_DEBUG "Clear Loop vars"
             unset -v FEED_URL
             unset -v FEED_CATEGORY
             unset -v FEED_NAME
