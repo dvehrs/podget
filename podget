@@ -1726,17 +1726,6 @@ unset -v FILENAME_BADCHARS
 # ----------------------------------------------------------------------------------------------------------------------------------
 # CONFIG TEST PART 1 of 4: Test for existing DIR_CONFIG, if missing create it and install CONFIG_CORE                            {{{
 
-#if [[ ! -d ${DIR_CONFIG} ]] ; then
-#    echo "  Configuration directory not found.  Creating \"${DIR_CONFIG}\""
-#    mkdir "${DIR_CONFIG}"
-#    EXITSTATUS=$?
-#    if (( EXITSTATUS != 0 )); then
-#        printf '%-30s %s' "Error:" "Failed to create \"${DIR_CONFIG}\""
-#        CLEANUP_AND_EXIT 1
-#    fi
-#    INSTALL_SESSION=1
-#fi
-
 if [[ "${DIR_CONFIG}" == "UNSET-use-DEFAULT" ]]; then
     __MSG_DEBUG "DIR_CONFIG is not configured, checking for other possible locations"
     DIR_CONFIG_NAME="podget"
@@ -2007,8 +1996,6 @@ fi
 
 if (( CMDL_FORCE != 0 )); then
     FORCE=${CMDL_FORCE}
-#    WGET_BASEOPTS=$(echo "${WGET_BASEOPTS}" | sed -e 's/-c //')
-#    Change to ${variable/search/replace} format.
     WGET_BASEOPTS="${WGET_BASEOPTS/-c /}"
 fi
 
@@ -2312,7 +2299,6 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
             unset -v WGET_OPTIONS
 
             # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
-            # read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
             IFS="${WGET_SUBCHAR}" read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
 
             WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS//${WGET_SUBCHAR}-/ -}"
@@ -3599,7 +3585,6 @@ if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]
                         fi
                     fi
 
-#                    FULL_PLAYLIST_NAME="PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u"
                     # Replace spaces with underscores and then pipe through tr to limit repetitions.
                     FULL_PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
                     # Remove old full playlist.
