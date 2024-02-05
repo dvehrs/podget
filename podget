@@ -659,6 +659,36 @@ TEXT_ASX_END
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Functions                                                                                                                      {{{
 
+# Function: __MSG_DEBUG                                                                                                          {{{
+# Display additional informational messages to user.
+# General rules for use:
+#  - For one part messages, the message to user should be less than 72 characters long to fit on one 80 character line.
+#  - For two part messages, the first part can be up to 17 characters long and the second part can be up to 55 characters long to fit.
+#  - These are very general rules because printf will not overlap sections when they are longer than they should be.  So you can
+#    have a longer first part when the second is shorter and still fit on an 80 character line.  However things will line up best if
+#    you follow these guidelines.
+# ARGUMENTS:
+# ${1} == One part message.
+# ${2} == Second part of two part message.
+__MSG_DEBUG() {
+    local PART1="${1}"
+    local PART2="${2:-UNConfigured}"
+    # This looks a bit unusual but allows us to have a local variable that inherits it's value from when it is called.  Technically
+    # the second part is the global value for the variable of name "DEBUG_LEADER" being assigned to local variable of the same name.
+    local DEBUG_LEADER="${DEBUG_LEADER}"
+    local DEBUG="${DEBUG}"
+
+    # Test if INFO is set (may be empty string).
+    if [[ "${DEBUG}" -gt 0 ]]; then
+        if [[ "${PART2}" == "UNConfigured" ]]; then
+            printf '%s %s\n' "${DEBUG_LEADER}" "${PART1}"
+        else
+            printf '%s %-17s : %s\n' "${DEBUG_LEADER}" "${PART1}" "${PART2}"
+        fi
+    fi
+}
+#                                                                                                                                }}}
+
 # Function: __MSG_INFO                                                                                                           {{{
 # Display additional informational messages to user.  Each message should be less that 57 Characters so that the whole line averages
 # less than 80 characters (this limit is especially important for two part messages.
@@ -718,8 +748,7 @@ CLEANUP_AND_EXIT() {
                 rm -f "${DIR_SESSION}"/podget.$$
             fi
         else
-            #printf '\n%s\n' "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/podget.$$"
-            __MSG_INFO "Not deleting ${DIR_SESSION}/podget.$$"
+            __MSG_DEBUG "Not deleting ${DIR_SESSION}/podget.$$"
         fi
     fi
     if (( (VERBOSITY >= 2) && (VERBOSITY <= 3) )); then
@@ -1657,17 +1686,10 @@ if [[ ${DIR_CONFIG} == "NONE" ]]; then
     CLEANUP_AND_EXIT 1
 fi
 
-# If DEBUG is manual set to 0 or 1 in podgetrc, then it does not have an effect
-# until CONFIG_CORE is read at about line 1478.  On the other hand, if it is
-# not configured to a fixed value there, then it can be enabled from the
-# commandline by executing podget like so "DEBUG=1 ./podget [options]".  By
-# default, DEBUG is set to be disabled (0).
-if (( DEBUG == 1 )) ; then
-    printf '\n%s %-30s %s\n' "${DEBUG_LEADER}" "Parsing Config file." ""
-    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Config directory:" "${DIR_CONFIG}"
-    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Config file:" "${CONFIG_CORE}"
-    printf '%s %-30s %s\n' "${DEBUG_LEADER}" "Server List:" "${CONFIG_SERVERLIST}"
-fi
+__MSG_INFO "Parsing Config file." ""
+__MSG_INFO "Config directory:" "${DIR_CONFIG}"
+__MSG_INFO "Config file:" "${CONFIG_CORE}"
+__MSG_INFO "Server List:" "${CONFIG_SERVERLIST}"
 
 if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
     if [[ -n ${CMDL_ASX+set} ]]; then
@@ -1681,9 +1703,8 @@ fi
 #CLEANUP_AND_EXIT 0
 
 # Test filename for CONFIG_CORE, CMDL/CONFIG_SERVERLIST and directory for DIR_CONFIG
-if (( DEBUG == 1 )) ; then
-    printf '\n%s %s\n' "${DEBUG_LEADER}" "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
-fi
+__MSG_DEBUG "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
+
 FILENAME_CHECK CONFIG_CORE
 if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
     FILENAME_CHECK CMDL_SERVERLIST
@@ -1693,10 +1714,7 @@ fi
 
 DIRECTORY_CHECK DIR_CONFIG
 
-if (( DEBUG == 1 )) ; then
-    printf '%s %s\n\n' "${DEBUG_LEADER}" "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
-    echo
-fi
+__MSG_DEBUG "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
 unset -v FILENAME_BADCHARS
 
 #                                                                                                                                }}}
@@ -1715,39 +1733,20 @@ unset -v FILENAME_BADCHARS
 #fi
 
 if [[ "${DIR_CONFIG}" == "UNSET-use-DEFAULT" ]]; then
-    if (( DEBUG == 1 )) ; then
-        printf '%s %s\n\n' "${DEBUG_LEADER}" "DIR_CONFIG is not configured, checking for other possible locations"
-        echo
-    fi
+    __MSG_DEBUG "DIR_CONFIG is not configured, checking for other possible locations"
     DIR_CONFIG_NAME="podget"
 
     if [[ -d "${HOME}/.${DIR_CONFIG_NAME}" ]]; then
-        if (( DEBUG == 1 )) ; then
-            printf '%s %s\n\n' "${DEBUG_LEADER}" "HOME/.${DIR_CONFIG_NAME} exists!"
-            echo
-        fi
+        __MSG_DEBUG "HOME/.${DIR_CONFIG_NAME} exists!"
         DIR_CONFIG="${HOME}/.${DIR_CONFIG_NAME}"
     elif [[ -n ${XDG_CONFIG_HOME+set} && -d "${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}" ]]; then
-        if (( DEBUG == 1 )) ; then
-            printf '%s %s\n\n' "${DEBUG_LEADER}" "XDG_CONFIG_HOME is set and '${DIR_CONFIG_NAME}' exists within it"
-            echo
-        fi
+        __MSG_DEBUG "XDG_CONFIG_HOME is set and '${DIR_CONFIG_NAME}' exists within it"
         DIR_CONFIG="${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
     elif [[ -d "${HOME}/.config" && -d "${HOME}/.config/${DIR_CONFIG_NAME}" ]]; then
-        if (( DEBUG == 1 )) ; then
-            printf '%s %s\n\n' "${DEBUG_LEADER}" "HOME/.config exists and '${DIR_CONFIG_NAME}' exists within it"
-            echo
-        fi
+        __MSG_DEBUG "HOME/.config exists and '${DIR_CONFIG_NAME}' exists within it"
         DIR_CONFIG="${HOME}/.config/${DIR_CONFIG_NAME}"
     else
-        if (( DEBUG == 1 )) ; then
-            printf '%s %s\n\n' "${DEBUG_LEADER}" ""
-            echo
-        fi
-        if (( DEBUG == 1 )) ; then
-            printf '%s %s\n\n' "${DEBUG_LEADER}" "'${DIR_CONFIG_NAME}' directory does not exist in any of the likely locations."
-            echo
-        fi
+        __MSG_DEBUG "'${DIR_CONFIG_NAME}' directory does not exist in any of the likely locations."
         if [[ -n ${XDG_CONFIG_HOME+set} ]]; then
             if [[ -d "${XDG_CONFIG_HOME}" ]]; then
                 mkdir "${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
@@ -1842,12 +1841,10 @@ else
     MAJOR="${VERSION_ARRAY[1]:-0}"
     MINOR="${VERSION_ARRAY[2]:-0}"
 
-    if (( DEBUG == 1 )) ; then
-        echo "${DEBUG_LEADER} PODGETRC Version Check:  (looking for newer than 0.6.18)"
-        echo "${DEBUG_LEADER}   BASE: ${BASE:-0}"
-        echo "${DEBUG_LEADER}   MAJOR: ${MAJOR}"
-        echo "${DEBUG_LEADER}   MINOR: ${MINOR}"
-    fi
+    __MSG_DEBUG "PODGETRC Version Check:  (looking for newer than 0.6.18)"
+    __MSG_DEBUG "  BASE: ${BASE:-0}"
+    __MSG_DEBUG "  MAJOR: ${MAJOR}"
+    __MSG_DEBUG "  MINOR: ${MINOR}"
 
     if (( (MAJOR < 7) && (MINOR < 19) )); then
         echo "${DIR_CONFIG}/${CONFIG_CORE} was created by an older version of podget than is needed by this version."
@@ -2034,27 +2031,20 @@ fi
 # Remove any residual leading spaces from WGET_COMMON_OPTIONS
 WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS#[ ]*}"
 
-if (( DEBUG == 1 )) ; then
-    # echo -e "WGet Options:\t\t\t${WGET_COMMON_OPTIONS}"
-    printf '%-30s %s\n' "WGet Options:" "${WGET_COMMON_OPTIONS}"
-fi
+__MSG_DEBUG "WGET COMMON OPTIONS" "${WGET_COMMON_OPTIONS}"
 
 if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
     # make sure backslash is escaped.
     FILENAME_BADCHARS="${FILENAME_BADCHARS/\\/\\\\}"
 
-    if (( DEBUG == 1 )) ; then
-        printf '%-30s %s\n' "Filename Bad Characters:" "${FILENAME_BADCHARS}"
-        printf '%-30s %s\n' "Filename Replace Character:" "${FILENAME_REPLACECHAR}"
-    fi
+    __MSG_DEBUG "Filename Bad Characters" "${FILENAME_BADCHARS}"
+    __MSG_DEBUG "Filename Replace Character" "${FILENAME_REPLACECHAR}"
 fi
 
-if (( VERBOSITY >= 3 )) ; then
-    if (( DEBUG == 0 )); then
-        printf '%-30s %s\n' "Debug:" "Disabled - Delete temp files and reduced progress messages."
-    else
-        printf '%-30s %s\n' "Debug:" "Enabled - Do not delete temp files and increased progress messages."
-    fi
+if (( DEBUG == 0 )); then
+    __MSG_INFO "Debug Disabled - Delete temp files and reduced progress messages."
+else
+    __MSG_DEBUG "Debug Enabled - Do not delete temp files and increased progress messages."
 fi
 
 if (( VERBOSITY >= 1 )) ; then
@@ -2068,9 +2058,7 @@ fi
 
 # Test that session directory exists (useful when placed on a tmpfs filesystem).
 if [[ ! -d ${DIR_SESSION} ]]; then
-    if (( DEBUG == 1 )) ; then
-        printf '\n%s\n' "Session directory not found, creating"
-    fi
+    __MSG_INFO "Session directory not found, creating"
     mkdir -p "${DIR_SESSION}"
 fi
 
@@ -2081,9 +2069,7 @@ fi
 TEST_SESSION=0
 while read -r -d $'\0' FILE ; do
     if [[ $(stat -c %u "${FILE}") == "${UID}" ]]; then
-        if (( DEBUG == 1 )) ; then
-            echo "${DEBUG_LEADER} Session FILE found: ${FILE} (that my user owns)"
-        fi
+        __MSG_DEBUG "Session FILE found: ${FILE} (that my user owns)"
         TEST_SESSION=1
         # shellcheck disable=SC2094
         while read -r LINE ; do
@@ -2091,17 +2077,13 @@ while read -r -d $'\0' FILE ; do
                 TEST_File=$(echo "${LINE}" | sed -n -e 's/^[^:]\+:\s\(.*\)$/\1/p')
                 if [[ ${TEST_File} == "${CONFIG_CORE}" ]] ; then
                     SESSION_PID=$(echo "${FILE}" | sed -n -e 's/.*podget.\([0-9]*\)$/\1/p')
-                    if (( DEBUG == 1 )) ; then
-                        echo "${DEBUG_LEADER}  Testing PID ${SESSION_PID} to determine if its still running."
-                    fi
+                    __MSG_DEBUG "Testing PID ${SESSION_PID} to determine if its still running."
 
                     if ps --pid "${SESSION_PID}" &>/dev/null; then
                         echo "Another session with config file ${CONFIG_CORE} found running.  Killing session." 1>&2
                         CLEANUP_AND_EXIT ${ERR_RUNNINGSESSION}
                     else
-                        if (( DEBUG == 1 )) ; then
-                            echo "${DEBUG_LEADER}  Session PID ${SESSION_PID} is not running, removing lock file"
-                        fi
+                        __MSG_DEBUG "Session PID ${SESSION_PID} is not running, removing lock file"
                         rm -f "${FILE}"
                     fi
                 fi
@@ -2131,18 +2113,16 @@ echo -e "Config file: ${CONFIG_CORE}" > "${DIR_SESSION}"/podget.$$
 # Loop over servers on list                                                                                                      {{{
 
 if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
-    if (( DEBUG == 1 )) ; then
-        printf '\n%s %s\n' "${DEBUG_LEADER}" "Main loop:"
-        printf '%s %-30s %s\n' "${DEBUG_LEADER}" "SERVER LIST FILE:" "$CONFIG_SERVERLIST"
-        printf '%s %-30s %s\n' "${DEBUG_LEADER}" "WGET OPTIONS:" "${WGET_COMMON_OPTIONS}"
-        if (( NO_PLAYLIST == 0 )); then
-            printf '%s %s\n' "${DEBUG_LEADER}" "Playlist Creation Enabled."
-        else
-            printf '%s %s\n' "${DEBUG_LEADER}" "Playlist Creation Disabled."
-        fi
-        if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-            printf '%s %s\n' "${DEBUG_LEADER}" "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
-        fi
+    __MSG_DEBUG "Main loop"
+    __MSG_DEBUG "SERVER LIST FILE" "$CONFIG_SERVERLIST"
+    __MSG_DEBUG "WGET COMMON OPTIONS" "${WGET_COMMON_OPTIONS}"
+    if (( NO_PLAYLIST == 0 )); then
+        __MSG_DEBUG "Playlist Creation Enabled."
+    else
+        __MSG_DEBUG "Playlist Creation Disabled."
+    fi
+    if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+        __MSG_DEBUG "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
     fi
 
     mkdir -p "${DIR_LOG}"
@@ -2167,15 +2147,12 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
 
     # UTF-8/16 handling
     for FILETYPE in utf8 utf16 ; do
-        if (( DEBUG == 1 )) ; then
-            echo
-            case ${FILETYPE} in
-                'utf8')
-                    echo "${DEBUG_LEADER} UTF-8 Loop running." ;;
-                'utf16')
-                    echo "${DEBUG_LEADER} UTF-16 Loop running." ;;
-            esac
-        fi
+        case ${FILETYPE} in
+            'utf8')
+                __MSG_INFO "UTF-8 Loop running." ;;
+            'utf16')
+                __MSG_INFO "UTF-16 Loop running." ;;
+        esac
         case ${FILETYPE} in
             'utf8')
                 CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
@@ -2191,9 +2168,7 @@ if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} 
                 echo "Unknown Filetype: ${FILETYPE}"
         esac
         if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
-            if (( DEBUG == 1 )) ; then
-                echo "${DEBUG_LEADER} No config file found, exiting loop."
-            fi
+            __MSG_INFO "No config file found, exiting loop."
             continue
         fi
 
