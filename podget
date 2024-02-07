@@ -1567,16 +1567,6 @@ podgetcore() {
     # bad characters found.
     local FILENAME_REPLACECHAR=_
 
-    # Default VERBOSITY
-    #  0 == silent
-    #  1 == Warning messages only.
-    #  2 == Progress and Warning messages.
-    #  3 == Debug, Progress and Warning messages.
-    #  4 == All messages and wget set to maximum VERBOSITY.
-    #  NOTE: Verbosity is not a local option because it is needed before and after core function runs.  It is a global option that
-    #  we set to a default value here.
-    VERBOSITY=2
-
     # Auto-Cleanup.
     # 0 == disabled
     # 1 == delete any old content
