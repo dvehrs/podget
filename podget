@@ -1517,7 +1517,7 @@ esac
 # ----------------------------------------------------------------------------------------------------------------------------------
 # CORE FUNCTION                                                                                                                  {{{
 
-podgetcore() {
+PodgetCore() {
     # ------------------------------------------------------------------------------------------------------------------------------
     # Version  (Update with changes!)                                                                                            {{{
 
@@ -1555,12 +1555,12 @@ podgetcore() {
     local DIR_CONFIG="UNSET-use-DEFAULT"
 
     # DEFAULT FILENAME_BADCHARS used to test the configuration filenames and then unset.  The value used later in the script may be
-    # set in the configuration file.  If you have a genuine need to use one of these characters in the filenames of the serverlist or
-    # core configuration file then you may need to remove it from this definition.  For all other uses, modify the setting in your
-    # configuration file (by default in podgetrc).
+    # set in the configuration file.  If you have a genuine need to use one of these characters in the filenames of the serverlist
+    # or core configuration file then you may need to remove it from this definition.  For all other uses, modify the setting in
+    # your configuration file (by default in podgetrc).
     #
-    # This is a subset of the FILENAME_BADCHARS set in the default configuration file.  Many of the symbols that have been removed are
-    # because they will cause other errors when used on the command line that prevent these checks from working.
+    # This is a subset of the FILENAME_BADCHARS set in the default configuration file.  Many of the symbols that have been removed
+    # are because they will cause other errors when used on the command line that prevent these checks from working.
     local FILENAME_BADCHARS="~#^=+{}[]:\"'?\\"
 
     # Filename Replace Character: Character to use to replace any/all
@@ -1835,7 +1835,8 @@ podgetcore() {
         CLEANUP_AND_EXIT 1
     else
         # get version
-        VERSION=$(grep -F "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | sed -e 's/.*by version \([0-9.]\)/\1/')
+        VERSION=$(grep -F "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | \
+                  sed -e 's/.*by version \([0-9.]\)/\1/')
 
         # Split version string into an array by replacing '.' with 'space'
         IFS='.' read -r -a VERSION_ARRAY <<< "${VERSION}"
@@ -3486,12 +3487,13 @@ podgetcore() {
     # ------------------------------------------------------------------------------------------------------------------------------
     # Build individual Podcast Full Playlists                                                                                    {{{
     #
-    # Placed here so it is run after any session whether it includes cleanup or not.  Does not run before importing or exporting OPML or
-    # PCAST feed lists.
+    # Placed here so it is run after any session whether it includes cleanup or not.  Does not run before importing or exporting
+    # OPML or PCAST feed lists.
 
 
     if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
-        # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this section.
+        # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this
+        # section.
         # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
         #       nice to find a more elegant way to state this.
         if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
@@ -3840,7 +3842,7 @@ podgetcore() {
 }
 
 # Call main function to run this whole kit and caboodle.
-podgetcore "${@}"
+PodgetCore "${@}"
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
