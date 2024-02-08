@@ -1363,6 +1363,184 @@ PlaylistSort() {
 }
 #                                                                                                                                }}}
 
+# Function: PodgetBuildFeedPlaylist                                                                                              {{{
+# Build M3U playlist for a single feed if it is configured to get them in the serverlist file.
+# ARGUMENTS: <none>
+PodgetBuildFeedPlaylist() {
+    local DIR_CONFIG="${DIR_CONFIG}"
+    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+    local VERBOSITY="${VERBOSITY}"
+
+    # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this
+    # section.
+    # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
+    #       nice to find a more elegant way to state this.
+    if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
+        __MSG_DEBUG "Build OPT_FEED_PLAYLISTs"
+        # Set header to not be displayed unless active feed configured to require one.
+        local FEED_PLAYLIST_HEADER=0
+
+        local FILETYPE
+        for FILETYPE in utf8 utf16 ; do
+            if (( DEBUG >= 1 )) ; then echo; fi
+            case ${FILETYPE} in
+                'utf8')
+                    __MSG_DEBUG "UTF-8 Loop running." ;;
+                'utf16')
+                    __MSG_DEBUG "UTF-16 Loop running." ;;
+            esac
+            local CURRENT_SERVERLIST
+            case ${FILETYPE} in
+                'utf8')
+                    CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
+                'utf16')
+                    CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
+                *)
+                    echo "Unknown Filetype: ${FILETYPE}"
+            esac
+
+            if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
+                __MSG_DEBUG "No config file found, exiting loop."
+                continue
+            fi
+
+            ### TODO: Need to find a way to shrink this.
+            local FEED_URL
+            local FEED_CATEGORY
+            local FEED_NAME
+            while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
+                local FEED_FULL_PLAYLIST=0
+
+                if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
+                    __MSG_DEBUG "Discarding (comment or blank line)."
+                    __MSG_DEBUG "Clear Loop vars"
+                    unset -v FEED_URL
+                    unset -v FEED_CATEGORY
+                    unset -v FEED_NAME
+                    unset -v FEED_FULL_PLAYLIST
+                    continue
+                fi
+
+                # ---------------------
+                # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
+
+                unset -v FILTER_TARGET
+                local FILTER_TARGET
+                for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
+                    FilterOptions "${FILTER_TARGET}"
+                done
+
+                # Unset options that are not required in this while loop
+                unset -v URL_PASSWORD
+                unset -v URL_USERNAME
+                unset -v WGET_OPTION_DEFAULT_USERAGENT
+                unset -v WGET_OPTION_DISPOSITION
+                unset -v WGET_OPTION_DISPOSITION_FAIL
+                unset -v WGET_OPTION_NO_CHECK_CERIFICATE
+                unset -v WGET_OPTION_PREFER_IP_TYPE
+                unset -v WGET_OPTION_FILENAME_LOCATION
+                unset -v WGET_OPTION_RSS_MEDIACONTENT
+                unset -v FEED_SORT_ORDER
+                unset -v POST_WGET_RENAME_MDATE
+                unset -v ATOM_FILTER_SIMPLE
+                unset -v ATOM_FILTER_TYPE
+                unset -v ATOM_FILTER_LANG
+
+                if (( FEED_FULL_PLAYLIST >= 1 )) ; then
+                    if (( FEED_PLAYLIST_HEADER == 0 )); then
+                        if (( VERBOSITY == 1 )) ; then
+                            printf '\n%s\n' "Build OPT_FEED_PLAYLISTs"
+                        fi
+                        if (( VERBOSITY >= 2 )) ; then
+                            printf '\n%s\n%s\n' "-------------------------------------------------" "Build OPT_FEED_PLAYLISTs"
+                        fi
+                        # Increment header variable so it only displays once.
+                        # NOTE: If we attempt to post-increment our variable, it will cause an error because of the way that '(('
+                        # evaluates the expression.  When the result is zero, it exits with '1' triggering errexit, however if
+                        # we pre-increment then the error does not happen.
+                        # More examples: https://en.wikipedia.org/wiki/Increment_and_decrement_operators
+                        (( ++FEED_PLAYLIST_HEADER ))
+                    fi
+                    if [ "${FEED_NAME}" == "." ]; then
+                        if (( VERBOSITY >= 1 )); then
+                            printf '%-30s %-50s\n' "" "No FEED_NAME, unable to create playlist for:"
+                            printf '%-30s %-50s\n' "" "  ${FEED_URL}"
+                        else
+                            echo "No FEED_NAME, unable to create playlist for:"
+                            echo "    ${FEED_URL}"
+                        fi
+                        continue
+                    fi
+
+                    # Date Substitutions
+                    FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
+
+                    if (( VERBOSITY >= 2 )) ; then
+                        printf '\n%s\n' "-------------------------------------------------"
+                    fi
+                    if (( VERBOSITY >= 1 )) ; then
+                        if [ "${FEED_CATEGORY}" == "." ]; then
+                            printf '%-30s %-50s\n' "Category: NONE" "Name: ${FEED_NAME}"
+                        else
+                            printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
+                        fi
+                    fi
+
+                    # Replace spaces with underscores and then pipe through tr to limit repetitions.
+                    local FULL_PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
+                    # Remove old full playlist.
+                    if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
+                        if (( VERBOSITY >= 2 )) ; then
+                            echo "Remove old playlist: ${FULL_PLAYLIST_NAME}"
+                            rm -v "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        else
+                            rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        fi
+                    fi
+                    if [[ -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]]; then
+                        # Build new full playlist.
+                        if (( VERBOSITY >= 2 )); then
+                            echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        fi
+                        if (( FEED_FULL_PLAYLIST == 1 )); then
+                            # Get list in order of newest to oldest
+                            local FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                        else
+                            # Get list in order of oldest to newest
+                            local FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                        fi
+                        if [ -n "${FEED_ITEMS}" ]; then
+                            local ITEM
+                            while read -r ITEM; do
+                                __MSG_DEBUG "FEED Full Playist add ${ITEM}"
+                                # Added Sed statement to remove "./" (current directory) from each item added as necessary
+                                echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                            done <<< "${FEED_ITEMS}"
+                            unset -v FEED_ITEMS
+                            unset -v ITEM
+                        else
+                            if (( VERBOSITY >= 1 )); then
+                                printf '%-30s %-50s\n' "" "No files, no playlist"
+                            fi
+                        fi
+                    else
+                        if (( VERBOSITY >= 1 )); then
+                            printf '%-30s %-50s\n' "" "No directory, no playlist"
+                        fi
+                    fi
+
+                fi
+
+                unset -v FEED_URL
+                unset -v FEED_CATEGORY
+                unset -v FEED_NAME
+                unset -v FEED_FULL_PLAYLIST
+            done < "${CURRENT_SERVERLIST}"
+        done
+    fi
+}
+#                                                                                                                                }}}
+
 # Function: PodgetCleanup                                                                                                        {{{
 # Cleanup loop for PodgetCore function.  This loop removes any downloaded files older than CLEANUP_DAYS
 # ARGUMENTS: <none>
@@ -3540,170 +3718,12 @@ PodgetCore() {
     #                                                                                                                            }}}
     # ------------------------------------------------------------------------------------------------------------------------------
     # Build individual Podcast Full Playlists                                                                                    {{{
-    #
+
     # Placed here so it is run after any session whether it includes cleanup or not.  Does not run before importing or exporting
     # OPML or PCAST feed lists.
 
-
     if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
-        # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this
-        # section.
-        # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
-        #       nice to find a more elegant way to state this.
-        if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
-            __MSG_DEBUG "Build OPT_FEED_PLAYLISTs"
-            # Set header to not be displayed unless active feed configured to require one.
-            FEED_PLAYLIST_HEADER=0
-
-            for FILETYPE in utf8 utf16 ; do
-                if (( DEBUG >= 1 )) ; then echo; fi
-                case ${FILETYPE} in
-                    'utf8')
-                        __MSG_DEBUG "UTF-8 Loop running." ;;
-                    'utf16')
-                        __MSG_DEBUG "UTF-16 Loop running." ;;
-                esac
-                case ${FILETYPE} in
-                    'utf8')
-                        CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
-                    'utf16')
-                        CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
-                    *)
-                        echo "Unknown Filetype: ${FILETYPE}"
-                esac
-
-                if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
-                    __MSG_DEBUG "No config file found, exiting loop."
-                    continue
-                fi
-
-                ### TODO: Need to find a way to shrink this.
-                while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-                    FEED_FULL_PLAYLIST=0
-
-                    if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
-                        __MSG_DEBUG "Discarding (comment or blank line)."
-                        __MSG_DEBUG "Clear Loop vars"
-                        unset -v FEED_URL
-                        unset -v FEED_CATEGORY
-                        unset -v FEED_NAME
-                        unset -v FEED_FULL_PLAYLIST
-                        continue
-                    fi
-
-                    # ---------------------
-                    # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
-
-                    unset -v FILTER_TARGET
-                    for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
-                        FilterOptions "${FILTER_TARGET}"
-                    done
-
-                    # Unset options that are not required in this while loop
-                    unset -v URL_PASSWORD
-                    unset -v URL_USERNAME
-                    unset -v WGET_OPTION_DEFAULT_USERAGENT
-                    unset -v WGET_OPTION_DISPOSITION
-                    unset -v WGET_OPTION_DISPOSITION_FAIL
-                    unset -v WGET_OPTION_NO_CHECK_CERIFICATE
-                    unset -v WGET_OPTION_PREFER_IP_TYPE
-                    unset -v WGET_OPTION_FILENAME_LOCATION
-                    unset -v WGET_OPTION_RSS_MEDIACONTENT
-                    unset -v FEED_SORT_ORDER
-                    unset -v POST_WGET_RENAME_MDATE
-                    unset -v ATOM_FILTER_SIMPLE
-                    unset -v ATOM_FILTER_TYPE
-                    unset -v ATOM_FILTER_LANG
-
-                    if (( FEED_FULL_PLAYLIST >= 1 )) ; then
-                        if (( FEED_PLAYLIST_HEADER == 0 )); then
-                            if (( VERBOSITY == 1 )) ; then
-                                printf '\n%s\n' "Build OPT_FEED_PLAYLISTs"
-                            fi
-                            if (( VERBOSITY >= 2 )) ; then
-                                printf '\n%s\n%s\n' "-------------------------------------------------" "Build OPT_FEED_PLAYLISTs"
-                            fi
-                            # Increment header variable so it only displays once.
-                            # NOTE: If we attempt to post-increment our variable, it will cause an error because of the way that '(('
-                            # evaluates the expression.  When the result is zero, it exits with '1' triggering errexit, however if
-                            # we pre-increment then the error does not happen.
-                            # More examples: https://en.wikipedia.org/wiki/Increment_and_decrement_operators
-                            (( ++FEED_PLAYLIST_HEADER ))
-                        fi
-                        if [ "${FEED_NAME}" == "." ]; then
-                            if (( VERBOSITY >= 1 )); then
-                                printf '%-30s %-50s\n' "" "No FEED_NAME, unable to create playlist for:"
-                                printf '%-30s %-50s\n' "" "  ${FEED_URL}"
-                            else
-                                echo "No FEED_NAME, unable to create playlist for:"
-                                echo "    ${FEED_URL}"
-                            fi
-                            continue
-                        fi
-
-                        # Date Substitutions
-                        FEED_CATEGORY=$(echo "${FEED_CATEGORY}" | sed -e "s#%YY%#$(date +%Y)#" -e "s#%MM%#$(date +%m)#" -e "s#%DD%#$(date +%d)#" )
-
-                        if (( VERBOSITY >= 2 )) ; then
-                            printf '\n%s\n' "-------------------------------------------------"
-                        fi
-                        if (( VERBOSITY >= 1 )) ; then
-                            if [ "${FEED_CATEGORY}" == "." ]; then
-                                printf '%-30s %-50s\n' "Category: NONE" "Name: ${FEED_NAME}"
-                            else
-                                printf '%-30s %-50s\n' "Category: ${FEED_CATEGORY}" "Name: ${FEED_NAME}"
-                            fi
-                        fi
-
-                        # Replace spaces with underscores and then pipe through tr to limit repetitions.
-                        FULL_PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
-                        # Remove old full playlist.
-                        if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
-                            if (( VERBOSITY >= 2 )) ; then
-                                echo "Remove old playlist: ${FULL_PLAYLIST_NAME}"
-                                rm -v "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-                            else
-                                rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-                            fi
-                        fi
-                        if [[ -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]]; then
-                            # Build new full playlist.
-                            if (( VERBOSITY >= 2 )); then
-                                echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-                            fi
-                            if (( FEED_FULL_PLAYLIST == 1 )); then
-                                # Get list in order of newest to oldest
-                                FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
-                            else
-                                # Get list in order of oldest to newest
-                                FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
-                            fi
-                            if [ -n "${FEED_ITEMS}" ]; then
-                                while read -r ITEM; do
-                                    __MSG_DEBUG "FEED Full Playist add ${ITEM}"
-                                    # Added Sed statement to remove "./" (current directory) from each item added as necessary
-                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${ITEM}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
-                                done <<< "${FEED_ITEMS}"
-                            else
-                                if (( VERBOSITY >= 1 )); then
-                                    printf '%-30s %-50s\n' "" "No files, no playlist"
-                                fi
-                            fi
-                        else
-                            if (( VERBOSITY >= 1 )); then
-                                printf '%-30s %-50s\n' "" "No directory, no playlist"
-                            fi
-                        fi
-
-                    fi
-
-                    unset -v FEED_URL
-                    unset -v FEED_CATEGORY
-                    unset -v FEED_NAME
-                    unset -v FEED_FULL_PLAYLIST
-                done < "${CURRENT_SERVERLIST}"
-            done
-        fi
+        PodgetBuildFeedPlaylist
     fi
 
     #                                                                                                                            }}}
