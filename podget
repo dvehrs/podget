@@ -1487,7 +1487,7 @@ COMPARE_StringInString() {
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Portability code                                                                                                               {{{
+# Portability tests for OS other than Linux                                                                                      {{{
 # A few tests to allow Podget to run on Mac OSX, FreeBSD, NetBSD and OpenBSD.
 
 uname=$(uname)
