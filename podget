@@ -1162,7 +1162,7 @@ FilenameFixFormat() {
 #                                                                                                                                }}}
 
 # Function: FilterOptions                                                                                                       {{{
-# This takes each feed from a serverlist and selectively enables options specific to it.
+# This takes each feed from a serverlist and selectively enables options specific to it.  Used for Feed Categories and Names.
 # Arguments:
 # ${1} == name of variable to filter on (either FEED_CATEGORY or FEED_NAME)
 FilterOptions() {
