@@ -112,12 +112,12 @@ ERR_EXPORTOPML=90
 
 # FUNCNAME is declared with a default value in case the trap is triggered while
 # outside a function.
-trap 'EXIT_ERROR ${LINENO} ${?} ${FUNCNAME:-Unconfigured}' ERR
+trap 'ExitOnError ${LINENO} ${?} ${FUNCNAME:-Unconfigured}' ERR
 
 # trap to run CLEANUP function if program receives a TERM (kill) or INT (ctrl-c) signal
 # - CLEANUP called in line for other normal exits.
-trap 'CLEANUP_AND_EXIT 143' TERM
-trap 'CLEANUP_AND_EXIT 130' INT
+trap 'CleanupAndExit 143' TERM
+trap 'CleanupAndExit 130' INT
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -564,6 +564,8 @@ VERBOSITY=2
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Functions                                                                                                                      {{{
+#   NOTE: For consistency, function names should be in what is called Pascal Case.  This is a variation of Camel Case but the first
+#         letter of the first word is also capitalized.
 
 # Function: __MSG_DEBUG                                                                                                          {{{
 # Display additional informational messages to user.
@@ -619,24 +621,24 @@ __MSG_INFO() {
 }
 #                                                                                                                                }}}
 
-# Function: ARRAY_CONTAINS                                                                                                       {{{
+# Function: ArrayContains                                                                                                       {{{
 # Test if Array contains element.
 # Returns 0 if found, or 1 if not found.
 # ARGUMENTS:
 # ${1} == String to search for
 # ${2} == Array to search within (also called ${@:2})
-ARRAY_CONTAINS() {
+ArrayContains() {
     local element
     for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
     return 1
 }
 #                                                                                                                                }}}
 
-# Function: CLEANUP_AND_EXIT                                                                                                     {{{
+# Function: CleanupAndExit                                                                                                     {{{
 # Closes session and removes lock file (if it exists)
 # ARGUMENTS:
 # ${1} == Exit Status to report.
-CLEANUP_AND_EXIT() {
+CleanupAndExit() {
     local EXITSTATUS=${1}
     local VERBOSITY="${VERBOSITY}"
 
@@ -669,23 +671,44 @@ CLEANUP_AND_EXIT() {
 }
 #                                                                                                                                }}}
 
-# Function: display_shelp                                                                                                        {{{
+# Function: CompareStringInString                                                                                               {{{
+# The commands of this function will trigger Shellcheck SC2317 (command appears to be unreachable)
+# because I never actually use this function but keep it here for historical reasons.
+# ARGUMENTS:
+# ${1} == String to compare to
+# ${2} == Substring to look for in first string
+# shellcheck disable=SC2317
+CompareStringInString() {
+    echo "Enter Compare ..."
+    echo "1 == ${1}"
+    echo "2 == ${2}"
+    case "${2}" in
+        *"${1}" )
+            echo "Found!"
+            return 0
+            ;;
+    esac
+    return 1
+}
+#                                                                                                                                }}}
+
+# Function: DisplayShortHelp                                                                                                   {{{
 # Displays general message with command line options.
 # ARGUMENTS: <none>
-display_shelp() {
+DisplayShortHelp() {
 	echo; echo "Usage $0 [options]"; echo
 	sed --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | sed -e '/HELP_STEXT/d'
 }
 #                                                                                                                                }}}
 
-# Function: DIRECTORY_CHECK                                                                                                      {{{
+# Function: DirectoryCheck                                                                                                      {{{
 # Simple function to verify that unsafe characters are not used in directory names.
 # ARGUMENTS:
 # ${1} == Name of Variable to be tested
-DIRECTORY_CHECK() {
+DirectoryCheck() {
     # Variables have a default value of 'UNCONFigured' because this word and combination
     # of capitalization is unlikely to be used.  This allows us to catch improperly
-    # formated calls to DIRECTORY_CHECK.
+    # formated calls to DirectoryCheck.
     #
     # Uses variable indirection,  The '!' introduces indirection which can be read
     # to say "Get the value of the variable named this".
@@ -696,7 +719,7 @@ DIRECTORY_CHECK() {
     local OFFENDING_CHARS=""
 
     if [[ ${TEST_STRING} == "UNCONFigured" ]]; then
-        echo "Improperly formated call to DIRECTORY_CHECK."
+        echo "Improperly formated call to DirectoryCheck."
         return 1
     fi
 
@@ -791,14 +814,14 @@ DIRECTORY_CHECK() {
         if [[ ${TEST_VARIABLE} == "FEED_NAME" || ${TEST_VARIABLE} == "FEED_CATEGORY" ]]; then
             return 1
         else
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
     fi
 
 }
 #                                                                                                                                }}}
 
-# Function: EXIT_ERROR                                                                                                           {{{
+# Function: ExitOnError                                                                                                           {{{
 # The commands of this function will trigger Shellcheck SC2317 (Command appears to be unreachable)
 # because the function is called from a trap so we can ignore this message.
 # ARGUMENTS:
@@ -806,7 +829,7 @@ DIRECTORY_CHECK() {
 # ${2} == Exit status of the error
 # ${3} == If the error occurred in a function, the name of the function.
 # shellcheck disable=SC2317
-EXIT_ERROR() {
+ExitOnError() {
   # Name of script
   local JOB_NAME
   JOB_NAME=$(basename "$0")
@@ -838,20 +861,20 @@ EXIT_ERROR() {
       pr -tn "${0}" | tail -n+$((LINENUM - 3)) | head -n7
   fi
 
-  CLEANUP_AND_EXIT 1
+  CleanupAndExit 1
 }
 #                                                                                                                                }}}
 
-# Function: FILENAME_CHECK                                                                                                       {{{
+# Function: FilenameCheck                                                                                                       {{{
 # This function tests the filenames used by podget locally for various configuration and log files.  While these checks have
 # some similarity to those applied to downloaded files the major difference is that violations of these rules will interrupt
 # the execution of podget and podget will attempt to fix the other filenames but many not always succeed.
 # Arguments:
 # {1} == Name of Variable to be tested
-FILENAME_CHECK() {
+FilenameCheck() {
     # Variables have a default value of 'UNCONFigured' because this word and combination
     # of capitalization is unlikely to be used.  This allows us to catch improperly
-    # formated calls to FILENAME_CHECK.
+    # formated calls to FilenameCheck.
     #
     # Uses variable indirection,  The '!' introduces indirection which can be read
     # to say "Get the value of the variable named this".
@@ -862,7 +885,7 @@ FILENAME_CHECK() {
     local OFFENDING_CHARS=""
 
     if [[ ${TEST_STRING} == "UNCONFigured" ]]; then
-        echo "Improperly formated call to FILENAME_CHECK."
+        echo "Improperly formated call to FilenameCheck."
         return 1
     fi
 
@@ -978,17 +1001,17 @@ FILENAME_CHECK() {
             esac
         done
 
-        CLEANUP_AND_EXIT 1
+        CleanupAndExit 1
     fi
 }
 #                                                                                                                                }}}
 
-# Function: filenameFixFormat                                                                                                    {{{
+# Function: FilenameFixFormat                                                                                                    {{{
 # Cleans up filenames in several ways.  Each method can be enabled or disabled individually in podgetrc file.
 # Arguments:
 # ${1} == name of variable to hold return string
 # ${2} == string to fix the format of
-filenameFixFormat() {
+FilenameFixFormat() {
     # variable to hold returned value.
     local VAR_RETURN=${1}
 
@@ -1138,91 +1161,11 @@ filenameFixFormat() {
 }
 #                                                                                                                                }}}
 
-# Function: titleFixFormat                                                                                                       {{{
-# Minor issues in Title strings are fixed so that it is compatible with most filesystems.
-# Arguments:
-# ${1} == name of variable to hold return string
-# ${2} == string to fix the format of
-titleFixFormat() {
-    # variable to hold returned value.
-    local VAR_RETURN=${1}
-
-    # Filename to be modified.
-    # Set original value for title format fixes and character substitutions.
-    # Set according to what is passed as the second argument to function.
-    local MODIFIED_TITLE=${2}
-
-    # ORIGINAL and MODIFIED start out the same.
-    local ORIGINAL_TITLE="${MODIFIED_TITLE}"
-
-    if (( VERBOSITY >= 3 )) ; then
-       printf '%-30s %s\n' "ORIGINAL TITLE:" "${ORIGINAL_TITLE}"
-    fi
-
-    if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
-        MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
-        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-    fi
-
-    # Fix for ampersand (&) is interesting because the character will be removed by the default FILENAME_BADCHARS list.
-    # We include it here for people who remove the & from their FILENAME_BADCHARS.
-    if [[ "${MODIFIED_TITLE}" =~ .*"&amp;".* ]]; then
-        MODIFIED_TITLE="${MODIFIED_TITLE//\&amp;/\&}"
-        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-    fi
-
-    # Case insensitive BASH regex test followed by case insensitive replacement by sed.
-    if [[ "${MODIFIED_TITLE,,}" =~ "<![cdata[".*"]]>" ]]; then
-        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -n -e 's/<!\[cdata\[\(.*\)]]>/\1/Ip')
-        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-    fi
-
-    # Test if BADCHARS set
-    if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
-        # Test for BADCHARS in MODIFIED_TITLE
-        if [[ ${MODIFIED_TITLE} =~ ["${FILENAME_BADCHARS}"] ]]; then
-            # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-            # down to a single time.
-            MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-            __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-        fi
-    fi
-
-    if [[ ${MODIFIED_TITLE} =~ [/] ]]; then
-        # Replace forward slashes in titles with dash as the using a forward slash in a name is not POSIX compliant
-        MODIFIED_TITLE="${MODIFIED_TITLE//\//-}"
-        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-    fi
-
-    # After replacing characters, strings may look ugly because they start or end with the FILENAME_REPLACECHAR or a dash.
-    # Therefore we remove those here.
-    if [[ ${MODIFIED_TITLE:0:1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
-        MODIFIED_TITLE="${MODIFIED_TITLE:1}"
-        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-    fi
-    # Negative indices from the trailing end of the string require a space before the dash.
-    if [[ ${MODIFIED_TITLE: -1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
-        MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
-        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
-    fi
-
-    if (( VERBOSITY >= 3 ))  && [[ "${ORIGINAL_TITLE}" != "${MODIFIED_TITLE}" ]]; then
-        printf '%-30s %s\n' "MODIFIED TITLE:" "${MODIFIED_TITLE}"
-    fi
-
-    # Pass the modified filename back to the calling variable.
-    printf -v "${VAR_RETURN}" '%s' "${MODIFIED_TITLE}"
-
-    # close without error
-    return 0
-}
-#                                                                                                                                }}}
-
-# Function: FILTER_OPTIONS                                                                                                       {{{
+# Function: FilterOptions                                                                                                       {{{
 # This takes each feed from a serverlist and selectively enables options specific to it.
 # Arguments:
 # ${1} == name of variable to filter on (either FEED_CATEGORY or FEED_NAME)
-FILTER_OPTIONS() {
+FilterOptions() {
     local FILTER_ITEM="${1}"
 
     # NOTE: The regex expressions in the following checks were updated so that
@@ -1356,12 +1299,12 @@ FILTER_OPTIONS() {
 }
 #                                                                                                                                }}}
 
-# Function: PLAYLIST_CovertToASX                                                                                                 {{{
+# Function: PlaylistConvertToASX                                                                                                 {{{
 # This function converts a M3U playlist to ASX format.
 # ARGUMENTS:
 # ${1} == Directory that libraries are stored in
 # ${2} == M3U Playlist name to convert
-PLAYLIST_ConvertToASX() {
+PlaylistConvertToASX() {
     local DIR_LIBRARY=${1}
     local M3U_PLAYLISTNAME=${2}
     ASX_LOCATION="\\SD Card\\POD\\"
@@ -1388,11 +1331,11 @@ PLAYLIST_ConvertToASX() {
 }
 #                                                                                                                                }}}
 
-# Function: PLAYLIST_Sort                                                                                                        {{{
+# Function: PlaylistSort                                                                                                        {{{
 # ARGUMENTS:
 # ${1} == Library directory that files are stored in.
 # ${2} == M3U Playlist to sort.
-PLAYLIST_Sort() {
+PlaylistSort() {
     local DIR_LIBRARY=${1}
     local M3U_PLAYLISTNAME=${2}
     local REALPLAYLISTNAME="${DIR_LIBRARY}/$M3U_PLAYLISTNAME"
@@ -1420,12 +1363,12 @@ PLAYLIST_Sort() {
 }
 #                                                                                                                                }}}
 
-# Function: REMOVE_URL                                                                                                           {{{
+# Function: RemoveURL                                                                                                           {{{
 # Simple function to cleanup URLs for removal from FILE.
 # Arguments:
 # ${1} == URL to remove from file
 # ${2} == FILE to remove URL from
-REMOVE_URL() {
+RemoveURL() {
     local URL_INPUT=${1}
     local TARGET_FILE=${2}
 
@@ -1464,24 +1407,83 @@ REMOVE_URL() {
 }
 #                                                                                                                                }}}
 
-# Function: COMPARE_StringInString                                                                                               {{{
-# The commands of this function will trigger Shellcheck SC2317 (command appears to be unreachable)
-# because I never actually use this function but keep it here for historical reasons.
-# ARGUMENTS:
-# ${1} == String to compare to
-# ${2} == Substring to look for in first string
-# shellcheck disable=SC2317
-COMPARE_StringInString() {
-    echo "Enter Compare ..."
-    echo "1 == ${1}"
-    echo "2 == ${2}"
-    case "${2}" in
-        *"${1}" )
-            echo "Found!"
-            return 0
-            ;;
-    esac
-    return 1
+# Function: TitleFixFormat                                                                                                       {{{
+# Minor issues in Title strings are fixed so that it is compatible with most filesystems.
+# Arguments:
+# ${1} == name of variable to hold return string
+# ${2} == string to fix the format of
+TitleFixFormat() {
+    # variable to hold returned value.
+    local VAR_RETURN=${1}
+
+    # Filename to be modified.
+    # Set original value for title format fixes and character substitutions.
+    # Set according to what is passed as the second argument to function.
+    local MODIFIED_TITLE=${2}
+
+    # ORIGINAL and MODIFIED start out the same.
+    local ORIGINAL_TITLE="${MODIFIED_TITLE}"
+
+    if (( VERBOSITY >= 3 )) ; then
+       printf '%-30s %s\n' "ORIGINAL TITLE:" "${ORIGINAL_TITLE}"
+    fi
+
+    if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+    fi
+
+    # Fix for ampersand (&) is interesting because the character will be removed by the default FILENAME_BADCHARS list.
+    # We include it here for people who remove the & from their FILENAME_BADCHARS.
+    if [[ "${MODIFIED_TITLE}" =~ .*"&amp;".* ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE//\&amp;/\&}"
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+    fi
+
+    # Case insensitive BASH regex test followed by case insensitive replacement by sed.
+    if [[ "${MODIFIED_TITLE,,}" =~ "<![cdata[".*"]]>" ]]; then
+        MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | sed -n -e 's/<!\[cdata\[\(.*\)]]>/\1/Ip')
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+    fi
+
+    # Test if BADCHARS set
+    if [[ -n ${FILENAME_BADCHARS+set} ]] ; then
+        # Test for BADCHARS in MODIFIED_TITLE
+        if [[ ${MODIFIED_TITLE} =~ ["${FILENAME_BADCHARS}"] ]]; then
+            # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+            # down to a single time.
+            MODIFIED_TITLE=$(echo "${MODIFIED_TITLE}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+            __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+        fi
+    fi
+
+    if [[ ${MODIFIED_TITLE} =~ [/] ]]; then
+        # Replace forward slashes in titles with dash as the using a forward slash in a name is not POSIX compliant
+        MODIFIED_TITLE="${MODIFIED_TITLE//\//-}"
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+    fi
+
+    # After replacing characters, strings may look ugly because they start or end with the FILENAME_REPLACECHAR or a dash.
+    # Therefore we remove those here.
+    if [[ ${MODIFIED_TITLE:0:1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE:1}"
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+    fi
+    # Negative indices from the trailing end of the string require a space before the dash.
+    if [[ ${MODIFIED_TITLE: -1} =~ ["${FILENAME_REPLACECHAR}"-] ]]; then
+        MODIFIED_TITLE="${MODIFIED_TITLE:: -1}"
+        __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
+    fi
+
+    if (( VERBOSITY >= 3 ))  && [[ "${ORIGINAL_TITLE}" != "${MODIFIED_TITLE}" ]]; then
+        printf '%-30s %s\n' "MODIFIED TITLE:" "${MODIFIED_TITLE}"
+    fi
+
+    # Pass the modified filename back to the calling variable.
+    printf -v "${VAR_RETURN}" '%s' "${MODIFIED_TITLE}"
+
+    # close without error
+    return 0
 }
 #                                                                                                                                }}}
 
@@ -1525,7 +1527,7 @@ case "$uname" in
             hash -p "$(hash -t gstat)" stat
         fi
         if (( DARWIN_EXIT > 0 )); then
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         unset -v DARWIN_EXIT
     ;;
@@ -1547,7 +1549,7 @@ case "$uname" in
             fi
         done
         if (( missing_counter > 0 )); then
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         unset -v needed_command{,s} missing_counter
     ;;
@@ -1703,7 +1705,7 @@ PodgetCore() {
             -vvv                        )  VERBOSITY=3                                            ; shift                   ;;
             -vvvv                       )  VERBOSITY=4                                            ; shift                   ;;
             --verbosity                 )  VERBOSITY=${2:-NONE}                                   ; shift ; shift || :      ;;
-            *                           ) display_shelp ; CLEANUP_AND_EXIT ${ERR_DISPLAYHELP} ;;
+            *                           ) DisplayShortHelp ; CleanupAndExit ${ERR_DISPLAYHELP} ;;
         esac
     done
 
@@ -1717,7 +1719,7 @@ PodgetCore() {
     if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
         if [[ ${CMDL_SERVERLIST} == "NONE" ]]; then
             echo "Unset filename for server list"
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         CONFIG_SERVERLIST=${CMDL_SERVERLIST}
     fi
@@ -1729,17 +1731,17 @@ PodgetCore() {
 
     if (( REPORT_VERSION == 1 )); then
         echo "Version: ${VERSION}"
-        CLEANUP_AND_EXIT 0
+        CleanupAndExit 0
     fi
 
     if [[ ${CONFIG_CORE} == "NONE" ]]; then
         echo "Unset filename for configuration"
-        CLEANUP_AND_EXIT 1
+        CleanupAndExit 1
     fi
 
     if [[ ${DIR_CONFIG} == "NONE" ]]; then
         echo "Unset directory to store configuration"
-        CLEANUP_AND_EXIT 1
+        CleanupAndExit 1
     fi
 
     __MSG_INFO "Parsing Config file." ""
@@ -1750,25 +1752,25 @@ PodgetCore() {
     if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
         if [[ -n ${CMDL_ASX+set} ]]; then
             printf '%-30s %s' "Error:" "Conflicting playlist options."
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
     fi
 
     # for testing
     #echo "Verbosity: ${VERBOSITY}"
-    #CLEANUP_AND_EXIT 0
+    #CleanupAndExit 0
 
     # Test filename for CONFIG_CORE, CMDL/CONFIG_SERVERLIST and directory for DIR_CONFIG
     __MSG_DEBUG "Loading temporary FILENAME_BADCHARS to test base configuration file and directory names."
 
-    FILENAME_CHECK CONFIG_CORE
+    FilenameCheck CONFIG_CORE
     if [[ -n ${CMDL_SERVERLIST+set} ]] ; then
-        FILENAME_CHECK CMDL_SERVERLIST
+        FilenameCheck CMDL_SERVERLIST
     else
-        FILENAME_CHECK CONFIG_SERVERLIST
+        FilenameCheck CONFIG_SERVERLIST
     fi
 
-    DIRECTORY_CHECK DIR_CONFIG
+    DirectoryCheck DIR_CONFIG
 
     __MSG_DEBUG "Clearing temporary FILENAME_BADCHARS, will read configured version from ${CONFIG_CORE}"
     unset -v FILENAME_BADCHARS
@@ -1798,12 +1800,12 @@ PodgetCore() {
                     EXITSTATUS=$?
                     if (( EXITSTATUS != 0 )); then
                         printf '%-30s %s' "Error:" "Error creating directory: ${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
-                        CLEANUP_AND_EXIT 1
+                        CleanupAndExit 1
                     fi
                     DIR_CONFIG="${XDG_CONFIG_HOME}/${DIR_CONFIG_NAME}"
                 else
                     printf '%-30s %s' "Error:" "Error: XDG_CONFIG_HOME directory does not exist ('${XDG_CONFIG_HOME}')"
-                    CLEANUP_AND_EXIT 1
+                    CleanupAndExit 1
                 fi
             else
                 if [[ ! -d "${HOME}/.config/${DIR_CONFIG_NAME}" ]]; then
@@ -1811,7 +1813,7 @@ PodgetCore() {
                     EXITSTATUS=$?
                     if (( EXITSTATUS != 0 )); then
                         printf '%-30s %s' "Error:" "Error creating directory: ${HOME}/.config/${DIR_CONFIG_NAME}"
-                        CLEANUP_AND_EXIT 1
+                        CleanupAndExit 1
                     fi
                     DIR_CONFIG="${HOME}/.config/${DIR_CONFIG_NAME}"
                 fi
@@ -1824,7 +1826,7 @@ PodgetCore() {
             EXITSTATUS=$?
             if (( EXITSTATUS != 0 )); then
                 printf '%-30s %s' "Error:" "Error creating directory: ${DIR_CONFIG}"
-                CLEANUP_AND_EXIT 1
+                CleanupAndExit 1
             fi
             INSTALL_SESSION=1
         fi
@@ -1837,7 +1839,7 @@ PodgetCore() {
                 echo "  Configuration file ${DIR_CONFIG}/${CONFIG_CORE} already exists."
                 echo "    If you would like to reuse this name, then the old file needs"
                 echo "    to be deleted first. Or you need to pick a new name."
-                CLEANUP_AND_EXIT 1
+                CleanupAndExit 1
             fi
         fi
     fi
@@ -1855,7 +1857,7 @@ PodgetCore() {
         EXITSTATUS=$?
         if (( EXITSTATUS != 0 )); then
             printf '%-30s %s' "Error:" "Failed to create \"${DIR_CONFIG}/${CONFIG_CORE}\""
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         INSTALL_SESSION=1
     fi
@@ -1872,7 +1874,7 @@ PodgetCore() {
         echo "Please create a new configuration file by running 'podget --create-config <FILENAME>',"
         echo "and then converting your old configuration to the new format.  Then move the new file"
         echo "in place of the old and podget will work as it used to."
-        CLEANUP_AND_EXIT 1
+        CleanupAndExit 1
     else
         # get version
         VERSION=$(grep -F "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | \
@@ -1901,7 +1903,7 @@ PodgetCore() {
             echo "Please update your configuration by creating a new one with the command 'podget --create-config <FILENAME>'"
             echo "and then comparing its contents to your old configuration.  Once the new file has been updated to reflect"
             echo "your desired configuration, move it in place of the old one."
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
     fi
 
@@ -1935,7 +1937,7 @@ PodgetCore() {
         EXITSTATUS=$?
         if (( EXITSTATUS != 0 )); then
             echo "  Failed to install \"${DIR_CONFIG}/${CONFIG_SERVERLIST}\""
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         INSTALL_SESSION=1
     fi
@@ -1946,7 +1948,7 @@ PodgetCore() {
 
     if [[ -n ${CMDL_CREATECONFIG+set} ]]; then
         if (( CMDL_CREATECONFIG == 1 )); then
-            CLEANUP_AND_EXIT 0
+            CleanupAndExit 0
         fi
     fi
 
@@ -1971,7 +1973,7 @@ PodgetCore() {
     if [[ -n ${CMDL_LIBRARY+set} ]] ; then
         if [[ ${CMDL_LIBRARY} == "NONE" ]]; then
             echo "Unset directory to store podcast library"
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         if (( VERBOSITY >= 3 )) ; then
             printf '\t\t%s\n' "Overriding Library Directory specified in configuration file."
@@ -1985,15 +1987,15 @@ PodgetCore() {
 
     if [[ -z ${DIR_LIBRARY} ]] ; then
         echo "ERROR - Library directory not defined." 1>&2
-        CLEANUP_AND_EXIT ${ERR_LIBNOTDEF}
+        CleanupAndExit ${ERR_LIBNOTDEF}
     else
-        DIRECTORY_CHECK DIR_LIBRARY
+        DirectoryCheck DIR_LIBRARY
     fi
 
     if [[ -n ${CMDL_SESSION+set} ]] ; then
         if [[ ${CMDL_SESSION} == "NONE" ]]; then
             echo "Unset directory to store session files."
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         DIR_SESSION=${CMDL_SESSION}
     fi
@@ -2008,7 +2010,7 @@ PodgetCore() {
     fi
 
     if [[ -n ${DIR_SESSION+set} ]]; then
-        DIRECTORY_CHECK DIR_SESSION
+        DirectoryCheck DIR_SESSION
     fi
 
     if (( VERBOSITY >= 3 )) ; then
@@ -2018,7 +2020,7 @@ PodgetCore() {
     if [[ -n ${CMDL_CLEANUP_DAYS+set} ]] ; then
         if [[ -z ${CMDL_CLEANUP_DAYS##*[!0-9]*} ]]; then
             echo "Cleanup Days is not a positive integer value"
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         if (( CMDL_CLEANUP_DAYS >= 0 )); then
             CLEANUP_DAYS=${CMDL_CLEANUP_DAYS}
@@ -2033,7 +2035,7 @@ PodgetCore() {
         DIR_LOG=${DIR_LIBRARY}/.LOG
     fi
 
-    DIRECTORY_CHECK DIR_LOG
+    DirectoryCheck DIR_LOG
 
     if (( VERBOSITY >= 3 )) ; then
         printf '%-30s %s\n' "Log Directory:" "${DIR_LOG}"
@@ -2056,7 +2058,7 @@ PodgetCore() {
         if [[ -z ${CMDL_MOSTRECENT##*[!0-9]*} ]]; then
             echo
             echo "Recent is not a positive integer value"
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
         if (( CMDL_MOSTRECENT != 0 )); then
             MOST_RECENT=${CMDL_MOSTRECENT}
@@ -2126,7 +2128,7 @@ PodgetCore() {
 
                         if ps --pid "${SESSION_PID}" &>/dev/null; then
                             echo "Another session with config file ${CONFIG_CORE} found running.  Killing session." 1>&2
-                            CLEANUP_AND_EXIT ${ERR_RUNNINGSESSION}
+                            CleanupAndExit ${ERR_RUNNINGSESSION}
                         else
                             __MSG_DEBUG "Session PID ${SESSION_PID} is not running, removing lock file"
                             rm -f "${FILE}"
@@ -2171,8 +2173,8 @@ PodgetCore() {
         fi
 
         mkdir -p "${DIR_LOG}"
-        FILENAME_CHECK LOG_FAIL
-        FILENAME_CHECK LOG_COMPLETE
+        FilenameCheck LOG_FAIL
+        FilenameCheck LOG_COMPLETE
         touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
 
         if (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
@@ -2206,7 +2208,7 @@ PodgetCore() {
                     if ! hash iconv >/dev/null 2>&1; then
                         echo "Can't find iconv binary, is libc-bin installed?" 1>&2
                         echo "Exiting UTF16 loop, unable to convert file to UTF8" 1>&2
-                        CLEANUP_AND_EXIT $ERR_LIBC6NOTINSTALLED
+                        CleanupAndExit $ERR_LIBC6NOTINSTALLED
                     fi
                     CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
                 *)
@@ -2345,7 +2347,7 @@ PodgetCore() {
                     echo "Every character in our test set was also used somewhere in WGET_BASEOPTS."
                     echo   "Test Set:   ${WGET_TEST_STRING}"
                     echo   "WGET_BASEOPTS: ${WGET_BASEOPTS}"
-                    CLEANUP_AND_EXIT 1
+                    CleanupAndExit 1
                 fi
 
                 WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS// -/${WGET_SUBCHAR}-}"
@@ -2374,7 +2376,7 @@ PodgetCore() {
                 __MSG_DEBUG "Reset WGET_OPTION_FILENAME_LOCATION"
                 WGET_OPTION_FILENAME_LOCATION=0
 
-                if ARRAY_CONTAINS "--content-disposition" "${WGET_OPTIONS[@]}" ; then
+                if ArrayContains "--content-disposition" "${WGET_OPTIONS[@]}" ; then
                     # removing actual --content-disposition option from WGET because it is not used directly
                     # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
                     for index in "${!WGET_OPTIONS[@]}"; do
@@ -2389,7 +2391,7 @@ PodgetCore() {
                     __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
                 fi
 
-                if ARRAY_CONTAINS "--user-agent=" "${WGET_OPTIONS[@]}" ; then
+                if ArrayContains "--user-agent=" "${WGET_OPTIONS[@]}" ; then
                     __MSG_DEBUG "Custom Wget User Agent Enabled."
                 else
                     WGET_OPTIONS+=("--user-agent=Podget")
@@ -2434,7 +2436,7 @@ PodgetCore() {
                 # categories and names.
                 unset -v FILTER_TARGET
                 for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
-                    FILTER_OPTIONS "${FILTER_TARGET}"
+                    FilterOptions "${FILTER_TARGET}"
                 done
 
                 # Unset options that are not required in this while loop
@@ -2513,17 +2515,17 @@ PodgetCore() {
 
                 __MSG_DEBUG "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
 
-                # DIRECTORY_CHECK for FEED_NAME and FEED_CATEGORY here prior to using them.
+                # DirectoryCheck for FEED_NAME and FEED_CATEGORY here prior to using them.
                 for i in FEED_CATEGORY FEED_NAME; do
-                    # FEED_NAME can be blank, if it is then we skip the DIRECTORY_CHECK
+                    # FEED_NAME can be blank, if it is then we skip the DirectoryCheck
                     if [[ ${i} == "FEED_NAME" && -z "${!i}" ]]; then
                         # we use continue rather than break here in case the variables are in a different order.
                         continue
                     fi
 
-                    # Moved DIRECTORY_CHECK inside an IF statement so that a non-zero exit status would not trigger either the errexit
+                    # Moved DirectoryCheck inside an IF statement so that a non-zero exit status would not trigger either the errexit
                     # or the ERR trap conditions.
-                    if ! DIRECTORY_CHECK "${i}"; then
+                    if ! DirectoryCheck "${i}"; then
                         echo
                         echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
                         echo
@@ -2862,7 +2864,7 @@ PodgetCore() {
                 if [[ -n ${INDEXFILE} ]]; then
 
                     # Remove any error log entries for the FEED_URL if it failed before
-                    REMOVE_URL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+                    RemoveURL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
                     if (( MOST_RECENT > 0 )) ; then
                         FULLINDEXFILE="${INDEXFILE}"
@@ -2957,13 +2959,13 @@ PodgetCore() {
                             AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
                             if (( AVAIL_SPACE < MIN_SPACE )); then
                                 printf '\n%s\n%s\n' "Available space on Library partition has dropped below allowed." "Stopping Session." 1>&2
-                                CLEANUP_AND_EXIT ${ERR_LIBLOWSPACE}
+                                CleanupAndExit ${ERR_LIBLOWSPACE}
                             fi
 
                             # Filename format fixes and character substitutions.
                             # Return value stored in variable ${MOD_FILENAME}, called here as a string to be used as the name of the
                             # variable.
-                            filenameFixFormat MOD_FILENAME "${URL_FILENAME}"
+                            FilenameFixFormat MOD_FILENAME "${URL_FILENAME}"
 
                             # Fix where filename part of URI is constant
                             # This fix is known to cause issues with in filenames when it is not needed.  Disabled by default.
@@ -2982,7 +2984,7 @@ PodgetCore() {
                                 # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
                                 # variable.
                                 if [[ -n "${TITLE}" ]]; then
-                                    titleFixFormat MOD_TITLE "${TITLE}"
+                                    TitleFixFormat MOD_TITLE "${TITLE}"
                                     if [[ -n "${MOD_TITLE}" ]]; then
                                         TITLE="${MOD_TITLE}"
                                     fi
@@ -3059,7 +3061,7 @@ PodgetCore() {
                                 echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
 
                                 # Remove any error log entries for the URL if it failed before
-                                REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+                                RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
                                 # Before filename changes, set FINAL_FILENAME to URL_FILENAME
                                 # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
@@ -3092,7 +3094,7 @@ PodgetCore() {
                                                 __MSG_DEBUG " - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
 
                                                 # Remove any COMPLETE log entries to allow it to retry next session.
-                                                REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
+                                                RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
                                             fi
                                         fi
                                     else
@@ -3347,7 +3349,7 @@ PodgetCore() {
                             fi
                         else
                             # Remove any error log entries for the URL if it failed before
-                            REMOVE_URL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+                            RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
                             if (( VERBOSITY >= 2 )) ; then
                                 if (( VERBOSITY >= 4 )) ; then echo ; fi
@@ -3412,11 +3414,11 @@ PodgetCore() {
 
                     # If doing individual playlists for each podcast Sort new playlist
                     if (( NO_PLAYLIST == 0 )) && [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" && -n "${PLAYLIST_PERPODCAST+set}" ]]; then
-                        PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+                        PlaylistSort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
                         # If doing individual playlists for each podcast, Create ASX Playlist
                         if (( ASX_PLAYLIST > 0 )); then
-                            PLAYLIST_ConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+                            PlaylistConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
                         fi
 
                         # Done with playlist, unset name.
@@ -3443,11 +3445,11 @@ PodgetCore() {
         # If doing one combined playlist for all podcasts, Sort new playlist
         if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_NAME+set} ]]; then
             if [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]]; then
-                PLAYLIST_Sort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+                PlaylistSort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
 
                 # If doing one combined playlist for all podcasts, Create ASX Playlist
                 if (( ASX_PLAYLIST > 0 )); then
-                    PLAYLIST_ConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+                    PlaylistConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
                 fi
             fi
         fi
@@ -3582,7 +3584,7 @@ PodgetCore() {
 
                     unset -v FILTER_TARGET
                     for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
-                        FILTER_OPTIONS "${FILTER_TARGET}"
+                        FilterOptions "${FILTER_TARGET}"
                     done
 
                     # Unset options that are not required in this while loop
@@ -3700,7 +3702,7 @@ PodgetCore() {
         if [[ ${IMPORT_OPML} == "NONE" ]]; then
             echo
             echo "unset FILE or URL to import from."
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
 
         if (( VERBOSITY >= 2 )) ; then
@@ -3755,7 +3757,7 @@ PodgetCore() {
                 echo "  OPML Import Error ${IMPORT_OPML}" 1>&2
             fi
             echo "OPML Import Error: ${IMPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-            CLEANUP_AND_EXIT ${ERR_IMPORTOPML}
+            CleanupAndExit ${ERR_IMPORTOPML}
         fi
     fi
 
@@ -3767,7 +3769,7 @@ PodgetCore() {
         if [[ ${EXPORT_OPML} == "NONE" ]]; then
             echo
             echo "unset FILE to import to."
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
 
         if (( VERBOSITY >= 2 )) ; then
@@ -3796,7 +3798,7 @@ PodgetCore() {
 
             unset -v FILTER_TARGET
             for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
-                FILTER_OPTIONS "${FILTER_TARGET}"
+                FilterOptions "${FILTER_TARGET}"
             done
 
             # Unset options that are not required in this while loop
@@ -3825,7 +3827,7 @@ PodgetCore() {
     </opml>' >> "${EXPORT_OPML}"
         else
             echo "OPML Export Error: ${EXPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-            CLEANUP_AND_EXIT ${ERR_EXPORTOPML}
+            CleanupAndExit ${ERR_EXPORTOPML}
         fi
     fi
 
@@ -3837,7 +3839,7 @@ PodgetCore() {
         if [[ ${IMPORT_PCAST} == "NONE" ]]; then
             echo
             echo "unset FILE or URL to import from."
-            CLEANUP_AND_EXIT 1
+            CleanupAndExit 1
         fi
 
         if (( VERBOSITY >= 2 )) ; then
@@ -3891,7 +3893,7 @@ PodgetCore "${@}"
 # Disable extended glob matches.
 shopt -u extglob
 
-CLEANUP_AND_EXIT 0
+CleanupAndExit 0
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
