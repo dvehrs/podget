@@ -619,7 +619,7 @@ __MSG_INFO() {
 }
 #                                                                                                                                }}}
 
-# Function: ARRAY_CONTAINS
+# Function: ARRAY_CONTAINS                                                                                                       {{{
 # Test if Array contains element.
 # Returns 0 if found, or 1 if not found.
 # ARGUMENTS:
@@ -630,8 +630,9 @@ ARRAY_CONTAINS() {
     for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
     return 1
 }
+#                                                                                                                                }}}
 
-# Function: CLEANUP_AND_EXIT
+# Function: CLEANUP_AND_EXIT                                                                                                     {{{
 # Closes session and removes lock file (if it exists)
 # ARGUMENTS:
 # ${1} == Exit Status to report.
@@ -666,14 +667,21 @@ CLEANUP_AND_EXIT() {
 
     exit "${EXITSTATUS}"
 }
+#                                                                                                                                }}}
 
+# Function: display_shelp                                                                                                        {{{
+# Displays general message with command line options.
+# ARGUMENTS: <none>
 display_shelp() {
 	echo; echo "Usage $0 [options]"; echo
 	sed --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | sed -e '/HELP_STEXT/d'
 }
+#                                                                                                                                }}}
 
-# Function: DIRECTORY_CHECK 'Name of Variable to be tested'
+# Function: DIRECTORY_CHECK                                                                                                      {{{
 # Simple function to verify that unsafe characters are not used in directory names.
+# ARGUMENTS:
+# ${1} == Name of Variable to be tested
 DIRECTORY_CHECK() {
     # Variables have a default value of 'UNCONFigured' because this word and combination
     # of capitalization is unlikely to be used.  This allows us to catch improperly
@@ -788,9 +796,15 @@ DIRECTORY_CHECK() {
     fi
 
 }
+#                                                                                                                                }}}
 
+# Function: EXIT_ERROR                                                                                                           {{{
 # The commands of this function will trigger Shellcheck SC2317 (Command appears to be unreachable)
 # because the function is called from a trap so we can ignore this message.
+# ARGUMENTS:
+# ${1} == Line number the error happened on
+# ${2} == Exit status of the error
+# ${3} == If the error occurred in a function, the name of the function.
 # shellcheck disable=SC2317
 EXIT_ERROR() {
   # Name of script
@@ -826,12 +840,14 @@ EXIT_ERROR() {
 
   CLEANUP_AND_EXIT 1
 }
+#                                                                                                                                }}}
 
-# Function: FILENAME_CHECK 'Name of Variable to be tested'
+# Function: FILENAME_CHECK                                                                                                       {{{
 # This function tests the filenames used by podget locally for various configuration and log files.  While these checks have
 # some similarity to those applied to downloaded files the major difference is that violations of these rules will interrupt
 # the execution of podget and podget will attempt to fix the other filenames but many not always succeed.
 # Arguments:
+# {1} == Name of Variable to be tested
 FILENAME_CHECK() {
     # Variables have a default value of 'UNCONFigured' because this word and combination
     # of capitalization is unlikely to be used.  This allows us to catch improperly
@@ -965,8 +981,10 @@ FILENAME_CHECK() {
         CLEANUP_AND_EXIT 1
     fi
 }
+#                                                                                                                                }}}
 
-# Function: filenameFixFormat ${1} ${2}
+# Function: filenameFixFormat                                                                                                    {{{
+# Cleans up filenames in several ways.  Each method can be enabled or disabled individually in podgetrc file.
 # Arguments:
 # ${1} == name of variable to hold return string
 # ${2} == string to fix the format of
@@ -1118,8 +1136,10 @@ filenameFixFormat() {
     # close without error
     return 0
 }
+#                                                                                                                                }}}
 
-# Function: titleFixFormat ${1} ${2}
+# Function: titleFixFormat ${1} ${2}                                                                                             {{{
+# Minor issues in Title strings are fixed so that it is compatible with most filesystems.
 # Arguments:
 # ${1} == name of variable to hold return string
 # ${2} == string to fix the format of
@@ -1196,8 +1216,10 @@ titleFixFormat() {
     # close without error
     return 0
 }
+#                                                                                                                                }}}
 
-# Function: FILTER_OPTIONS ${1}
+# Function: FILTER_OPTIONS ${1}                                                                                                  {{{
+# This takes each feed from a serverlist and selectively enables options specific to it.
 # Arguments:
 # ${1} == name of variable to filter on (either FEED_CATEGORY or FEED_NAME)
 FILTER_OPTIONS() {
@@ -1332,7 +1354,13 @@ FILTER_OPTIONS() {
     fi
 
 }
+#                                                                                                                                }}}
 
+# Function: PLAYLIST_CovertToASX                                                                                                 {{{
+# This function converts a M3U playlist to ASX format.
+# ARGUMENTS:
+# ${1} == Directory that libraries are stored in
+# ${2} == M3U Playlist name to convert
 PLAYLIST_ConvertToASX() {
     local DIR_LIBRARY=${1}
     local M3U_PLAYLISTNAME=${2}
@@ -1358,7 +1386,12 @@ PLAYLIST_ConvertToASX() {
      # ctrl-v ctrl-m for windows line end.
      sed -i 's/$//' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 }
+#                                                                                                                                }}}
 
+# Function: PLAYLIST_Sort                                                                                                        {{{
+# ARGUMENTS:
+# ${1} == Library directory that files are stored in.
+# ${2} == M3U Playlist to sort.
 PLAYLIST_Sort() {
     local DIR_LIBRARY=${1}
     local M3U_PLAYLISTNAME=${2}
@@ -1385,8 +1418,9 @@ PLAYLIST_Sort() {
 
     unset -v REALPLAYLISTNAME TEMPPLAYLISTNAME
 }
+#                                                                                                                                }}}
 
-# Function: REMOVE_URL
+# Function: REMOVE_URL                                                                                                           {{{
 # Simple function to cleanup URLs for removal from FILE.
 # Arguments:
 # ${1} == URL to remove from file
@@ -1428,9 +1462,14 @@ REMOVE_URL() {
 
     sed -i "\\${TEST_CHAR}${URL_CLEAN}${TEST_CHAR}d" "${TARGET_FILE}"
 }
+#                                                                                                                                }}}
 
+# Function: COMPARE_StringInString                                                                                               {{{
 # The commands of this function will trigger Shellcheck SC2317 (command appears to be unreachable)
 # because I never actually use this function but keep it here for historical reasons.
+# ARGUMENTS:
+# ${1} == String to compare to
+# ${2} == Substring to look for in first string
 # shellcheck disable=SC2317
 COMPARE_StringInString() {
     echo "Enter Compare ..."
@@ -1444,6 +1483,7 @@ COMPARE_StringInString() {
     esac
     return 1
 }
+#                                                                                                                                }}}
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
