@@ -1363,6 +1363,78 @@ PlaylistSort() {
 }
 #                                                                                                                                }}}
 
+# Function: PodgetCleanup                                                                                                        {{{
+# Cleanup loop for PodgetCore function.  This loop removes any downloaded files older than CLEANUP_DAYS
+# ARGUMENTS: <none>
+PodgetCleanup() {
+    local VERBOSITY="${VERBOSITY}"
+    local CLEANUP_SIMULATE="${CLEANUP_SIMULATE}"
+    local DIR_LIBRARY="${DIR_LIBRARY}"
+    local PLAYLIST_NAMEBASE="${PLAYLIST_NAMEBASE}"
+    if (( VERBOSITY >= 2 )) ; then
+        if (( CLEANUP_SIMULATE > 0 )); then
+            echo "Simulating cleanup, the following files will be removed when you run cleanup."
+        else
+            printf '\n%s\n%s\n' "-------------------------------------------------" "Cleanup old tracks."
+        fi
+    fi
+    FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
+    # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
+    local CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
+    # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.
+    # This works with uniform whole days and isn't subject to when the cleanup is run.
+    local DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
+    local FILE
+    while IFS= read -r FILE; do
+        # Catch for when FILELIST is blank
+        if [[ -z "${FILE}" ]]; then
+            continue
+        fi
+        if [[ "${FILE##/*/}" =~ ^${PLAYLIST_NAMEBASE}* ]]; then
+            # Compare global playlist file modification date with DATE_CLEAN2.  If file modification date is newer than
+            # DATE_CLEAN2 then we skip it.
+            if [ "$(stat --format %Y "${FILE}")" -gt "${DATE_CLEAN2}" ]; then
+                continue
+            fi
+        fi
+        if (( VERBOSITY >= 2 )) ; then
+            echo "Deleting tracks from ${FILE}:"
+        fi
+        local LINE
+        while read -r LINE ; do
+            if [[ -f "${DIR_LIBRARY}/${LINE}" ]]; then
+                # Compare each file from the playlist with file modification date.  If file modification date is older than
+                # DATE_CLEAN2 then we remove that file
+                if [ "$(stat --format %Y "${DIR_LIBRARY}/${LINE}")" -lt "${DATE_CLEAN2}" ]; then
+                    if (( CLEANUP_SIMULATE > 0 )); then
+                        echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
+                    else
+                        if (( VERBOSITY >= 2 )) ; then
+                            rm -v "${DIR_LIBRARY}/${LINE}"
+                        else
+                            rm -f "${DIR_LIBRARY}/${LINE}"
+                        fi
+                    fi
+                fi
+            else
+                if (( VERBOSITY >= 2 || CLEANUP_SIMULATE > 0 )) ; then
+                    echo "File not found:  ${DIR_LIBRARY}/${LINE}"
+                fi
+            fi
+        done < "${FILE}"
+        if (( CLEANUP_SIMULATE > 0 )); then
+            echo "Playlist to remove: ${FILE}"
+        else
+            if (( VERBOSITY <= 1 )) ; then
+                rm -f "${FILE}"
+            else
+                rm -fv "${FILE}"
+            fi
+        fi
+    done <<<"${FILELIST}"
+}
+#                                                                                                                                }}}
+
 # Function: RemoveURL                                                                                                           {{{
 # Simple function to cleanup URLs for removal from FILE.
 # Arguments:
@@ -3457,71 +3529,11 @@ PodgetCore() {
 
     #                                                                                                                            }}}
     # ------------------------------------------------------------------------------------------------------------------------------
-    # CLEANUP loop                                                                                                               {{{
-
+    # Removal of downloaded files older than CLEANUP_DAYS                                                                        {{{
 
     if [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
-
         if (( CLEANUP != 0 || CLEANUP_ONLY != 0 )) ; then
-            if (( VERBOSITY >= 2 )) ; then
-                if (( CLEANUP_SIMULATE > 0 )); then
-                    echo "Simulating cleanup, the following files will be removed when you run cleanup."
-                else
-                    printf '\n%s\n%s\n' "-------------------------------------------------" "Cleanup old tracks."
-                fi
-            fi
-            FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
-            # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
-            CLEANUP_SECONDS=$((CLEANUP_DAYS*86400))
-            # Convert CLEANUP_SECONDS to date in seconds from unix epoch before midnight last night.
-            # This works with uniform whole days and isn't subject to when the cleanup is run.
-            DATE_CLEAN2=$(($(date +%s --date 0:00)-CLEANUP_SECONDS))
-            while IFS= read -r FILE; do
-                # Catch for when FILELIST is blank
-                if [[ -z "${FILE}" ]]; then
-                    continue
-                fi
-                if [[ "${FILE##/*/}" =~ ^${PLAYLIST_NAMEBASE}* ]]; then
-                    # Compare global playlist file modification date with DATE_CLEAN2.  If file modification date is newer than
-                    # DATE_CLEAN2 then we skip it.
-                    if [ "$(stat --format %Y "${FILE}")" -gt "${DATE_CLEAN2}" ]; then
-                        continue
-                    fi
-                fi
-                if (( VERBOSITY >= 2 )) ; then
-                    echo "Deleting tracks from ${FILE}:"
-                fi
-                while read -r LINE ; do
-                    if [[ -f "${DIR_LIBRARY}/${LINE}" ]]; then
-                        # Compare each file from the playlist with file modification date.  If file modification date is older than
-                        # DATE_CLEAN2 then we remove that file
-                        if [ "$(stat --format %Y "${DIR_LIBRARY}/${LINE}")" -lt "${DATE_CLEAN2}" ]; then
-                            if (( CLEANUP_SIMULATE > 0 )); then
-                                echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
-                            else
-                                if (( VERBOSITY >= 2 )) ; then
-                                    rm -v "${DIR_LIBRARY}/${LINE}"
-                                else
-                                    rm -f "${DIR_LIBRARY}/${LINE}"
-                                fi
-                            fi
-                        fi
-                    else
-                        if (( VERBOSITY >= 2 || CLEANUP_SIMULATE > 0 )) ; then
-                            echo "File not found:  ${DIR_LIBRARY}/${LINE}"
-                        fi
-                    fi
-                done < "${FILE}"
-                if (( CLEANUP_SIMULATE > 0 )); then
-                    echo "Playlist to remove: ${FILE}"
-                else
-                    if (( VERBOSITY <= 1 )) ; then
-                        rm -f "${FILE}"
-                    else
-                        rm -fv "${FILE}"
-                    fi
-                fi
-            done <<<"${FILELIST}"
+            PodgetCleanup
         fi
     fi
 
