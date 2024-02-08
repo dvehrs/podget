@@ -1138,7 +1138,7 @@ filenameFixFormat() {
 }
 #                                                                                                                                }}}
 
-# Function: titleFixFormat ${1} ${2}                                                                                             {{{
+# Function: titleFixFormat                                                                                                       {{{
 # Minor issues in Title strings are fixed so that it is compatible with most filesystems.
 # Arguments:
 # ${1} == name of variable to hold return string
@@ -1218,7 +1218,7 @@ titleFixFormat() {
 }
 #                                                                                                                                }}}
 
-# Function: FILTER_OPTIONS ${1}                                                                                                  {{{
+# Function: FILTER_OPTIONS                                                                                                       {{{
 # This takes each feed from a serverlist and selectively enables options specific to it.
 # Arguments:
 # ${1} == name of variable to filter on (either FEED_CATEGORY or FEED_NAME)
