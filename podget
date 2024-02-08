@@ -1487,7 +1487,8 @@ PodgetBuildFeedPlaylist() {
                     fi
 
                     # Replace spaces with underscores and then pipe through tr to limit repetitions.
-                    local FULL_PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
+                    local FULL_PLAYLIST_NAME
+                    FULL_PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
                     # Remove old full playlist.
                     if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
                         if (( VERBOSITY >= 2 )) ; then
@@ -1502,12 +1503,13 @@ PodgetBuildFeedPlaylist() {
                         if (( VERBOSITY >= 2 )); then
                             echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                         fi
+                        local FEED_ITEMS
                         if (( FEED_FULL_PLAYLIST == 1 )); then
                             # Get list in order of newest to oldest
-                            local FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                            FEED_ITEMS=$(ls -1t "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
                         else
                             # Get list in order of oldest to newest
-                            local FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
+                            FEED_ITEMS=$(ls -1tr "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/")
                         fi
                         if [ -n "${FEED_ITEMS}" ]; then
                             local ITEM
@@ -1610,6 +1612,219 @@ PodgetCleanup() {
             fi
         fi
     done <<<"${FILELIST}"
+}
+#                                                                                                                                }}}
+
+# Function: PodgetExportOPML                                                                                                     {{{
+# Displays general message with command line options.
+# ARGUMENTS: <none>
+PodgetExportOPML() {
+    local EXPORT_OPML="${1}"
+    local VERBOSITY="${VERBOSITY}"
+    local DIR_CONFIG="${DIR_CONFIG}"
+    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+    local ERR_EXPORTOPML="${ERR_EXPORTOPML}"
+
+    if [[ ${EXPORT_OPML} == "NONE" ]]; then
+        echo
+        echo "No file configured to export to."
+        CleanupAndExit 1
+    fi
+
+    if (( VERBOSITY >= 2 )) ; then
+        printf '\n%s\n' "Export serverlist to OPML file: ${EXPORT_OPML}"
+    fi
+
+    if [[ ! -e ${EXPORT_OPML} ]]; then
+        echo '<?xml version="1.0" encoding="utf-8" ?>
+    <opml version="1.0">
+    <head/>
+    <body>' > "${EXPORT_OPML}"
+
+        local FEED_URL
+        local FEED_CATEGORY
+        local FEED_NAME
+        local FEED_FULL_PLAYLIST
+        while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
+            if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
+                __MSG_DEBUG "Discarding (comment or blank line)."
+                __MSG_DEBUG "Clear Loop vars"
+                unset -v FEED_URL
+                unset -v FEED_CATEGORY
+                unset -v FEED_NAME
+                unset -v FEED_FULL_PLAYLIST
+                continue
+            fi
+
+            # ---------------------
+            # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
+
+            unset -v FILTER_TARGET
+            local FILTER_TARGET
+            for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
+                FilterOptions "${FILTER_TARGET}"
+            done
+
+            # Unset options that are not required in this while loop
+            unset -v URL_PASSWORD
+            unset -v URL_USERNAME
+            unset -v WGET_OPTION_DEFAULT_USERAGENT
+            unset -v WGET_OPTION_DISPOSITION
+            unset -v WGET_OPTION_DISPOSITION_FAIL
+            unset -v WGET_OPTION_NO_CHECK_CERIFICATE
+            unset -v WGET_OPTION_PREFER_IP_TYPE
+            unset -v WGET_OPTION_FILENAME_LOCATION
+            unset -v WGET_OPTION_RSS_MEDIACONTENT
+            unset -v FEED_SORT_ORDER
+            unset -v POST_WGET_RENAME_MDATE
+            unset -v ATOM_FILTER_SIMPLE
+            unset -v ATOM_FILTER_TYPE
+            unset -v ATOM_FILTER_LANG
+
+            if (( VERBOSITY >= 3 )) ; then
+                     echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
+            fi
+            echo '<outline text="'"${FEED_CATEGORY}"'"><outline text="'"${FEED_NAME}"'" type="rss" xmlUrl="'"${FEED_URL}"'" /></outline>' >> "${EXPORT_OPML}"
+        done < "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+
+        echo '</body>
+    </opml>' >> "${EXPORT_OPML}"
+    else
+        echo "OPML Export Error: ${EXPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+        CleanupAndExit ${ERR_EXPORTOPML}
+    fi
+}
+#                                                                                                                                }}}
+
+# Function: PodgetImportOPML                                                                                                     {{{
+#
+# ARGUMENTS:
+# ${1} == OPML to import
+PodgetImportOPML() {
+    local IMPORT_OPML="${1}"
+
+    if [[ ${IMPORT_OPML} == "NONE" ]]; then
+        echo
+        echo "unset FILE or URL to import from."
+        CleanupAndExit 1
+    fi
+
+    if (( VERBOSITY >= 2 )) ; then
+        printf '\n%s\n' "Import servers from OPML file: ${IMPORT_OPML}"
+    fi
+
+    local new_category
+    new_category="OPML_Import_$(date ${DATE_FORMAT})"
+
+    local opml_list
+
+    if [[ ${IMPORT_OPML} == http:* ]] || [[ ${IMPORT_OPML} == ftp:* ]] ; then
+        if (( VERBOSITY >= 2 )) ; then
+            echo "Getting opml list."
+        fi
+        opml_list=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_OPML}")
+    else
+        opml_list=$(cat "${IMPORT_OPML}")
+    fi
+
+    local new_list
+    new_list=$(echo "${opml_list}" | sed -e 's/\(\/>\)/\1\n/g' | sed -e :a -n -e 's/<outline\([^>]\+\)\/>/\1/Ip;/<outline/{N;s/\n\s*/ /;ba;}')
+
+    if [[ -n "$new_list" ]]; then
+
+        local OLD_IFS=$IFS
+        IFS=$'\n'
+
+        local data
+        for data in ${new_list} ; do
+            if (( VERBOSITY >= 1 )) ; then
+                printf '\n%s\n' "---------------"
+            fi
+
+            local new_label
+            new_label=$(echo "${data}" | sed -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | sed -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
+            local new_url
+            new_url=$(echo "${data}" | sed -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | sed -e 's/ /%20/g')
+
+            if (( VERBOSITY >= 3 )) ; then
+                echo "LABEL:  ${new_label}"
+                echo "URL:    ${new_url}"
+            fi
+
+            # Add '|| true' to catch when grep returns a non-zero status for URLs it does not find.  This replaces the need to
+            # disable errexit and the ERR trap.
+            local test
+            test=$(grep "${new_url}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}") || true
+
+            if [[ -z "$test" ]]; then
+                echo "${new_url} ${new_category} ${new_label}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+            elif (( VERBOSITY >= 2 )) ; then
+                echo "Feed ${new_label} is already in the serverlist"
+            fi
+        done
+
+        IFS=$OLD_IFS
+    else
+        if (( VERBOSITY >= 2 )) ; then
+            echo "  OPML Import Error ${IMPORT_OPML}" 1>&2
+        fi
+        echo "OPML Import Error: ${IMPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+        CleanupAndExit ${ERR_IMPORTOPML}
+    fi
+}
+#                                                                                                                                }}}
+
+# Function: PodgetImportPCAST                                                                                                    {{{
+#
+# ARGUMENTS:
+# ${1} == PCAST to import (file or URL)
+PodgetImportPCAST() {
+    local IMPORT_PCAST="${IMPORT_PCAST}"
+    local VERBOSITY="${VERBOSITY}"
+    local DIR_CONFIG="${DIR_CONFIG}"
+    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+
+    if [[ ${IMPORT_PCAST} == "NONE" ]]; then
+        echo
+        echo "unset FILE or URL to import from."
+        CleanupAndExit 1
+    fi
+
+    if (( VERBOSITY >= 2 )) ; then
+        printf '\n%s\n' "Import server from PCAST file: ${IMPORT_PCAST}"
+    fi
+
+    local pcast_data
+    if [[ ${IMPORT_PCAST} == http:* ]] || [[ ${IMPORT_PCAST} == ftp:* ]] ; then
+        if (( VERBOSITY >= 2 )) ; then
+            echo "Getting pcast file."
+        fi
+        pcast_data=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_PCAST}")
+    else
+        pcast_data=$(cat "${IMPORT_PCAST}")
+    fi
+
+    local new_link new_category new_title
+    new_link=$(echo "${pcast_data}" | sed -n -e 's/.*\(href\|url\)="\([^"]\+\)".*/\2/Ip' | sed -e 's/ /%20/g')
+    new_category=$(echo "${pcast_data}" | sed -n -e 's/.*<category>\([^<]\+\)<.*/\1/Ip' | sed -e 's/ /_/g;s/\&quot;/\&/g;s/\&amp;/\&/g')
+    new_title=$(echo "${pcast_data}" | sed -n -e 's/.*<title>\([^<]\+\)<.*/\1/Ip')
+
+    if (( VERBOSITY >= 2 )) ; then
+        echo "LINK: ${new_link}"
+        echo "CATEGORY: ${new_category}"
+        echo "TITLE: ${new_title}"
+    fi
+
+    # Added '|| true' to catch when grep exits with a non-zero status because the link was not found.  This eliminates the need to
+    # disable errexit and the ERR trap.
+    local test
+    test=$(grep "${new_link}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}") || true
+
+    if [[ -z "$test" ]]; then
+        echo "${new_link} ${new_category} ${new_title}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
+    elif (( VERBOSITY >= 2 )) ; then
+        echo "Feed ${new_title} is already in the serverlist"
+    fi
 }
 #                                                                                                                                }}}
 
@@ -3731,66 +3946,7 @@ PodgetCore() {
     # OPML import loop:                                                                                                          {{{
 
     if [[ -n ${IMPORT_OPML+set} ]]; then
-        if [[ ${IMPORT_OPML} == "NONE" ]]; then
-            echo
-            echo "unset FILE or URL to import from."
-            CleanupAndExit 1
-        fi
-
-        if (( VERBOSITY >= 2 )) ; then
-            printf '\n%s\n' "Import servers from OPML file: ${IMPORT_OPML}"
-        fi
-
-        new_category="OPML_Import_$(date ${DATE_FORMAT})"
-
-        if [[ ${IMPORT_OPML} == http:* ]] || [[ ${IMPORT_OPML} == ftp:* ]] ; then
-            if (( VERBOSITY >= 2 )) ; then
-                echo "Getting opml list."
-            fi
-            opml_list=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_OPML}")
-        else
-            opml_list=$(cat "${IMPORT_OPML}")
-        fi
-
-        new_list=$(echo "${opml_list}" | sed -e 's/\(\/>\)/\1\n/g' | sed -e :a -n -e 's/<outline\([^>]\+\)\/>/\1/Ip;/<outline/{N;s/\n\s*/ /;ba;}')
-
-        if [[ -n "$new_list" ]]; then
-
-            OLD_IFS=$IFS
-            IFS=$'\n'
-
-            for data in ${new_list} ; do
-                if (( VERBOSITY >= 1 )) ; then
-                    printf '\n%s\n' "---------------"
-                fi
-
-                new_label=$(echo "${data}" | sed -n -e 's/.*text="\([^"]\+\)".*/\1/Ip' | sed -e 's/^\s*[0-9]\+\.\s\+//' -e "s/[:;'\".,!/?<>\\|]//g")
-                new_url=$(echo "${data}" | sed -n -e 's/.*[xml]*url="\([^"]\+\)".*/\1/Ip' | sed -e 's/ /%20/g')
-
-                if (( VERBOSITY >= 3 )) ; then
-                    echo "LABEL:  ${new_label}"
-                    echo "URL:    ${new_url}"
-                fi
-
-                # Add '|| true' to catch when grep returns a non-zero status for URLs it does not find.  This replaces the need to
-                # disable errexit and the ERR trap.
-                test=$(grep "${new_url}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}") || true
-
-                if [[ -z "$test" ]]; then
-                    echo "${new_url} ${new_category} ${new_label}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-                elif (( VERBOSITY >= 2 )) ; then
-                    echo "Feed ${new_label} is already in the serverlist"
-                fi
-            done
-
-            IFS=$OLD_IFS
-        else
-            if (( VERBOSITY >= 2 )) ; then
-                echo "  OPML Import Error ${IMPORT_OPML}" 1>&2
-            fi
-            echo "OPML Import Error: ${IMPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-            CleanupAndExit ${ERR_IMPORTOPML}
-        fi
+        PodgetImportOPML "${IMPORT_OPML}"
     fi
 
     #                                                                                                                            }}}
@@ -3798,69 +3954,7 @@ PodgetCore() {
     # OPML export loop:                                                                                                          {{{
 
     if [[ -n ${EXPORT_OPML+set} ]]; then
-        if [[ ${EXPORT_OPML} == "NONE" ]]; then
-            echo
-            echo "unset FILE to import to."
-            CleanupAndExit 1
-        fi
-
-        if (( VERBOSITY >= 2 )) ; then
-            printf '\n%s\n' "Export serverlist to OPML file: ${EXPORT_OPML}"
-        fi
-
-        if [[ ! -e ${EXPORT_OPML} ]]; then
-            echo '<?xml version="1.0" encoding="utf-8" ?>
-    <opml version="1.0">
-    <head/>
-    <body>' > "${EXPORT_OPML}"
-
-        while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-            if   [[ "${FEED_URL:0:1}" == "#" ||  -z "${FEED_URL-empty}" ]] ; then
-                __MSG_DEBUG "Discarding (comment or blank line)."
-                __MSG_DEBUG "Clear Loop vars"
-                unset -v FEED_URL
-                unset -v FEED_CATEGORY
-                unset -v FEED_NAME
-                unset -v FEED_FULL_PLAYLIST
-                continue
-            fi
-
-            # ---------------------
-            # Read Podcast configuration - loop to run same filters on FEED_CATEGORY and FEED_NAME
-
-            unset -v FILTER_TARGET
-            for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
-                FilterOptions "${FILTER_TARGET}"
-            done
-
-            # Unset options that are not required in this while loop
-            unset -v URL_PASSWORD
-            unset -v URL_USERNAME
-            unset -v WGET_OPTION_DEFAULT_USERAGENT
-            unset -v WGET_OPTION_DISPOSITION
-            unset -v WGET_OPTION_DISPOSITION_FAIL
-            unset -v WGET_OPTION_NO_CHECK_CERIFICATE
-            unset -v WGET_OPTION_PREFER_IP_TYPE
-            unset -v WGET_OPTION_FILENAME_LOCATION
-            unset -v WGET_OPTION_RSS_MEDIACONTENT
-            unset -v FEED_SORT_ORDER
-            unset -v POST_WGET_RENAME_MDATE
-            unset -v ATOM_FILTER_SIMPLE
-            unset -v ATOM_FILTER_TYPE
-            unset -v ATOM_FILTER_LANG
-
-            if (( VERBOSITY >= 3 )) ; then
-                     echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
-            fi
-            echo '<outline text="'"${FEED_CATEGORY}"'"><outline text="'"${FEED_NAME}"'" type="rss" xmlUrl="'"${FEED_URL}"'" /></outline>' >> "${EXPORT_OPML}"
-        done < "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-
-        echo '</body>
-    </opml>' >> "${EXPORT_OPML}"
-        else
-            echo "OPML Export Error: ${EXPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-            CleanupAndExit ${ERR_EXPORTOPML}
-        fi
+        PodgetExportOPML "${EXPORT_OPML}"
     fi
 
     #                                                                                                                            }}}
@@ -3868,44 +3962,7 @@ PodgetCore() {
     # PCAST import:                                                                                                              {{{
 
     if [[ -n ${IMPORT_PCAST+set} ]] ; then
-        if [[ ${IMPORT_PCAST} == "NONE" ]]; then
-            echo
-            echo "unset FILE or URL to import from."
-            CleanupAndExit 1
-        fi
-
-        if (( VERBOSITY >= 2 )) ; then
-            printf '\n%s\n' "Import server from PCAST file: ${IMPORT_PCAST}"
-        fi
-
-        if [[ ${IMPORT_PCAST} == http:* ]] || [[ ${IMPORT_PCAST} == ftp:* ]] ; then
-            if (( VERBOSITY >= 2 )) ; then
-                echo "Getting pcast file."
-            fi
-            pcast_data=$(wget "${WGET_OPTIONS[@]}" -O - "${IMPORT_PCAST}")
-        else
-            pcast_data=$(cat "${IMPORT_PCAST}")
-        fi
-
-        new_link=$(echo "${pcast_data}" | sed -n -e 's/.*\(href\|url\)="\([^"]\+\)".*/\2/Ip' | sed -e 's/ /%20/g')
-        new_category=$(echo "${pcast_data}" | sed -n -e 's/.*<category>\([^<]\+\)<.*/\1/Ip' | sed -e 's/ /_/g;s/\&quot;/\&/g;s/\&amp;/\&/g')
-        new_title=$(echo "${pcast_data}" | sed -n -e 's/.*<title>\([^<]\+\)<.*/\1/Ip')
-
-        if (( VERBOSITY >= 2 )) ; then
-            echo "LINK: ${new_link}"
-            echo "CATEGORY: ${new_category}"
-            echo "TITLE: ${new_title}"
-        fi
-
-        # Added '|| true' to catch when grep exits with a non-zero status because the link was not found.  This eliminates the need to
-        # disable errexit and the ERR trap.
-        test=$(grep "${new_link}" "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}") || true
-
-        if [[ -z "$test" ]]; then
-            echo "${new_link} ${new_category} ${new_title}" >> "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
-        elif (( VERBOSITY >= 2 )) ; then
-            echo "Feed ${new_title} is already in the serverlist"
-        fi
+        PodgetImportPCAST "${IMPORT_PCAST}"
     fi
 
 
