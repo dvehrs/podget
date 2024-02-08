@@ -19,7 +19,7 @@
 # Installation:  cp podget.sh /usr/local/bin
 #                chmod 755 /usr/local/bin/podget.sh                                                                              }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Enable Debugging (xtrace, verbose, and/or functrace with debug trap.                                                           {{{
+# Enable Debugging (xtrace, verbose, and/or functrace with debug trap)                                                           {{{
 
 # To enable debugging or informational messages, add option to command line:
 #
