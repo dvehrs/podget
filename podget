@@ -1636,10 +1636,7 @@ PodgetExportOPML() {
     fi
 
     if [[ ! -e ${EXPORT_OPML} ]]; then
-        echo '<?xml version="1.0" encoding="utf-8" ?>
-    <opml version="1.0">
-    <head/>
-    <body>' > "${EXPORT_OPML}"
+        printf '%s\n\t%s\n\t%s\n\t%s\n' '<?xml version="1.0" encoding="utf-8" ?>' '<opml version="1.0">' '<head/>' '<body>' > "${EXPORT_OPML}"
 
         local FEED_URL
         local FEED_CATEGORY
@@ -1684,11 +1681,11 @@ PodgetExportOPML() {
             if (( VERBOSITY >= 3 )) ; then
                      echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
             fi
-            echo '<outline text="'"${FEED_CATEGORY}"'"><outline text="'"${FEED_NAME}"'" type="rss" xmlUrl="'"${FEED_URL}"'" /></outline>' >> "${EXPORT_OPML}"
+            printf '\t<outline text="%s"><outline text="%s" type="rss" xmlUrl="%s" /></outline>' \
+                "${FEED_CATEGORY}" "${FEED_NAME}" "${FEED_URL}" >> "${EXPORT_OPML}"
         done < "${DIR_CONFIG}"/"${CONFIG_SERVERLIST}"
 
-        echo '</body>
-    </opml>' >> "${EXPORT_OPML}"
+        printf '\t%s\n\t%s\n' '</body>' '</opml>' >> "${EXPORT_OPML}"
     else
         echo "OPML Export Error: ${EXPORT_OPML}" >> "${DIR_LOG}"/"${LOG_FAIL}"
         CleanupAndExit ${ERR_EXPORTOPML}
