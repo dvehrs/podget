@@ -1825,6 +1825,1334 @@ PodgetImportPCAST() {
 }
 #                                                                                                                                }}}
 
+# Function: PodgetServerLoop                                                                                                     {{{
+# Displays general message with command line options.
+# ARGUMENTS: <none>
+PodgetServerLoop() {
+    # Set local variables (and get values from global variables as necessary).
+    #   NOTE: These might look a little redundant because the local variable has the same name as the global but it works and
+    #         Shellcheck does not complain.
+    local VERBOSITY="${VERBOSITY}"
+    local LOG_FAIL="${LOG_FAIL}"
+    local LOG_COMPLETE="${LOG_COMPLETE}"
+    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+    local NO_PLAYLIST="${NO_PLAYLIST}"
+    if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+        local PLAYLIST_PERPODCAST="${PLAYLIST_PERPODCAST}"
+    fi
+    local DIR_LOG="${DIR_LOG}"
+    local SESSION_PLAYLIST_NAME
+    local DIR_CONFIG="${DIR_CONFIG}"
+    local CURRENT_SERVERLIST
+    local COUNTER
+    local FEED_CATEGORY
+    local FEED_NAME
+    local FEED_URL
+
+    __MSG_DEBUG "Main loop"
+    __MSG_DEBUG "SERVER LIST FILE" "$CONFIG_SERVERLIST"
+    __MSG_DEBUG "WGET COMMON OPTIONS" "${WGET_COMMON_OPTIONS}"
+    if (( NO_PLAYLIST == 0 )); then
+        __MSG_DEBUG "Playlist Creation Enabled."
+    else
+        __MSG_DEBUG "Playlist Creation Disabled."
+    fi
+    if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+        __MSG_DEBUG "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
+    fi
+
+    mkdir -p "${DIR_LOG}"
+    FilenameCheck LOG_FAIL
+    FilenameCheck LOG_COMPLETE
+    touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
+
+    if (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
+        SESSION_PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
+
+        COUNTER=2
+        while [[ -e ${DIR_LIBRARY}/${SESSION_PLAYLIST_NAME} ]] ; do
+            SESSION_PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).r$COUNTER.m3u"
+            COUNTER=$((COUNTER+1))
+        done
+
+        if (( VERBOSITY >= 3 )); then
+            echo
+            echo "Playlist name: ${SESSION_PLAYLIST_NAME}"
+        fi
+    fi
+
+    # UTF-8/16 handling
+    local FILETYPE
+    for FILETYPE in utf8 utf16 ; do
+        case ${FILETYPE} in
+            'utf8')
+                __MSG_INFO "UTF-8 Loop running." ;;
+            'utf16')
+                __MSG_INFO "UTF-16 Loop running." ;;
+        esac
+        case ${FILETYPE} in
+            'utf8')
+                CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
+            'utf16')
+                # Test if iconv is installed.  If it is not, display error.
+                if ! hash iconv >/dev/null 2>&1; then
+                    echo "Can't find iconv binary, is libc-bin installed?" 1>&2
+                    echo "Exiting UTF16 loop, unable to convert file to UTF8" 1>&2
+                    CleanupAndExit $ERR_LIBC6NOTINSTALLED
+                fi
+                CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
+            *)
+                echo "Unknown Filetype: ${FILETYPE}"
+        esac
+        if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
+            __MSG_INFO "No config file found, exiting loop."
+            continue
+        fi
+
+        while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
+            local URL_USERNAME
+            local URL_PASSWORD
+            local FEED_FULL_PLAYLIST
+            local WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS}"
+
+            if (( DEBUG >= 1 )) ; then echo; fi
+            __MSG_DEBUG "============================================================"
+            __MSG_DEBUG "Server Loop:"
+            __MSG_DEBUG "Serverlist Line --> ${FEED_URL:-} ${FEED_CATEGORY:-} ${FEED_NAME:-}"
+
+            if   [[ "${FEED_URL:0:1}" == "#" || -z "${FEED_URL-empty}" ]] ; then
+                __MSG_DEBUG "Discarding (comment or blank line)."
+                __MSG_DEBUG "Clear Server Loop vars"
+                unset -v FEED_URL
+                unset -v FEED_CATEGORY
+                unset -v FEED_NAME
+                unset -v FEED_FULL_PLAYLIST
+                unset -v URL_USERNAME
+                unset -v URL_PASSWORD
+                continue
+            fi
+
+            if (( DEBUG >= 1 )) ; then echo; fi
+            __MSG_DEBUG "Reset options to allow loop specific options"
+            __MSG_DEBUG " WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
+
+            unset -v WGET_SUBCHAR
+            local WGET_SUBCHAR
+            WGET_NOTCOUNT=0
+
+            # In Vim to enter digraphs that are not commonly on the US keyboards,
+            # we use ctrl-K followed by a two character lookup code.
+            #   Examples:
+            #     !2 - double vertical line  ‖
+            #     =2 - double low line       ‗
+            #     oo - bullet                •
+            #     Db - diamond bullet        ◆
+            #     '% - Greek Theta           ϴ
+            #     Pd - British Pound symbol  £
+            #     Eu - Euro Symbol           €
+            #     Ye - Yen symbol            ¥
+            #     Pt - Peseta symbol         ₧
+            #     W= - Won symbol            ₩
+            #     Ct - Cent symbol           ¢
+            #     Co - Copyright symbol      ©
+            #     Rg - Registered Trademark  ®
+            #     +- - Plus Minus            ±
+            #     Om - Ohm symbol            Ω
+            #     AO - Angstrom symbol       Å
+            #     DG - Degree Sign           °
+            #     AE - Latin Capital AE      Æ
+            #     ae - Latin Small ae        æ
+            #     Ca - Caret                 ‸
+            #     1R - Roman Numeral One     Ⅰ
+            #     2R - Roman Numeral Two     Ⅱ
+            #     3R - Roman Numeral Three   Ⅲ
+            #     4R - Roman Numeral Four    Ⅳ
+            #     5R - Roman Numeral Five    Ⅴ
+            #
+            #     These are not good to use because they frequently overlap with following
+            #     characters if not followed by a space.
+            #     oC - Degree Celsius        ℃
+            #     oF - Degree Fahrenheit     ℉
+            #
+            #     Digraphs may not be included in the locale that you have configured.  On my test systems,
+            #     I found that I had one that did not display the correct characters for the digraphs
+            #     but rather replaced them all with an underscore character.  The function worked but
+            #     it did not display the characters correctly.
+            #
+            #     On the systems where it did display correctly, I found that I had the following
+            #     configuration in my /etc/default/locale:
+            #            #  File generated by update-locale
+            #            LANG="en_US.UTF-8"
+            #
+            #     On the one system that did not display correctly, the configuration I had
+            #     in /etc/default/locale was:
+            #            #  File generated by update-locale
+            #            LANG="en_US"
+            #
+            #      This can be updated by modifying the file or by running:
+            #             update-locale LANG="en_US.UTF-8"
+            #
+            #      This may or may not require a reboot to take effect but I took the easy way out and
+            #      rebooted so I would be sure it displayed as I hoped in the future.
+            #
+            #      NOTE ON CHARACTERS TO CONSIDER NOT INCLUDING:
+            #        It is probably a good idea to not include any character that has special meaning
+            #        in Bash and needs to be escaped.  That is why this string primarily starts with
+            #        digraphs and then includes a few characters that are commonly found on most
+            #        keyboards.  I initially wanted to include the $ symbol with the other monetary
+            #        symbols.  However I had to escape it or it could cause an "unbound variable"
+            #        error on some systems.
+            #
+            #      NOTE ON CHARACTERS TO CONSIDER INCLUDING:
+            #        We are using this character to parse the WGET_BASEOPTS string and put it's parts
+            #        into the WGET_OPTIONS array.  To make things as easy as possible, we want to use
+            #        characters that are unlikely to be used in any of the WGET options.  This can be a
+            #        bit tricky for some options like passwords or user-agent that can take almost
+            #        anything.  For that reason, I have included a large selection of digraphs and a
+            #        few characters that do not require escaping because it is very unlikely that
+            #        someone used them all for one of those options and we will be able to safely
+            #        find one to use.
+            WGET_TEST_STRING="_;‖‗•◆ϴ£€¥₧₩¢ⅠⅡⅢⅣⅤΩÅ©®±°Ææ‸:|<>?~!@#%^"
+            local INTERVAL
+            for (( INTERVAL=0; INTERVAL<${#WGET_TEST_STRING}; INTERVAL++ )); do
+                WGET_TEST_CHAR=${WGET_TEST_STRING:$INTERVAL:1}
+
+                # grep looks for --fixed-strings so that certain characters are not
+                # interpreted as regular expressions.
+                #
+                # we're looking for a character that is not found in the string so it is
+                # ! grep
+                if ! grep --quiet --fixed-strings "${WGET_TEST_CHAR}" <<<"${WGET_COMMON_OPTIONS}"; then
+                    WGET_SUBCHAR="${WGET_TEST_CHAR}"
+                    break
+                else
+                    WGET_NOTCOUNT=$((WGET_NOTCOUNT+1))
+                fi
+            done
+
+            # Done with loop variable, remove it.
+            unset -v INTERVAL
+
+            if [[ -n "${WGET_SUBCHAR+defined}" ]] && [[ "${#WGET_SUBCHAR}" -gt 0 ]]; then
+                __MSG_DEBUG "WGET Success finding parsing character (${WGET_SUBCHAR})"
+                __MSG_DEBUG "  Test string length: ${#WGET_TEST_STRING}"
+                __MSG_DEBUG "  Characters tested before usable found: ${WGET_NOTCOUNT}"
+            else
+                echo
+                echo "Unable to find character to use as delimiter for WGET_BASEOPTS string."
+                echo "Every character in our test set was also used somewhere in WGET_BASEOPTS."
+                echo   "Test Set:   ${WGET_TEST_STRING}"
+                echo   "WGET_BASEOPTS: ${WGET_BASEOPTS}"
+                CleanupAndExit 1
+            fi
+
+            WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS// -/${WGET_SUBCHAR}-}"
+
+            # clear array and reimport
+            unset -v WGET_OPTIONS
+
+            # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
+            IFS="${WGET_SUBCHAR}" read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
+
+            WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS//${WGET_SUBCHAR}-/ -}"
+            unset -v WGET_NOTCOUNT
+            unset -v WGET_SUBCHAR
+            unset -v WGET_TEST_CHAR
+            unset -v WGET_TEST_STRING
+
+            __MSG_DEBUG "Reset FEED_FULL_PLAYLIST=0"
+            FEED_FULL_PLAYLIST=0
+
+            __MSG_DEBUG "Reset FEED_SORT_ORDER=DESCENDING"
+            FEED_SORT_ORDER="DESCENDING"
+
+            __MSG_DEBUG "Reset WGET_OPTION_DEFAULT_USERAGENT"
+            WGET_OPTION_DEFAULT_USERAGENT=0
+
+            __MSG_DEBUG "Reset WGET_OPTION_FILENAME_LOCATION"
+            WGET_OPTION_FILENAME_LOCATION=0
+
+            if ArrayContains "--content-disposition" "${WGET_OPTIONS[@]}" ; then
+                # removing actual --content-disposition option from WGET because it is not used directly
+                # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
+                        unset -v 'WGET_OPTIONS['"${index}"']'
+                        WGET_OPTION_DISPOSITION=1
+                        __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+                    fi
+                done
+            else
+                WGET_OPTION_DISPOSITION=0
+                __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
+            fi
+
+            if ArrayContains "--user-agent=" "${WGET_OPTIONS[@]}" ; then
+                __MSG_DEBUG "Custom Wget User Agent Enabled."
+            else
+                WGET_OPTIONS+=("--user-agent=Podget")
+                __MSG_DEBUG "Default Wget User Agent for Podget Enabled."
+            fi
+
+            __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION_FAIL"
+            WGET_OPTION_DISPOSITION_FAIL=0
+
+            __MSG_DEBUG "Reset WGET_OPTION_NO_CHECK_CERIFICATE"
+            WGET_OPTION_NO_CHECK_CERIFICATE=0
+
+            __MSG_DEBUG "Reset WGET_OPTION_PREFER_IP_TYPE"
+            WGET_OPTION_PREFER_IP_TYPE=0
+
+            __MSG_DEBUG "Reset WGET_OPTION_RSS_MEDIACONTENT"
+            WGET_OPTION_RSS_MEDIACONTENT=0
+
+            __MSG_DEBUG "Reset POST_WGET_RENAME_MDATE"
+            POST_WGET_RENAME_MDATE=0
+
+            __MSG_DEBUG "Reset POST_WGET_RENAME_TITLETAG"
+            POST_WGET_RENAME_TITLETAG=0
+
+            __MSG_DEBUG "Reset POST_WGET_RENAME_REVTITLETAG"
+            POST_WGET_RENAME_REVTITLETAG=0
+
+            __MSG_DEBUG "Reset ATOM_FILTER_SIMPLE"
+            ATOM_FILTER_SIMPLE=0
+
+            __MSG_DEBUG "Reset ATOM_FILTER_TYPE"
+            unset -v ATOM_FILTER_TYPE
+
+            __MSG_DEBUG "Reset ATOM_FILTER_LANG"
+            unset -v ATOM_FILTER_LANG
+
+            # End resets
+            # -----------------------------------------------------------------
+            # Read new configuration
+
+            # Pass FEED_CATEGORY and FEED_NAME through the option filters.  This allows handling of options with blank feed
+            # categories and names.
+            unset -v FILTER_TARGET
+            local FILTER_TARGET
+            for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
+                FilterOptions "${FILTER_TARGET}"
+            done
+
+            # Unset options that are not required in this while loop
+
+            # End setting of FEED_CATEGORY, FEED_NAME, and OPT_items
+            # -----------------------------------------------------------------
+
+            # Add Username and Password to wget options if found.
+            # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
+            # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
+            if [[ -n ${URL_USERNAME+set} ]]; then
+                WGET_OPTIONS+=("--user=${URL_USERNAME}")
+            fi
+
+            if [[ -n ${URL_PASSWORD+set} ]]; then
+                WGET_OPTIONS+=("--password=${URL_PASSWORD}")
+            fi
+
+            # Reset to default WGET user-agent
+            if (( WGET_OPTION_DEFAULT_USERAGENT==1 )); then
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    if [[ ${WGET_OPTIONS[${index}]} =~ ^"--user-agent=".* ]]; then
+                        __MSG_DEBUG "Reset to Default Wget User Agent"
+                        unset -v 'WGET_OPTIONS['"${index}"']'
+                    fi
+                done
+            fi
+
+            # Add --no-check-certificate to WGET_OPTIONS
+            if (( WGET_OPTION_NO_CHECK_CERIFICATE==1 )); then
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    # if --no-check-certificate has been set before, remove it.
+                    if [[ ${WGET_OPTIONS[${index}]} == "--no-check-certificate" ]]; then
+                        unset -v 'WGET_OPTIONS['"${index}"']'
+                    fi
+                done
+                WGET_OPTIONS+=("--no-check-certificate")
+            fi
+
+            # Set preferred IP type for WGET_OPTIONS
+            if (( WGET_OPTION_PREFER_IP_TYPE>0 )); then
+                for index in "${!WGET_OPTIONS[@]}"; do
+                    # if --prefer-family has been set before, remove it.
+                    if [[ ${WGET_OPTIONS[${index}]} =~ --prefer-family=IPv[46] ]]; then
+                        unset -v 'WGET_OPTIONS['"${index}"']'
+                    fi
+                done
+                case "${WGET_OPTION_PREFER_IP_TYPE}" in
+                    4 )
+                        WGET_OPTIONS+=("--prefer-family=IPv4")
+                        ;;
+                    6 )
+                        WGET_OPTIONS+=("--prefer-family=IPv6")
+                        ;;
+                esac
+            fi
+
+            if (( VERBOSITY >= 2 )) ; then
+                printf '\n%s\n' "-------------------------------------------------"
+            fi
+            if (( VERBOSITY >= 1 )) ; then
+                if [ "${FEED_CATEGORY}" == "." ]; then
+                    DISPLAY_CATEGORY="None"
+                else
+                    DISPLAY_CATEGORY="${FEED_CATEGORY}"
+                fi
+
+                if [ "${FEED_NAME}" == "." ]; then
+                    DISPLAY_NAME="None"
+                else
+                    DISPLAY_NAME="${FEED_NAME}"
+                fi
+
+                printf '%-30s %-50s\n' "Category: ${DISPLAY_CATEGORY}" "Name: ${DISPLAY_NAME}"
+            fi
+
+            __MSG_DEBUG "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
+
+            # DirectoryCheck for FEED_NAME and FEED_CATEGORY here prior to using them.
+            for i in FEED_CATEGORY FEED_NAME; do
+                # FEED_NAME can be blank, if it is then we skip the DirectoryCheck
+                if [[ ${i} == "FEED_NAME" && -z "${!i}" ]]; then
+                    # we use continue rather than break here in case the variables are in a different order.
+                    continue
+                fi
+
+                # Moved DirectoryCheck inside an IF statement so that a non-zero exit status would not trigger either the errexit
+                # or the ERR trap conditions.
+                if ! DirectoryCheck "${i}"; then
+                    echo
+                    echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
+                    echo
+                    # This needs to be 'continue 2' because we are not continuing the immediate for loop but rather the
+                    # loop wrapping it.
+                    continue 2
+                fi
+
+            done
+
+            if (( FEED_FULL_PLAYLIST >= 1 )) ; then
+                PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
+            elif (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+                # If configured to create individual playlists for each podcast, set playlist name here.
+                # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
+                PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').m3u"
+
+                COUNTER=2
+                while [[ -e "${DIR_LIBRARY}/${PLAYLIST_NAME}" ]] ; do
+                    PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').r$COUNTER.m3u"
+                    COUNTER=$((COUNTER+1))
+                done
+            elif (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
+                PLAYLIST_NAME="${SESSION_PLAYLIST_NAME}"
+            fi
+
+            if (( VERBOSITY >= 2 )) ; then
+                if [[ -n ${URL_USERNAME+set} ]]; then
+                    printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
+                fi
+                if [[ -n ${URL_PASSWORD+set} ]]; then
+                    # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
+                    # useful for debugging connection issues.
+                    __MSG_DEBUG "Password: ${URL_PASSWORD}"
+                fi
+                if (( VERBOSITY >= 4 )) ; then
+                    printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
+                fi
+                if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+                    printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
+                fi
+
+                echo
+                echo "Downloading feed index from ${FEED_URL}"
+            fi
+
+            case ${FILETYPE} in
+                'utf8')
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}") && EXITSTATUS=0 || EXITSTATUS=1
+                    ;;
+                'utf16')
+                    # Slight gymnastics to report the exit status of WGET and not ICONV.
+                    INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit "${PIPESTATUS[0]}") && EXITSTATUS=0 || EXITSTATUS=1
+                    ;;
+            esac
+
+            if (( EXITSTATUS != 0 )); then
+                if (( VERBOSITY >= 1 )); then
+                    printf '%-30s %-50s\n' "" "Error Downloading Feed."
+                else
+                    echo "ERROR Downloading Feed:  ${FEED_NAME}"
+                fi
+                # if downloaded failed, add URL to LOG_FAIL
+                echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+                continue
+            fi
+
+            INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g')
+
+            # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
+            TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
+
+            # While most these messages are acceptably controlled for display via __MSG_DEBUG, we add an extra check
+            # here because the loop in the center would take extra unnecessary time.
+            if (( DEBUG >= 1 )) ; then
+                __MSG_DEBUG "------ Check for RSS or Atom feed --------"
+                while IFS= read -r LINE; do
+                    __MSG_DEBUG "${LINE}"
+                done< <(printf "%s\n" "${TESTLINES}")
+                __MSG_DEBUG "------ ( first 9 lines of feed --------"
+                __MSG_DEBUG "------   looking for '<rss '   --------"
+                __MSG_DEBUG "------   or '<feed ' )         --------"
+                echo
+            fi
+
+            if grep -q '<rss ' <<< "${TESTLINES}" ;then
+                __MSG_DEBUG "RSS Feed Found"
+                if (( DEBUG == 1 )) ; then echo; fi
+                # if file is RSS then we look for '<enclosure '
+                #    To debug a sed command and see how it flows use --debug option.
+                #    NOTES for sed command:
+                #       1.  -n       suppress automatic printing of pattern space
+                #       2.  -e :a    set label named 'a'
+                #       3.  -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id'
+                #                    Look for podcast:liveitem tags.  If found, delete.
+                #                    Flags:
+                #                      I    Ignore case while searching
+                #                      d    Delete pattern space
+                #       4.  -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}'
+                #                    This command reads the next line into patter space when the podcast:liveitem opening and
+                #                    closing tags do not occur on same line.  Reads line in, removes the newline character and
+                #                    returns to label 'a'.
+                #       5.  -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
+                #                    Look for enclosure and url in pattern space.  If found, print the
+                #                    url value.  This version looks for when the HTML feed uses double quotes around
+                #                    the url value.
+                #                    Flags:
+                #                      I    Ignore case while searching
+                #                      p    Print only substituted line
+                #       6.  -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       7.  -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
+                #                    This command is here to catch when the HTML feed is using single quotes rather than double
+                #                    quotes.
+                #       8.  -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       9.  -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip'
+                #                    Looking for <title> tag and grabbing contents.
+                #       10. -e 't'   if last s/// did successful substitution then branch to end of script
+                #                    because no label was provided.
+                #       11. -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}'
+                #                    this final command is to read the next line of the file into the pattern space.
+                #                    We use this for feeds where the url= portion does not appear on the same line as
+                #                    the enclosure start tag or when the closing title tag is not on the same line as
+                #                    the opening one.  After merging, we go back to label 'a'. Might need to add
+                #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
+                #
+                # INDEXFILE before adding TITLE bits
+                # INDEXFILE=$(echo "${INDEXFILE}" | \
+                #             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
+                #                          -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
+                #                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
+                #
+                # INDEXFILE_TMP before adding bits to delete podcast:liveitem stuff
+                # INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                #             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                #                          -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
+                #                          -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                #                          -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
+                if (( WGET_OPTION_RSS_MEDIACONTENT < 1 )); then
+                    INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                                sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                                             -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                                             -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                                             -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                                             -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
+                else
+                    # This section adds a couple of tests to look for <media:content ...> tags from the RSS Media Specification.
+                    # This is used in the feeds created by FreshRSS aggregator so it's use is not expected to be common but we may
+                    # find a few users that require it.  These tests were added after test 8 above and before test 9.
+                    #       8.1.  -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip'
+                    #                    Look in pattern space for media:content tags that are preceded by TYPE video or audio then
+                    #                    extract the URL.
+                    #                    Flags:
+                    #                      I    Ignore case while searching
+                    #                      p    Print only substituted line
+                    #       8.2.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    #       8.3.  -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip"
+                    #                    This command is the sane as 8.1 but to catch when the HTML feed is using single quotes
+                    #                    rather than double quotes.
+                    #       8.4.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    #       8.5.  -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip'
+                    #                    This is like 8.1 but TYPE option follows the URL rather than precedes it.
+                    #       8.6.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    #       8.7.  -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip"
+                    #                    This is like 8.3 but TYPE option follows the URL rather than precedes it.
+                    #       8.8.  -e 't'   if last s/// did successful substitution then branch to end of script
+                    #                    because no label was provided.
+                    # Then the final pattern was updated to also look for incomplete media:content tags.
+                    #       11. -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}'
+                    #                    this final command is to read the next line of the file into the pattern space.
+                    #                    We use this for feeds where the url= portion does not appear on the same line as
+                    #                    the enclosure start tag or when the closing title tag is not on the same line as
+                    #                    the opening one.  After merging, we go back to label 'a'. Might need to add
+                    #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
+                    #
+                    INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
+                                sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                                             -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                                             -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                                             -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
+                                             -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip' -e t \
+                                             -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip" -e t \
+                                             -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip' -e t \
+                                             -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip" -e t \
+                                             -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                                             -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
+                fi
+                 # If TITLE tag appears after the ENCLOSURE tag in the file, reverse the order of list for parsing.
+                 if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
+                     INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
+                 fi
+                 # Merge TITLE AND URL lines onto single line divided by '<Url-Title>'
+                 INDEXFILE_TMP2=""
+                 while read -r TAG DATA; do
+                     case ${TAG} in
+                         "TITLE" )
+                             ITEM_TITLE="${DATA}"
+                             ;;
+                         "URL" )
+                             # with cleanup for URL (used to be called FINAL below ATOM section)
+                             ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
+                             # Enabled handling of unset ITEM_TITLE items by including a dash at the end of the variable name to
+                             # signify that the default is a blank value (or we could specify a value we wanted after the dash).
+                             INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE-}${NEWLINE}"
+                             unset -v ITEM_TITLE ITEM_URL
+                             ;;
+                     esac
+                 done <<<"${INDEXFILE_TMP}"
+                 if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
+                     # Return INDEX to its default order
+                     INDEXFILE=$(echo "${INDEXFILE_TMP2}" | sed -n '1!G;h;$p')
+                 else
+                     # INDEX already in correct order.
+                     INDEXFILE="${INDEXFILE_TMP2}"
+                 fi
+            elif grep -q '<feed ' <<< "${TESTLINES}"; then
+                __MSG_DEBUG "Atom Feed Found"
+                if (( DEBUG == 1 )) ; then echo; fi
+                # if file is Atom then we look for '<link\s.*rel="enclosure" '
+                # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
+
+                # Characters unlikely to appear in an XML document.  Combination of "invalid" characters and those
+                # that have worked well for my testing.
+                TEST_STRING="^{}_~"
+
+                # Find suitable TEST_CHAR to use for sed statements below.
+                for (( i=0; i<${#TEST_STRING}; i++ )); do
+                    TEST_CHAR=${TEST_STRING:$i:1}
+
+                    # grep looks for --fixed-strings so that certain characters are not
+                    # interpreted as regular expressions (like ^ $ or /)
+                    #
+                    # We're looking for a character NOT found in the INDEXFILE so its ! grep
+                    if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${INDEXFILE}"; then
+                        # When a character is not found in the string that we can use, break out of the loop.
+                        break
+                    fi
+                done
+
+                unset -v i
+
+                # Get full enclosure lines to filter on
+                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
+
+# NOTE: I have this section disabled because it has a high potential for confusing
+#       users.  At this stage, there is potential that they will see many enclosures
+#       in the feed and not understand why the filtering they have selected results
+#       in fewer or none found.  However it is useful during testing so it is
+#       available.
+#                if (( DEBUG == 1 )); then
+#                    __MSG_DEBUG "------ Indexfile Contents --------"
+#                    while IFS= read -r LINE; do
+#                        __MSG_DEBUG "${LINE}"
+#                    done< <(printf "%s\n" "${INDEXFILE}")
+#                    __MSG_DEBUG "----------------------------------"
+#                    __MSG_DEBUG "----------------------------------"
+#                    echo
+#                fi
+
+                # SIMPLE FILTERING: filter down to just audio & video types.
+                if (( ATOM_FILTER_SIMPLE > 0 )); then
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}type=\"\\(audio\\|video\\)${TEST_CHAR}p")
+                fi
+
+                if [[ -n ${ATOM_FILTER_TYPE+set} ]]; then
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
+                fi
+
+                TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*type=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+
+                if (( VERBOSITY >= 2 )) ; then
+                    # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
+                    # them that more is possible.
+                    if (( ATOM_FILTER_SIMPLE == 0 )) && [[ -z ${ATOM_FILTER_TYPE+set} ]]; then
+                        if (( $(echo "${TYPECOUNT}" | wc -l) > 1 )); then
+                            echo
+                            echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
+                            echo "ATOM_FILTER_TYPE to narrow your selection."
+                            echo
+                            echo "  COUNT | TYPE"
+                            echo "  ------+-------------"
+                            echo "${TYPECOUNT}"
+                            echo
+                        fi
+                    fi
+                fi
+
+                if [[ -n "${ATOM_FILTER_LANG+set}" ]]; then
+                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
+                fi
+
+                LANGCOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*xml:lang=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
+
+                if (( VERBOSITY >= 2 )) ; then
+                    # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
+                    if [[ -z "${ATOM_FILTER_LANG+set}" ]]; then
+                        if (( $(echo "${LANGCOUNT}" | wc -l) > 1 )); then
+                            echo
+                            echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
+                            echo "to narrow your selection."
+                            echo
+                            echo "  COUNT | LANGUAGE"
+                            echo "  ------+-------------"
+                            echo "${LANGCOUNT}"
+                            echo
+                        fi
+                    fi
+                fi
+
+                # Get the URLs from each enclosure after filtering.
+                INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip")
+                # final INDEXFILE cleanup options
+                INDEXFILE=$(echo "${INDEXFILE}" | \
+                            sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
+                            sed -e ':a;N;$!ba;s/\n/ /g')
+                # Convert to new one item per line format. Once we figure out the best way to extract
+                # titles from we can convert or move this section as necessary.
+                INDEXFILE_TMP2=""
+                for ITEM_URL in ${INDEXFILE}; do
+                     INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${NEWLINE}"
+                done
+                # Set back to INDEXFILE
+                INDEXFILE="${INDEXFILE_TMP2}"
+            else
+                echo "Feed is neither RSS, or Atom.  Skipping to next feed."
+                # if Feed is neither RSS or Atom, add URL to LOG_FAIL
+                echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+                continue
+            fi
+
+            if [[ -n ${INDEXFILE} ]]; then
+
+                # Remove any error log entries for the FEED_URL if it failed before
+                RemoveURL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                if (( MOST_RECENT > 0 )) ; then
+                    FULLINDEXFILE="${INDEXFILE}"
+                    if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
+                        __MSG_DEBUG "FEED SORT ORDER: ASCENDING"
+                        # Adding one to MOST_RECENT because we tend to have one blank line
+                        # at the end of our INDEXFILE
+                        #   -- This was needed when using tail.  Does not appear necessary when using sed.
+                        # MOST_RECENT=$((MOST_RECENT+1))
+                        # OpenBSD Tail does not support options with two dashes (so no --lines), we have
+                        # to use the single dash option here or force OpenBSD to use GNU Tail.  Given this
+                        # is a single use error, it is easier to use BSD compatible syntax even if it can be
+                        # more challenging to debug.
+                        # INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
+                        # INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
+                        # This can also be done with sed but MOST_RECENT needs to be incremented by 2 not 1
+                        # MOST_RECENT=$((MOST_RECENT+2))
+                        # INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e ':a' -e '$p;N;'"${MOST_RECENT}"',$D;ba')
+                        LINE_COUNT=$(echo "${FULLINDEXFILE}" | sed -n '$=;')
+                        LINE_BREAK=$((LINE_COUNT - MOST_RECENT))
+                        INDEXFILE=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ p")
+                        # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
+                        SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ !p")
+                    else
+                        __MSG_DEBUG "FEED SORT ORDER: DESCENDING"
+                        # Attempting to use head here results in exit condition 141, but using the sed construct
+                        # below works.  Not sure why given that tail works above.
+                        # INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
+                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n "1,${MOST_RECENT}p")
+                        # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
+                        SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "1,${MOST_RECENT}!p")
+
+                    fi
+                fi
+
+                if (( DEBUG >= 1 )) ; then
+                    if (( MOST_RECENT > 0 )) ; then
+                        __MSG_DEBUG "Full Index List:"
+                        URLCOUNT=0
+                        while read -r DATA; do
+                            __MSG_DEBUG "${URLCOUNT}. ${DATA}"
+                            URLCOUNT=$((URLCOUNT+1))
+                        done <<<"${FULLINDEXFILE}"
+                        __MSG_DEBUG "Modified Index List:"
+                        URLCOUNT=0
+                        while read -r DATA; do
+                            __MSG_DEBUG "${URLCOUNT}. ${DATA}"
+                            URLCOUNT=$((URLCOUNT+1))
+                        done <<<"${INDEXFILE}"
+                        unset -v URLCOUNT
+                    else
+                        __MSG_DEBUG "Index List:"
+                        URLCOUNT=0
+                        while read -r DATA; do
+                            __MSG_DEBUG "${URLCOUNT}. ${DATA}"
+                            URLCOUNT=$((URLCOUNT+1))
+                        done <<<"${INDEXFILE}"
+                        unset -v URLCOUNT
+                    fi
+                fi
+
+                # End of this while loop is at approximately line 2980
+                while read -r DATA; do
+                    # Check for blank line, if found just proceed to next line.
+                    if [[ -z "${DATA}" ]]; then
+                        continue
+                    fi
+
+                    # Divide URL and TITLE from DATA
+                    URL="${DATA%<Url-Title>*}"
+                    TITLE="${DATA#*<Url-Title>}"
+
+                    # Safety check:  if ${DATA} does not contain '<Url-Title>'
+                    if [[ "${URL}" == "${TITLE}" ]]; then
+                        TITLE=""
+                    fi
+
+                    if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
+
+                        if (( VERBOSITY >= 2 )) ; then
+                            echo
+                        fi
+
+                        # Without the 'sed' statements.
+                        URL_FILENAME="${URL##*/}"
+                        URL_BASE="${URL%/*}"
+
+                        # replace any whitespace in the filename with underscores.
+                        URL_FILENAME=$(echo "${URL_FILENAME}" | tr '[:blank:]' '_' | tr -s '_')
+
+                        # Test for available space on library partition
+                        AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
+                        if (( AVAIL_SPACE < MIN_SPACE )); then
+                            printf '\n%s\n%s\n' "Available space on Library partition has dropped below allowed." "Stopping Session." 1>&2
+                            CleanupAndExit ${ERR_LIBLOWSPACE}
+                        fi
+
+                        # Filename format fixes and character substitutions.
+                        # Return value stored in variable ${MOD_FILENAME}, called here as a string to be used as the name of the
+                        # variable.
+                        FilenameFixFormat MOD_FILENAME "${URL_FILENAME}"
+
+                        # Fix where filename part of URI is constant
+                        # This fix is known to cause issues with in filenames when it is not needed.  Disabled by default.
+                        if [[ -n ${FILENAME_FORMATFIX4+set} ]] && (( FILENAME_FORMATFIX4 > 0 )); then
+                            if [[ -z ${MOD_FILENAME} ]] ; then
+                                MOD_FILENAME="${URL_FILENAME}"
+                            fi
+                            MOD_PREFIX="${URL_BASE%%/}"
+                            MOD_PREFIX="${MOD_PREFIX##*/}"
+                            MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
+                            __MSG_DEBUG "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
+                        fi
+
+                        if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
+                            # Title format fixes and character substitutions.
+                            # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
+                            # variable.
+                            if [[ -n "${TITLE}" ]]; then
+                                TitleFixFormat MOD_TITLE "${TITLE}"
+                                if [[ -n "${MOD_TITLE}" ]]; then
+                                    TITLE="${MOD_TITLE}"
+                                fi
+                            fi
+                        fi
+
+                        # If directories do not exist, then create them.
+                        if [[ ! -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]]; then
+                            mkdir -p "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}"
+                        fi
+
+                        # If FORCE then remove existing files before download.
+                        if (( FORCE != 0 )); then
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]]; then
+                                    if (( VERBOSITY == 0 )) ; then
+                                        rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                    else
+                                        rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
+                                    fi
+                                fi
+                            else
+                                if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
+                                    if (( VERBOSITY == 0 )) ; then
+                                        rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                                    else
+                                        rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
+                                    fi
+                                fi
+                            fi
+                        fi
+
+                        if (( VERBOSITY >= 2 )) ; then
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                echo -e "Downloading ${MOD_FILENAME} from ${URL_BASE}"
+                            else
+                                echo -e "Downloading ${URL_FILENAME} from ${URL_BASE}"
+                            fi
+                        fi
+
+                        # Added '&& WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1' to each WGET call below so we could remove the disabling
+                        # of errexit and the ERR trap.
+                        if (( (WGET_OPTION_DISPOSITION == 1) || (WGET_OPTION_FILENAME_LOCATION == 1) )); then
+                            if (( VERBOSITY >= 3 )) ; then
+                                if (( WGET_OPTION_DISPOSITION == 1 )); then
+                                    echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
+                                fi
+                                if (( WGET_OPTION_FILENAME_LOCATION == 1 )); then
+                                        echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
+                                fi
+                            fi
+                            # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
+                            else
+                                wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
+                            fi
+                        else
+                            # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
+                            #   ( I'm looking at you ITunes..... )
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
+                            else
+                                wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
+                            fi
+                        fi
+
+                        if (( WGET_EXITSTATUS == 0 )); then
+                            # make sure CONTENT_FILENAME hasn't been used before
+                            unset -v CONTENT_FILENAME
+                            unset -v LOCATION_FILENAME
+                            unset -v FINAL_FILENAME
+
+                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
+
+                            # Remove any error log entries for the URL if it failed before
+                            RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                            # Before filename changes, set FINAL_FILENAME to URL_FILENAME
+                            # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                FINAL_FILENAME="${MOD_FILENAME}"
+                            else
+                                FINAL_FILENAME="${URL_FILENAME}"
+                            fi
+
+                            # if --content-disposition get filename and remove quotes around it.
+                            if (( WGET_OPTION_DISPOSITION == 1 )); then
+                                __MSG_DEBUG "CONTENT-DISPOSITION TESTS"
+                                if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
+                                    __MSG_DEBUG "SERVER RESPONSE FILE NONZERO SIZE"
+
+                                    # Added '|| true' to catch when grep exits with a non-zero status because the
+                                    # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
+                                    # ERR trap.
+                                    CONTENT_FILENAME=$(grep "^\\s\\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g') || true
+
+                                    # Test CONTENT_FILENAME is not null or consists solely of whitespace
+                                    if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
+                                        __MSG_DEBUG "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
+                                    else
+                                        __MSG_DEBUG "SERVER RESPONSE FILE - No Content-Disposition Tag"
+                                        # if variable is effectively blank, we can unset it
+                                        unset -v CONTENT_FILENAME
+
+                                        if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
+                                            __MSG_DEBUG " - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
+
+                                            # Remove any COMPLETE log entries to allow it to retry next session.
+                                            RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
+                                        fi
+                                    fi
+                                else
+                                    __MSG_DEBUG "SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                fi
+
+                                # Do we need a cleanup on CONTENT_FILENAME here?
+                                # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+                                # down to a single time.
+                                if [[ -n ${CONTENT_FILENAME+set} ]]; then
+                                    CONTENT_FILENAME=$(echo "${CONTENT_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                                fi
+                            fi
+
+                            if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
+                                __MSG_DEBUG "FILENAME LOCATION TESTS"
+                                if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
+                                    __MSG_DEBUG "SERVER RESPONSE FILE NONZERO SIZE"
+
+                                    # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
+                                    # not found.  This eliminates the need to disable errexit and the ERR trap.
+                                    LOCATION_FILENAME=$(grep "^\\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
+
+                                    LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
+
+                                    if (( VERBOSITY >= 2 )); then
+                                        # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
+                                        if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
+                                            __MSG_DEBUG "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
+                                        else
+                                            __MSG_DEBUG "SERVER RESPONSE FILE - No Location Tag"
+                                            # If LOCATION_FILENAME is effectively blank we can unset it
+                                            unset -v LOCATION_FILENAME
+                                        fi
+                                    fi
+                                else
+                                    __MSG_DEBUG "SERVER RESPONSE FILE ZERO SIZE - No Tags"
+                                fi
+
+                                # Do we need a cleanup on LOCATION_FILENAME here?
+                                # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
+                                # down to a single time.
+                                if [[ -n ${LOCATION_FILENAME+set} ]]; then
+                                    LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
+                                fi
+                            fi
+
+                            # Move filename to that provided by content-disposition
+                            if [[ -n ${CONTENT_FILENAME+set} && -n ${CONTENT_FILENAME} ]]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]]; then
+                                    if (( VERBOSITY >= 2 )); then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                    FINAL_FILENAME="${CONTENT_FILENAME}"
+                                else
+                                    if (( FORCE != 0 )); then
+                                        if [[ "${FINAL_FILENAME}" == "${CONTENT_FILENAME}" ]]; then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
+                                            fi
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
+                                            FINAL_FILENAME="${CONTENT_FILENAME}"
+                                        fi
+                                    else
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                        fi
+                                    fi
+                                fi
+                            fi
+
+                            # Move filename to that provided by LOCATION_FILENAME
+                            if [[ -n ${LOCATION_FILENAME+set} && -n ${LOCATION_FILENAME} ]]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]]; then
+                                    if (( VERBOSITY >= 2 )); then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                    FINAL_FILENAME="${LOCATION_FILENAME}"
+                                else
+                                    if (( FORCE != 0 )); then
+                                        if [[ "${FINAL_FILENAME}" == "${LOCATION_FILENAME}" ]]; then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
+                                            fi
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
+                                            FINAL_FILENAME="${LOCATION_FILENAME}"
+                                        fi
+                                    else
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                        fi
+                                    fi
+                                fi
+                            fi
+
+                            # Rename a file to title
+                            if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
+                                if [[ -n "${TITLE}" ]]; then
+                                    __MSG_DEBUG "Title with cleanup: ${TITLE}"
+                                    # Get extension from downloaded filename
+                                    OLDEXT="${FINAL_FILENAME##*.}"
+                                    TITLEEXT="${TITLE##*.}"
+                                    # To protect against hidden filenames that end in a period ('.')
+                                    if [[ -z "${TITLEEXT}" ]]; then
+                                        TITLEEXT="${TITLE}"
+                                    fi
+                                    # If TITLE already has filename extension then do not add a second time,
+                                    # also check that OLDEXT
+                                    if [[ "${OLDEXT}" != "${TITLEEXT}" ]] && [[ -n "${OLDEXT}" ]]; then
+                                        # With pattern substitution to remove a trailing period from title before
+                                        # we add one for the extension.
+                                        FINAL_TITLE="${TITLE/%./}.${OLDEXT}"
+                                    else
+                                        FINAL_TITLE="${TITLE}"
+                                    fi
+                                    __MSG_DEBUG "Title with extension: ${FINAL_TITLE}"
+                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}" ]]; then
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
+                                        fi
+                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
+                                        FINAL_FILENAME="${FINAL_TITLE}"
+                                    else
+                                        if (( FORCE != 0 )); then
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
+                                            fi
+                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
+                                            FINAL_FILENAME="${FINAL_TITLE}"
+                                        else
+                                            if (( VERBOSITY >= 2 )); then
+                                                echo "FILENAME CHANGE PREVENTED [ ${FINAL_TITLE} already exists ]"
+                                            fi
+                                        fi
+                                    fi
+                                else
+                                    __MSG_DEBUG "Title not set for this item"
+                                fi
+                            fi
+
+
+                            # Rename file to start from modification date
+                            if (( POST_WGET_RENAME_MDATE == 1 )); then
+                                FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
+                                FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]]; then
+                                    if (( VERBOSITY >= 2 )); then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
+                                    FINAL_FILENAME="${FILENAME_MDATE}"
+                                else
+                                    if (( FORCE != 0 )); then
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
+                                        fi
+                                        mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
+                                        FINAL_FILENAME="${FILENAME_MDATE}"
+                                    else
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
+                                        fi
+                                    fi
+                                fi
+                            fi
+
+                            # Add filename.suffix
+                            if [[ -n ${FILENAME_SUFFIX+set} ]]; then
+                                if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]]; then
+                                    if (( VERBOSITY >= 2 )); then
+                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                    fi
+                                    mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                    FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                else
+                                    if (( FORCE != 0 )); then
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                        fi
+                                        mv -f  "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                        FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
+                                    else
+                                        if (( VERBOSITY >= 2 )); then
+                                            echo "FILENAME CHANGE PREVENTED [ ${FINAL_FILENAME}.${FILENAME_SUFFIX} already exists ]"
+                                        fi
+                                    fi
+                                fi
+                            fi
+
+                            if (( NO_PLAYLIST == 0 )) || (( FEED_FULL_PLAYLIST >= 1 )) ; then
+                                # If creating playlists, then add to file.  Added sed command to remove any './' from each item
+                                # added to a playlist or the echo statement.
+                                if [[ -n ${PLAYLIST_NAME+set} ]] ; then
+                                    echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
+                                    if (( VERBOSITY >= 2 )); then
+                                        echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}" | sed -e 's|[.]/||g'
+                                    fi
+                                fi
+                            fi
+
+                            # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
+                            if [[ -n ${CONTENT_FILENAME+set} ]] ; then
+                                unset -v CONTENT_FILENAME
+                            fi
+                            if [[ -n ${FINAL_FILENAME+set} ]] ; then
+                                unset -v FINAL_FILENAME
+                            fi
+                        else
+                            # if downloaded failed, add URL to LOG_FAIL
+                            if (( VERBOSITY >= 2 )) ; then
+                                echo "Adding URL to error log."
+                            fi
+                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+                            # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
+                            # continue function can work on later attempts.
+                            if [[ -n ${MOD_FILENAME} ]]; then
+                                REMOVE_FILENAME="${MOD_FILENAME}"
+                            else
+                                REMOVE_FILENAME="${URL_FILENAME}"
+                            fi
+                            if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}" ]]; then
+                                if (( VERBOSITY >= 2 )) ; then
+                                    echo "Partial file exists."
+                                fi
+                                if [[ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}" ]]; then
+                                    if (( VERBOSITY >= 2 )) ; then
+                                        echo "- Removing zero size file."
+                                        rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}"
+                                    else
+                                        rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}"
+                                    fi
+                                else
+                                    if (( VERBOSITY >= 2 )) ; then
+                                        echo "- Keeping for later attempts"
+                                    fi
+                                fi
+                            else
+                                if (( VERBOSITY >= 2 )) ; then
+                                    echo "Partial file does not exist."
+                                fi
+                            fi
+                        fi
+                    else
+                        # Remove any error log entries for the URL if it failed before
+                        RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                        if (( VERBOSITY >= 2 )) ; then
+                            if (( VERBOSITY >= 4 )) ; then echo ; fi
+                            echo "Already downloaded ${URL}."
+                        fi
+                    fi
+
+                    # Remove server response file as it's no longer needed
+                    if (( DEBUG >= 0 )); then
+                        if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
+                            rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
+                        fi
+                    else
+                        if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]] && (( DEBUG == 1 )) ; then
+                            echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
+                        fi
+                    fi
+
+                    __MSG_DEBUG "Clear File Vars"
+                    unset -v URL_FILENAME
+                done <<< "${INDEXFILE}"
+
+                if (( VERBOSITY >= 3 )) ; then echo; fi
+
+                if (( (MOST_RECENT != 0) && (INSTALL_SESSION == 0) )); then
+                    __MSG_DEBUG "Marking additional files in Index as already downloaded (RECENT > 0)."
+                    # for URL in ${FULLINDEXFILE}
+                    # do
+                    while read -r DATA; do
+                        # Check for blank line, if found just proceed to next line.
+                        if [[ -z "${DATA}" ]]; then
+                            continue
+                        fi
+
+                        # Divide URL and TITLE from DATA
+                        URL="${DATA%<Url-Title>*}"
+                        TITLE="${DATA#*<Url-Title>}"
+
+                        # Safety check:  if ${DATA} does not contain '<Url-Title>'
+                        if [[ "${URL}" == "${TITLE}" || "${TITLE}" == "" ]]; then
+                            unset -v TITLE
+                        fi
+
+                        if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
+                            URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
+                            if (( VERBOSITY >= 2 )) ; then
+                                if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
+                                    if [[ -n "${TITLE}" ]]; then
+                                        echo "Marking as already downloaded ${TITLE}."
+                                    else
+                                        echo "Marking as already downloaded ${URL_FILENAME}."
+                                    fi
+                                else
+                                    echo "Marking as already downloaded ${URL_FILENAME}."
+                                fi
+                            fi
+                            echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
+                        fi
+                    # done <<< "${FULLINDEXFILE}"
+                    done <<< "${SURPLUSINDEX}"
+                fi
+
+                # If doing individual playlists for each podcast Sort new playlist
+                if (( NO_PLAYLIST == 0 )) && [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" && -n "${PLAYLIST_PERPODCAST+set}" ]]; then
+                    PlaylistSort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+
+                    # If doing individual playlists for each podcast, Create ASX Playlist
+                    if (( ASX_PLAYLIST > 0 )); then
+                        PlaylistConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+                    fi
+
+                    # Done with playlist, unset name.
+                    unset -v PLAYLIST_NAME
+                fi
+            else
+                if (( VERBOSITY >= 1 )) ; then
+                    echo "  No enclosures in feed: ${FEED_URL}"
+                fi
+                echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
+            fi
+
+
+            __MSG_DEBUG "Clear Server Loop Vars"
+            unset -v FEED_URL
+            unset -v FEED_CATEGORY
+            unset -v FEED_NAME
+            unset -v URL_FILENAME
+            unset -v URL_USERNAME
+            unset -v URL_PASSWORD
+        done < "${CURRENT_SERVERLIST}"
+    done
+
+    # If doing one combined playlist for all podcasts, Sort new playlist
+    if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_NAME+set} ]]; then
+        if [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]]; then
+            PlaylistSort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+
+            # If doing one combined playlist for all podcasts, Create ASX Playlist
+            if (( ASX_PLAYLIST > 0 )); then
+                PlaylistConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
+            fi
+        fi
+    fi
+}
+#                                                                                                                                }}}
+
 # Function: RemoveURL                                                                                                           {{{
 # Simple function to cleanup URLs for removal from FILE.
 # Arguments:
@@ -2622,1299 +3950,7 @@ PodgetCore() {
     # Loop over servers on list                                                                                                  {{{
 
     if (( CLEANUP_ONLY == 0 )) && [[ -z ${IMPORT_OPML+set} && -z ${EXPORT_OPML+set} && -z ${IMPORT_PCAST+set} ]] ; then
-        __MSG_DEBUG "Main loop"
-        __MSG_DEBUG "SERVER LIST FILE" "$CONFIG_SERVERLIST"
-        __MSG_DEBUG "WGET COMMON OPTIONS" "${WGET_COMMON_OPTIONS}"
-        if (( NO_PLAYLIST == 0 )); then
-            __MSG_DEBUG "Playlist Creation Enabled."
-        else
-            __MSG_DEBUG "Playlist Creation Disabled."
-        fi
-        if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-            __MSG_DEBUG "PLAYLIST_PERPODCAST: ${PLAYLIST_PERPODCAST} (Enabled)"
-        fi
-
-        mkdir -p "${DIR_LOG}"
-        FilenameCheck LOG_FAIL
-        FilenameCheck LOG_COMPLETE
-        touch "${DIR_LOG}"/"${LOG_FAIL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
-
-        if (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
-            SESSION_PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).m3u"
-
-            COUNTER=2
-            while [[ -e ${DIR_LIBRARY}/${SESSION_PLAYLIST_NAME} ]] ; do
-                SESSION_PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT).r$COUNTER.m3u"
-                COUNTER=$((COUNTER+1))
-            done
-
-            if (( VERBOSITY >= 3 )); then
-                echo
-                echo "Playlist name: ${SESSION_PLAYLIST_NAME}"
-            fi
-        fi
-
-        # UTF-8/16 handling
-        for FILETYPE in utf8 utf16 ; do
-            case ${FILETYPE} in
-                'utf8')
-                    __MSG_INFO "UTF-8 Loop running." ;;
-                'utf16')
-                    __MSG_INFO "UTF-16 Loop running." ;;
-            esac
-            case ${FILETYPE} in
-                'utf8')
-                    CURRENT_SERVERLIST="${DIR_CONFIG}"/"${CONFIG_SERVERLIST}" ;;
-                'utf16')
-                    # Test if iconv is installed.  If it is not, display error.
-                    if ! hash iconv >/dev/null 2>&1; then
-                        echo "Can't find iconv binary, is libc-bin installed?" 1>&2
-                        echo "Exiting UTF16 loop, unable to convert file to UTF8" 1>&2
-                        CleanupAndExit $ERR_LIBC6NOTINSTALLED
-                    fi
-                    CURRENT_SERVERLIST="${DIR_CONFIG}/${CONFIG_SERVERLIST}.utf16" ;;
-                *)
-                    echo "Unknown Filetype: ${FILETYPE}"
-            esac
-            if [[ ! -f ${CURRENT_SERVERLIST} ]]; then
-                __MSG_INFO "No config file found, exiting loop."
-                continue
-            fi
-
-            while read -r FEED_URL FEED_CATEGORY FEED_NAME ; do
-                if (( DEBUG >= 1 )) ; then echo; fi
-                __MSG_DEBUG "============================================================"
-                __MSG_DEBUG "Server Loop:"
-                __MSG_DEBUG "Serverlist Line --> ${FEED_URL:-} ${FEED_CATEGORY:-} ${FEED_NAME:-}"
-
-                if   [[ "${FEED_URL:0:1}" == "#" || -z "${FEED_URL-empty}" ]] ; then
-                    __MSG_DEBUG "Discarding (comment or blank line)."
-                    __MSG_DEBUG "Clear Server Loop vars"
-                    unset -v FEED_URL
-                    unset -v FEED_CATEGORY
-                    unset -v FEED_NAME
-                    unset -v FEED_FULL_PLAYLIST
-                    unset -v URL_USERNAME
-                    unset -v URL_PASSWORD
-                    continue
-                fi
-
-                if (( DEBUG >= 1 )) ; then echo; fi
-                __MSG_DEBUG "Reset options to allow loop specific options"
-                __MSG_DEBUG " WGET_COMMON_OPTIONS: ${WGET_COMMON_OPTIONS}"
-
-                unset -v WGET_SUBCHAR
-                WGET_NOTCOUNT=0
-
-                # In Vim to enter digraphs that are not commonly on the US keyboards,
-                # we use ctrl-K followed by a two character lookup code.
-                #   Examples:
-                #     !2 - double vertical line  ‖
-                #     =2 - double low line       ‗
-                #     oo - bullet                •
-                #     Db - diamond bullet        ◆
-                #     '% - Greek Theta           ϴ
-                #     Pd - British Pound symbol  £
-                #     Eu - Euro Symbol           €
-                #     Ye - Yen symbol            ¥
-                #     Pt - Peseta symbol         ₧
-                #     W= - Won symbol            ₩
-                #     Ct - Cent symbol           ¢
-                #     Co - Copyright symbol      ©
-                #     Rg - Registered Trademark  ®
-                #     +- - Plus Minus            ±
-                #     Om - Ohm symbol            Ω
-                #     AO - Angstrom symbol       Å
-                #     DG - Degree Sign           °
-                #     AE - Latin Capital AE      Æ
-                #     ae - Latin Small ae        æ
-                #     Ca - Caret                 ‸
-                #     1R - Roman Numeral One     Ⅰ
-                #     2R - Roman Numeral Two     Ⅱ
-                #     3R - Roman Numeral Three   Ⅲ
-                #     4R - Roman Numeral Four    Ⅳ
-                #     5R - Roman Numeral Five    Ⅴ
-                #
-                #     These are not good to use because they frequently overlap with following
-                #     characters if not followed by a space.
-                #     oC - Degree Celsius        ℃
-                #     oF - Degree Fahrenheit     ℉
-                #
-                #     Digraphs may not be included in the locale that you have configured.  On my test systems,
-                #     I found that I had one that did not display the correct characters for the digraphs
-                #     but rather replaced them all with an underscore character.  The function worked but
-                #     it did not display the characters correctly.
-                #
-                #     On the systems where it did display correctly, I found that I had the following
-                #     configuration in my /etc/default/locale:
-                #            #  File generated by update-locale
-                #            LANG="en_US.UTF-8"
-                #
-                #     On the one system that did not display correctly, the configuration I had
-                #     in /etc/default/locale was:
-                #            #  File generated by update-locale
-                #            LANG="en_US"
-                #
-                #      This can be updated by modifying the file or by running:
-                #             update-locale LANG="en_US.UTF-8"
-                #
-                #      This may or may not require a reboot to take effect but I took the easy way out and
-                #      rebooted so I would be sure it displayed as I hoped in the future.
-                #
-                #      NOTE ON CHARACTERS TO CONSIDER NOT INCLUDING:
-                #        It is probably a good idea to not include any character that has special meaning
-                #        in Bash and needs to be escaped.  That is why this string primarily starts with
-                #        digraphs and then includes a few characters that are commonly found on most
-                #        keyboards.  I initially wanted to include the $ symbol with the other monetary
-                #        symbols.  However I had to escape it or it could cause an "unbound variable"
-                #        error on some systems.
-                #
-                #      NOTE ON CHARACTERS TO CONSIDER INCLUDING:
-                #        We are using this character to parse the WGET_BASEOPTS string and put it's parts
-                #        into the WGET_OPTIONS array.  To make things as easy as possible, we want to use
-                #        characters that are unlikely to be used in any of the WGET options.  This can be a
-                #        bit tricky for some options like passwords or user-agent that can take almost
-                #        anything.  For that reason, I have included a large selection of digraphs and a
-                #        few characters that do not require escaping because it is very unlikely that
-                #        someone used them all for one of those options and we will be able to safely
-                #        find one to use.
-                WGET_TEST_STRING="_;‖‗•◆ϴ£€¥₧₩¢ⅠⅡⅢⅣⅤΩÅ©®±°Ææ‸:|<>?~!@#%^"
-                local INTERVAL
-                for (( INTERVAL=0; INTERVAL<${#WGET_TEST_STRING}; INTERVAL++ )); do
-                    WGET_TEST_CHAR=${WGET_TEST_STRING:$INTERVAL:1}
-
-                    # grep looks for --fixed-strings so that certain characters are not
-                    # interpreted as regular expressions.
-                    #
-                    # we're looking for a character that is not found in the string so it is
-                    # ! grep
-                    if ! grep --quiet --fixed-strings "${WGET_TEST_CHAR}" <<<"${WGET_COMMON_OPTIONS}"; then
-                        WGET_SUBCHAR="${WGET_TEST_CHAR}"
-                        break
-                    else
-                        WGET_NOTCOUNT=$((WGET_NOTCOUNT+1))
-                    fi
-                done
-
-                # Done with loop variable, remove it.
-                unset -v INTERVAL
-
-                if [[ -n "${WGET_SUBCHAR+defined}" ]] && [[ "${#WGET_SUBCHAR}" -gt 0 ]]; then
-                    __MSG_DEBUG "WGET Success finding parsing character (${WGET_SUBCHAR})"
-                    __MSG_DEBUG "  Test string length: ${#WGET_TEST_STRING}"
-                    __MSG_DEBUG "  Characters tested before usable found: ${WGET_NOTCOUNT}"
-                else
-                    echo
-                    echo "Unable to find character to use as delimiter for WGET_BASEOPTS string."
-                    echo "Every character in our test set was also used somewhere in WGET_BASEOPTS."
-                    echo   "Test Set:   ${WGET_TEST_STRING}"
-                    echo   "WGET_BASEOPTS: ${WGET_BASEOPTS}"
-                    CleanupAndExit 1
-                fi
-
-                WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS// -/${WGET_SUBCHAR}-}"
-
-                # clear array and reimport
-                unset -v WGET_OPTIONS
-
-                # Import options from WGET_COMMON_OPTIONS string into WGET_OPTIONS array
-                IFS="${WGET_SUBCHAR}" read -r -a WGET_OPTIONS <<<"${WGET_COMMON_OPTIONS}"
-
-                WGET_COMMON_OPTIONS="${WGET_COMMON_OPTIONS//${WGET_SUBCHAR}-/ -}"
-                unset -v WGET_NOTCOUNT
-                unset -v WGET_SUBCHAR
-                unset -v WGET_TEST_CHAR
-                unset -v WGET_TEST_STRING
-
-                __MSG_DEBUG "Reset FEED_FULL_PLAYLIST=0"
-                FEED_FULL_PLAYLIST=0
-
-                __MSG_DEBUG "Reset FEED_SORT_ORDER=DESCENDING"
-                FEED_SORT_ORDER="DESCENDING"
-
-                __MSG_DEBUG "Reset WGET_OPTION_DEFAULT_USERAGENT"
-                WGET_OPTION_DEFAULT_USERAGENT=0
-
-                __MSG_DEBUG "Reset WGET_OPTION_FILENAME_LOCATION"
-                WGET_OPTION_FILENAME_LOCATION=0
-
-                if ArrayContains "--content-disposition" "${WGET_OPTIONS[@]}" ; then
-                    # removing actual --content-disposition option from WGET because it is not used directly
-                    # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
-                    for index in "${!WGET_OPTIONS[@]}"; do
-                        if [[ ${WGET_OPTIONS[${index}]} == "--content-disposition" ]]; then
-                            unset -v 'WGET_OPTIONS['"${index}"']'
-                            WGET_OPTION_DISPOSITION=1
-                            __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
-                        fi
-                    done
-                else
-                    WGET_OPTION_DISPOSITION=0
-                    __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION to global setting(${WGET_OPTION_DISPOSITION})"
-                fi
-
-                if ArrayContains "--user-agent=" "${WGET_OPTIONS[@]}" ; then
-                    __MSG_DEBUG "Custom Wget User Agent Enabled."
-                else
-                    WGET_OPTIONS+=("--user-agent=Podget")
-                    __MSG_DEBUG "Default Wget User Agent for Podget Enabled."
-                fi
-
-                __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION_FAIL"
-                WGET_OPTION_DISPOSITION_FAIL=0
-
-                __MSG_DEBUG "Reset WGET_OPTION_NO_CHECK_CERIFICATE"
-                WGET_OPTION_NO_CHECK_CERIFICATE=0
-
-                __MSG_DEBUG "Reset WGET_OPTION_PREFER_IP_TYPE"
-                WGET_OPTION_PREFER_IP_TYPE=0
-
-                __MSG_DEBUG "Reset WGET_OPTION_RSS_MEDIACONTENT"
-                WGET_OPTION_RSS_MEDIACONTENT=0
-
-                __MSG_DEBUG "Reset POST_WGET_RENAME_MDATE"
-                POST_WGET_RENAME_MDATE=0
-
-                __MSG_DEBUG "Reset POST_WGET_RENAME_TITLETAG"
-                POST_WGET_RENAME_TITLETAG=0
-
-                __MSG_DEBUG "Reset POST_WGET_RENAME_REVTITLETAG"
-                POST_WGET_RENAME_REVTITLETAG=0
-
-                __MSG_DEBUG "Reset ATOM_FILTER_SIMPLE"
-                ATOM_FILTER_SIMPLE=0
-
-                __MSG_DEBUG "Reset ATOM_FILTER_TYPE"
-                unset -v ATOM_FILTER_TYPE
-
-                __MSG_DEBUG "Reset ATOM_FILTER_LANG"
-                unset -v ATOM_FILTER_LANG
-
-                # End resets
-                # -----------------------------------------------------------------
-                # Read new configuration
-
-                # Pass FEED_CATEGORY and FEED_NAME through the option filters.  This allows handling of options with blank feed
-                # categories and names.
-                unset -v FILTER_TARGET
-                for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
-                    FilterOptions "${FILTER_TARGET}"
-                done
-
-                # Unset options that are not required in this while loop
-
-                # End setting of FEED_CATEGORY, FEED_NAME, and OPT_items
-                # -----------------------------------------------------------------
-
-                # Add Username and Password to wget options if found.
-                # Options --user and --password are used for both FTP and HTTP sessions.  Using --ftp-user and --http-user would require
-                # being able to selectively use the correct one based on the URL.  Same for --ftp-password and --http-password.
-                if [[ -n ${URL_USERNAME+set} ]]; then
-                    WGET_OPTIONS+=("--user=${URL_USERNAME}")
-                fi
-
-                if [[ -n ${URL_PASSWORD+set} ]]; then
-                    WGET_OPTIONS+=("--password=${URL_PASSWORD}")
-                fi
-
-                # Reset to default WGET user-agent
-                if (( WGET_OPTION_DEFAULT_USERAGENT==1 )); then
-                    for index in "${!WGET_OPTIONS[@]}"; do
-                        if [[ ${WGET_OPTIONS[${index}]} =~ ^"--user-agent=".* ]]; then
-                            __MSG_DEBUG "Reset to Default Wget User Agent"
-                            unset -v 'WGET_OPTIONS['"${index}"']'
-                        fi
-                    done
-                fi
-
-                # Add --no-check-certificate to WGET_OPTIONS
-                if (( WGET_OPTION_NO_CHECK_CERIFICATE==1 )); then
-                    for index in "${!WGET_OPTIONS[@]}"; do
-                        # if --no-check-certificate has been set before, remove it.
-                        if [[ ${WGET_OPTIONS[${index}]} == "--no-check-certificate" ]]; then
-                            unset -v 'WGET_OPTIONS['"${index}"']'
-                        fi
-                    done
-                    WGET_OPTIONS+=("--no-check-certificate")
-                fi
-
-                # Set preferred IP type for WGET_OPTIONS
-                if (( WGET_OPTION_PREFER_IP_TYPE>0 )); then
-                    for index in "${!WGET_OPTIONS[@]}"; do
-                        # if --prefer-family has been set before, remove it.
-                        if [[ ${WGET_OPTIONS[${index}]} =~ --prefer-family=IPv[46] ]]; then
-                            unset -v 'WGET_OPTIONS['"${index}"']'
-                        fi
-                    done
-                    case "${WGET_OPTION_PREFER_IP_TYPE}" in
-                        4 )
-                            WGET_OPTIONS+=("--prefer-family=IPv4")
-                            ;;
-                        6 )
-                            WGET_OPTIONS+=("--prefer-family=IPv6")
-                            ;;
-                    esac
-                fi
-
-                if (( VERBOSITY >= 2 )) ; then
-                    printf '\n%s\n' "-------------------------------------------------"
-                fi
-                if (( VERBOSITY >= 1 )) ; then
-                    if [ "${FEED_CATEGORY}" == "." ]; then
-                        DISPLAY_CATEGORY="None"
-                    else
-                        DISPLAY_CATEGORY="${FEED_CATEGORY}"
-                    fi
-
-                    if [ "${FEED_NAME}" == "." ]; then
-                        DISPLAY_NAME="None"
-                    else
-                        DISPLAY_NAME="${FEED_NAME}"
-                    fi
-
-                    printf '%-30s %-50s\n' "Category: ${DISPLAY_CATEGORY}" "Name: ${DISPLAY_NAME}"
-                fi
-
-                __MSG_DEBUG "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
-
-                # DirectoryCheck for FEED_NAME and FEED_CATEGORY here prior to using them.
-                for i in FEED_CATEGORY FEED_NAME; do
-                    # FEED_NAME can be blank, if it is then we skip the DirectoryCheck
-                    if [[ ${i} == "FEED_NAME" && -z "${!i}" ]]; then
-                        # we use continue rather than break here in case the variables are in a different order.
-                        continue
-                    fi
-
-                    # Moved DirectoryCheck inside an IF statement so that a non-zero exit status would not trigger either the errexit
-                    # or the ERR trap conditions.
-                    if ! DirectoryCheck "${i}"; then
-                        echo
-                        echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
-                        echo
-                        # This needs to be 'continue 2' because we are not continuing the immediate for loop but rather the
-                        # loop wrapping it.
-                        continue 2
-                    fi
-
-                done
-
-                if (( FEED_FULL_PLAYLIST >= 1 )) ; then
-                    PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
-                elif (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-                    # If configured to create individual playlists for each podcast, set playlist name here.
-                    # White-Space in feed name will be converted to underscores and then tr will limit their repetitions.
-                    PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').m3u"
-
-                    COUNTER=2
-                    while [[ -e "${DIR_LIBRARY}/${PLAYLIST_NAME}" ]] ; do
-                        PLAYLIST_NAME="${PLAYLIST_NAMEBASE:=NEW-}$(date $DATE_FORMAT)-$(echo "${FEED_NAME//[[:space:]]/_}" | tr -s '_').r$COUNTER.m3u"
-                        COUNTER=$((COUNTER+1))
-                    done
-                elif (( NO_PLAYLIST == 0 )) && [[ -z ${PLAYLIST_PERPODCAST+set} ]]; then
-                    PLAYLIST_NAME="${SESSION_PLAYLIST_NAME}"
-                fi
-
-                if (( VERBOSITY >= 2 )) ; then
-                    if [[ -n ${URL_USERNAME+set} ]]; then
-                        printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
-                    fi
-                    if [[ -n ${URL_PASSWORD+set} ]]; then
-                        # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
-                        # useful for debugging connection issues.
-                        __MSG_DEBUG "Password: ${URL_PASSWORD}"
-                    fi
-                    if (( VERBOSITY >= 4 )) ; then
-                        printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
-                    fi
-                    if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-                        printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
-                    fi
-
-                    echo
-                    echo "Downloading feed index from ${FEED_URL}"
-                fi
-
-                case ${FILETYPE} in
-                    'utf8')
-                        INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}") && EXITSTATUS=0 || EXITSTATUS=1
-                        ;;
-                    'utf16')
-                        # Slight gymnastics to report the exit status of WGET and not ICONV.
-                        INDEXFILE=$(wget "${WGET_OPTIONS[@]}" -O - "${FEED_URL}" | iconv -f UTF-16 -t UTF-8; exit "${PIPESTATUS[0]}") && EXITSTATUS=0 || EXITSTATUS=1
-                        ;;
-                esac
-
-                if (( EXITSTATUS != 0 )); then
-                    if (( VERBOSITY >= 1 )); then
-                        printf '%-30s %-50s\n' "" "Error Downloading Feed."
-                    else
-                        echo "ERROR Downloading Feed:  ${FEED_NAME}"
-                    fi
-                    # if downloaded failed, add URL to LOG_FAIL
-                    echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-                    continue
-                fi
-
-                INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g')
-
-                # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
-                TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
-
-                # While most these messages are acceptably controlled for display via __MSG_DEBUG, we add an extra check
-                # here because the loop in the center would take extra unnecessary time.
-                if (( DEBUG >= 1 )) ; then
-                    __MSG_DEBUG "------ Check for RSS or Atom feed --------"
-                    while IFS= read -r LINE; do
-                        __MSG_DEBUG "${LINE}"
-                    done< <(printf "%s\n" "${TESTLINES}")
-                    __MSG_DEBUG "------ ( first 9 lines of feed --------"
-                    __MSG_DEBUG "------   looking for '<rss '   --------"
-                    __MSG_DEBUG "------   or '<feed ' )         --------"
-                    echo
-                fi
-
-                if grep -q '<rss ' <<< "${TESTLINES}" ;then
-                    __MSG_DEBUG "RSS Feed Found"
-                    if (( DEBUG == 1 )) ; then echo; fi
-                    # if file is RSS then we look for '<enclosure '
-                    #    To debug a sed command and see how it flows use --debug option.
-                    #    NOTES for sed command:
-                    #       1.  -n       suppress automatic printing of pattern space
-                    #       2.  -e :a    set label named 'a'
-                    #       3.  -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id'
-                    #                    Look for podcast:liveitem tags.  If found, delete.
-                    #                    Flags:
-                    #                      I    Ignore case while searching
-                    #                      d    Delete pattern space
-                    #       4.  -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}'
-                    #                    This command reads the next line into patter space when the podcast:liveitem opening and
-                    #                    closing tags do not occur on same line.  Reads line in, removes the newline character and
-                    #                    returns to label 'a'.
-                    #       5.  -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip'
-                    #                    Look for enclosure and url in pattern space.  If found, print the
-                    #                    url value.  This version looks for when the HTML feed uses double quotes around
-                    #                    the url value.
-                    #                    Flags:
-                    #                      I    Ignore case while searching
-                    #                      p    Print only substituted line
-                    #       6.  -e 't'   if last s/// did successful substitution then branch to end of script
-                    #                    because no label was provided.
-                    #       7.  -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip"
-                    #                    This command is here to catch when the HTML feed is using single quotes rather than double
-                    #                    quotes.
-                    #       8.  -e 't'   if last s/// did successful substitution then branch to end of script
-                    #                    because no label was provided.
-                    #       9.  -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip'
-                    #                    Looking for <title> tag and grabbing contents.
-                    #       10. -e 't'   if last s/// did successful substitution then branch to end of script
-                    #                    because no label was provided.
-                    #       11. -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}'
-                    #                    this final command is to read the next line of the file into the pattern space.
-                    #                    We use this for feeds where the url= portion does not appear on the same line as
-                    #                    the enclosure start tag or when the closing title tag is not on the same line as
-                    #                    the opening one.  After merging, we go back to label 'a'. Might need to add
-                    #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
-                    #
-                    # INDEXFILE before adding TITLE bits
-                    # INDEXFILE=$(echo "${INDEXFILE}" | \
-                    #             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/\1/Ip' -e 't' \
-                    #                          -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/\\1/Ip" \
-                    #                          -e '/<enclosure\s*/{N;s/ *\n/ /;ba;}')
-                    #
-                    # INDEXFILE_TMP before adding bits to delete podcast:liveitem stuff
-                    # INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                    #             sed -n -e :a -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                    #                          -e "s/.*<enclosure.*url\\s*'=\\s*\\([^i]\\+\\)'.*/URL \\1/Ip" -e t \
-                    #                          -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
-                    #                          -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
-                    if (( WGET_OPTION_RSS_MEDIACONTENT < 1 )); then
-                        INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                                    sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
-                                                 -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
-                                                 -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                                 -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
-                                                 -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
-                                                 -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
-                    else
-                        # This section adds a couple of tests to look for <media:content ...> tags from the RSS Media Specification.
-                        # This is used in the feeds created by FreshRSS aggregator so it's use is not expected to be common but we may
-                        # find a few users that require it.  These tests were added after test 8 above and before test 9.
-                        #       8.1.  -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip'
-                        #                    Look in pattern space for media:content tags that are preceded by TYPE video or audio then
-                        #                    extract the URL.
-                        #                    Flags:
-                        #                      I    Ignore case while searching
-                        #                      p    Print only substituted line
-                        #       8.2.  -e 't'   if last s/// did successful substitution then branch to end of script
-                        #                    because no label was provided.
-                        #       8.3.  -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip"
-                        #                    This command is the sane as 8.1 but to catch when the HTML feed is using single quotes
-                        #                    rather than double quotes.
-                        #       8.4.  -e 't'   if last s/// did successful substitution then branch to end of script
-                        #                    because no label was provided.
-                        #       8.5.  -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip'
-                        #                    This is like 8.1 but TYPE option follows the URL rather than precedes it.
-                        #       8.6.  -e 't'   if last s/// did successful substitution then branch to end of script
-                        #                    because no label was provided.
-                        #       8.7.  -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip"
-                        #                    This is like 8.3 but TYPE option follows the URL rather than precedes it.
-                        #       8.8.  -e 't'   if last s/// did successful substitution then branch to end of script
-                        #                    because no label was provided.
-                        # Then the final pattern was updated to also look for incomplete media:content tags.
-                        #       11. -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}'
-                        #                    this final command is to read the next line of the file into the pattern space.
-                        #                    We use this for feeds where the url= portion does not appear on the same line as
-                        #                    the enclosure start tag or when the closing title tag is not on the same line as
-                        #                    the opening one.  After merging, we go back to label 'a'. Might need to add
-                        #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
-                        #
-                        INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                                    sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
-                                                 -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
-                                                 -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                                 -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
-                                                 -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip' -e t \
-                                                 -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip" -e t \
-                                                 -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip' -e t \
-                                                 -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip" -e t \
-                                                 -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
-                                                 -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
-                    fi
-                     # If TITLE tag appears after the ENCLOSURE tag in the file, reverse the order of list for parsing.
-                     if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
-                         INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
-                     fi
-                     # Merge TITLE AND URL lines onto single line divided by '<Url-Title>'
-                     INDEXFILE_TMP2=""
-                     while read -r TAG DATA; do
-                         case ${TAG} in
-                             "TITLE" )
-                                 ITEM_TITLE="${DATA}"
-                                 ;;
-                             "URL" )
-                                 # with cleanup for URL (used to be called FINAL below ATOM section)
-                                 ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
-                                 # Enabled handling of unset ITEM_TITLE items by including a dash at the end of the variable name to
-                                 # signify that the default is a blank value (or we could specify a value we wanted after the dash).
-                                 INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE-}${NEWLINE}"
-                                 unset -v ITEM_TITLE ITEM_URL
-                                 ;;
-                         esac
-                     done <<<"${INDEXFILE_TMP}"
-                     if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
-                         # Return INDEX to its default order
-                         INDEXFILE=$(echo "${INDEXFILE_TMP2}" | sed -n '1!G;h;$p')
-                     else
-                         # INDEX already in correct order.
-                         INDEXFILE="${INDEXFILE_TMP2}"
-                     fi
-                elif grep -q '<feed ' <<< "${TESTLINES}"; then
-                    __MSG_DEBUG "Atom Feed Found"
-                    if (( DEBUG == 1 )) ; then echo; fi
-                    # if file is Atom then we look for '<link\s.*rel="enclosure" '
-                    # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
-
-                    # Characters unlikely to appear in an XML document.  Combination of "invalid" characters and those
-                    # that have worked well for my testing.
-                    TEST_STRING="^{}_~"
-
-                    # Find suitable TEST_CHAR to use for sed statements below.
-                    for (( i=0; i<${#TEST_STRING}; i++ )); do
-                        TEST_CHAR=${TEST_STRING:$i:1}
-
-                        # grep looks for --fixed-strings so that certain characters are not
-                        # interpreted as regular expressions (like ^ $ or /)
-                        #
-                        # We're looking for a character NOT found in the INDEXFILE so its ! grep
-                        if ! grep --quiet --fixed-strings "${TEST_CHAR}" <<<"${INDEXFILE}"; then
-                            # When a character is not found in the string that we can use, break out of the loop.
-                            break
-                        fi
-                    done
-
-                    unset -v i
-
-                    # Get full enclosure lines to filter on
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}<link\\s.*rel=\"enclosure\".*/>${TEST_CHAR}Ip")
-
-    # NOTE: I have this section disabled because it has a high potential for confusing
-    #       users.  At this stage, there is potential that they will see many enclosures
-    #       in the feed and not understand why the filtering they have selected results
-    #       in fewer or none found.  However it is useful during testing so it is
-    #       available.
-    #                if (( DEBUG == 1 )); then
-    #                    __MSG_DEBUG "------ Indexfile Contents --------"
-    #                    while IFS= read -r LINE; do
-    #                        __MSG_DEBUG "${LINE}"
-    #                    done< <(printf "%s\n" "${INDEXFILE}")
-    #                    __MSG_DEBUG "----------------------------------"
-    #                    __MSG_DEBUG "----------------------------------"
-    #                    echo
-    #                fi
-
-                    # SIMPLE FILTERING: filter down to just audio & video types.
-                    if (( ATOM_FILTER_SIMPLE > 0 )); then
-                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "\\${TEST_CHAR}type=\"\\(audio\\|video\\)${TEST_CHAR}p")
-                    fi
-
-                    if [[ -n ${ATOM_FILTER_TYPE+set} ]]; then
-                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*type=\"${ATOM_FILTER_TYPE}\".*${TEST_CHAR}p")
-                    fi
-
-                    TYPECOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*type=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
-
-                    if (( VERBOSITY >= 2 )) ; then
-                        # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
-                        # them that more is possible.
-                        if (( ATOM_FILTER_SIMPLE == 0 )) && [[ -z ${ATOM_FILTER_TYPE+set} ]]; then
-                            if (( $(echo "${TYPECOUNT}" | wc -l) > 1 )); then
-                                echo
-                                echo "This feed supports multiple types.  Consider using ATOM_FILTER_SIMPLE or"
-                                echo "ATOM_FILTER_TYPE to narrow your selection."
-                                echo
-                                echo "  COUNT | TYPE"
-                                echo "  ------+-------------"
-                                echo "${TYPECOUNT}"
-                                echo
-                            fi
-                        fi
-                    fi
-
-                    if [[ -n "${ATOM_FILTER_LANG+set}" ]]; then
-                        INDEXFILE=$(echo "${INDEXFILE}" | sed -n -r -e "\\${TEST_CHAR}.*xml:lang=\"${ATOM_FILTER_LANG}\".*${TEST_CHAR}p")
-                    fi
-
-                    LANGCOUNT=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*xml:lang=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip" | sort | uniq -c | awk '{printf "%7s | %s\n",$1,$2}')
-
-                    if (( VERBOSITY >= 2 )) ; then
-                        # Check if any filtering is already enabled.  If it is, assume that is all the user wants so no need to inform
-                        if [[ -z "${ATOM_FILTER_LANG+set}" ]]; then
-                            if (( $(echo "${LANGCOUNT}" | wc -l) > 1 )); then
-                                echo
-                                echo "This feed supports multiple languages.  Consider using ATOM_FILTER_LANG"
-                                echo "to narrow your selection."
-                                echo
-                                echo "  COUNT | LANGUAGE"
-                                echo "  ------+-------------"
-                                echo "${LANGCOUNT}"
-                                echo
-                            fi
-                        fi
-                    fi
-
-                    # Get the URLs from each enclosure after filtering.
-                    INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e "s${TEST_CHAR}.*href=\"\\([^\"]\\+\\)\".*${TEST_CHAR}\\1${TEST_CHAR}Ip")
-                    # final INDEXFILE cleanup options
-                    INDEXFILE=$(echo "${INDEXFILE}" | \
-                                sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g' | \
-                                sed -e ':a;N;$!ba;s/\n/ /g')
-                    # Convert to new one item per line format. Once we figure out the best way to extract
-                    # titles from we can convert or move this section as necessary.
-                    INDEXFILE_TMP2=""
-                    for ITEM_URL in ${INDEXFILE}; do
-                         INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${NEWLINE}"
-                    done
-                    # Set back to INDEXFILE
-                    INDEXFILE="${INDEXFILE_TMP2}"
-                else
-                    echo "Feed is neither RSS, or Atom.  Skipping to next feed."
-                    # if Feed is neither RSS or Atom, add URL to LOG_FAIL
-                    echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-                    continue
-                fi
-
-                if [[ -n ${INDEXFILE} ]]; then
-
-                    # Remove any error log entries for the FEED_URL if it failed before
-                    RemoveURL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
-
-                    if (( MOST_RECENT > 0 )) ; then
-                        FULLINDEXFILE="${INDEXFILE}"
-                        if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
-                            __MSG_DEBUG "FEED SORT ORDER: ASCENDING"
-                            # Adding one to MOST_RECENT because we tend to have one blank line
-                            # at the end of our INDEXFILE
-                            #   -- This was needed when using tail.  Does not appear necessary when using sed.
-                            # MOST_RECENT=$((MOST_RECENT+1))
-                            # OpenBSD Tail does not support options with two dashes (so no --lines), we have
-                            # to use the single dash option here or force OpenBSD to use GNU Tail.  Given this
-                            # is a single use error, it is easier to use BSD compatible syntax even if it can be
-                            # more challenging to debug.
-                            # INDEXFILE=$(echo "${INDEXFILE}" | tail --lines="${MOST_RECENT}")
-                            # INDEXFILE=$(echo "${INDEXFILE}" | tail -n "${MOST_RECENT}")
-                            # This can also be done with sed but MOST_RECENT needs to be incremented by 2 not 1
-                            # MOST_RECENT=$((MOST_RECENT+2))
-                            # INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e ':a' -e '$p;N;'"${MOST_RECENT}"',$D;ba')
-                            LINE_COUNT=$(echo "${FULLINDEXFILE}" | sed -n '$=;')
-                            LINE_BREAK=$((LINE_COUNT - MOST_RECENT))
-                            INDEXFILE=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ p")
-                            # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
-                            SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ !p")
-                        else
-                            __MSG_DEBUG "FEED SORT ORDER: DESCENDING"
-                            # Attempting to use head here results in exit condition 141, but using the sed construct
-                            # below works.  Not sure why given that tail works above.
-                            # INDEXFILE=$(echo "${INDEXFILE}" | head --lines="${MOST_RECENT}")
-                            INDEXFILE=$(echo "${INDEXFILE}" | sed -n "1,${MOST_RECENT}p")
-                            # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
-                            SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "1,${MOST_RECENT}!p")
-
-                        fi
-                    fi
-
-                    if (( DEBUG >= 1 )) ; then
-                        if (( MOST_RECENT > 0 )) ; then
-                            __MSG_DEBUG "Full Index List:"
-                            URLCOUNT=0
-                            while read -r DATA; do
-                                __MSG_DEBUG "${URLCOUNT}. ${DATA}"
-                                URLCOUNT=$((URLCOUNT+1))
-                            done <<<"${FULLINDEXFILE}"
-                            __MSG_DEBUG "Modified Index List:"
-                            URLCOUNT=0
-                            while read -r DATA; do
-                                __MSG_DEBUG "${URLCOUNT}. ${DATA}"
-                                URLCOUNT=$((URLCOUNT+1))
-                            done <<<"${INDEXFILE}"
-                            unset -v URLCOUNT
-                        else
-                            __MSG_DEBUG "Index List:"
-                            URLCOUNT=0
-                            while read -r DATA; do
-                                __MSG_DEBUG "${URLCOUNT}. ${DATA}"
-                                URLCOUNT=$((URLCOUNT+1))
-                            done <<<"${INDEXFILE}"
-                            unset -v URLCOUNT
-                        fi
-                    fi
-
-                    # End of this while loop is at approximately line 2980
-                    while read -r DATA; do
-                        # Check for blank line, if found just proceed to next line.
-                        if [[ -z "${DATA}" ]]; then
-                            continue
-                        fi
-
-                        # Divide URL and TITLE from DATA
-                        URL="${DATA%<Url-Title>*}"
-                        TITLE="${DATA#*<Url-Title>}"
-
-                        # Safety check:  if ${DATA} does not contain '<Url-Title>'
-                        if [[ "${URL}" == "${TITLE}" ]]; then
-                            TITLE=""
-                        fi
-
-                        if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null || (( FORCE != 0 )) ; then
-
-                            if (( VERBOSITY >= 2 )) ; then
-                                echo
-                            fi
-
-                            # Without the 'sed' statements.
-                            URL_FILENAME="${URL##*/}"
-                            URL_BASE="${URL%/*}"
-
-                            # replace any whitespace in the filename with underscores.
-                            URL_FILENAME=$(echo "${URL_FILENAME}" | tr '[:blank:]' '_' | tr -s '_')
-
-                            # Test for available space on library partition
-                            AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
-                            if (( AVAIL_SPACE < MIN_SPACE )); then
-                                printf '\n%s\n%s\n' "Available space on Library partition has dropped below allowed." "Stopping Session." 1>&2
-                                CleanupAndExit ${ERR_LIBLOWSPACE}
-                            fi
-
-                            # Filename format fixes and character substitutions.
-                            # Return value stored in variable ${MOD_FILENAME}, called here as a string to be used as the name of the
-                            # variable.
-                            FilenameFixFormat MOD_FILENAME "${URL_FILENAME}"
-
-                            # Fix where filename part of URI is constant
-                            # This fix is known to cause issues with in filenames when it is not needed.  Disabled by default.
-                            if [[ -n ${FILENAME_FORMATFIX4+set} ]] && (( FILENAME_FORMATFIX4 > 0 )); then
-                                if [[ -z ${MOD_FILENAME} ]] ; then
-                                    MOD_FILENAME="${URL_FILENAME}"
-                                fi
-                                MOD_PREFIX="${URL_BASE%%/}"
-                                MOD_PREFIX="${MOD_PREFIX##*/}"
-                                MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
-                                __MSG_DEBUG "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
-                            fi
-
-                            if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
-                                # Title format fixes and character substitutions.
-                                # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
-                                # variable.
-                                if [[ -n "${TITLE}" ]]; then
-                                    TitleFixFormat MOD_TITLE "${TITLE}"
-                                    if [[ -n "${MOD_TITLE}" ]]; then
-                                        TITLE="${MOD_TITLE}"
-                                    fi
-                                fi
-                            fi
-
-                            # If directories do not exist, then create them.
-                            if [[ ! -d "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}" ]]; then
-                                mkdir -p "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}"
-                            fi
-
-                            # If FORCE then remove existing files before download.
-                            if (( FORCE != 0 )); then
-                                if [[ -n ${MOD_FILENAME} ]]; then
-                                    if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" ]]; then
-                                        if (( VERBOSITY == 0 )) ; then
-                                            rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
-                                        else
-                                            rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}"
-                                        fi
-                                    fi
-                                else
-                                    if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" ]]; then
-                                        if (( VERBOSITY == 0 )) ; then
-                                            rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
-                                        else
-                                            rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}"
-                                        fi
-                                    fi
-                                fi
-                            fi
-
-                            if (( VERBOSITY >= 2 )) ; then
-                                if [[ -n ${MOD_FILENAME} ]]; then
-                                    echo -e "Downloading ${MOD_FILENAME} from ${URL_BASE}"
-                                else
-                                    echo -e "Downloading ${URL_FILENAME} from ${URL_BASE}"
-                                fi
-                            fi
-
-                            # Added '&& WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1' to each WGET call below so we could remove the disabling
-                            # of errexit and the ERR trap.
-                            if (( (WGET_OPTION_DISPOSITION == 1) || (WGET_OPTION_FILENAME_LOCATION == 1) )); then
-                                if (( VERBOSITY >= 3 )) ; then
-                                    if (( WGET_OPTION_DISPOSITION == 1 )); then
-                                        echo "    [ Progress meters disabled while using 'wget --content-disposition' ]"
-                                    fi
-                                    if (( WGET_OPTION_FILENAME_LOCATION == 1 )); then
-                                            echo "    [ Progress meters disabled while using OPT_FILENAME_LOCATION ]"
-                                    fi
-                                fi
-                                # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
-                                if [[ -n ${MOD_FILENAME} ]]; then
-                                    wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                                else
-                                    wget "${WGET_OPTIONS[@]}" -q --server-response -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" 2> "${DIR_SESSION}/${URL_FILENAME}.servresp" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                                fi
-                            else
-                                # This has been moved here to handle long filenames given by some feeds that result in a WGET Error
-                                #   ( I'm looking at you ITunes..... )
-                                if [[ -n ${MOD_FILENAME} ]]; then
-                                    wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${MOD_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                                else
-                                    wget "${WGET_OPTIONS[@]}" -O "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${URL_FILENAME}" "${URL}" && WGET_EXITSTATUS=0 || WGET_EXITSTATUS=1
-                                fi
-                            fi
-
-                            if (( WGET_EXITSTATUS == 0 )); then
-                                # make sure CONTENT_FILENAME hasn't been used before
-                                unset -v CONTENT_FILENAME
-                                unset -v LOCATION_FILENAME
-                                unset -v FINAL_FILENAME
-
-                                echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
-
-                                # Remove any error log entries for the URL if it failed before
-                                RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
-
-                                # Before filename changes, set FINAL_FILENAME to URL_FILENAME
-                                # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
-                                if [[ -n ${MOD_FILENAME} ]]; then
-                                    FINAL_FILENAME="${MOD_FILENAME}"
-                                else
-                                    FINAL_FILENAME="${URL_FILENAME}"
-                                fi
-
-                                # if --content-disposition get filename and remove quotes around it.
-                                if (( WGET_OPTION_DISPOSITION == 1 )); then
-                                    __MSG_DEBUG "CONTENT-DISPOSITION TESTS"
-                                    if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                        __MSG_DEBUG "SERVER RESPONSE FILE NONZERO SIZE"
-
-                                        # Added '|| true' to catch when grep exits with a non-zero status because the
-                                        # 'Content-Disposition' tag is not found.  This eliminates the need to disable errexit and the
-                                        # ERR trap.
-                                        CONTENT_FILENAME=$(grep "^\\s\\+Content-Disposition:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | grep "filename=" | tail -1 | sed -e 's/.*filename=//' -e 's/"//g') || true
-
-                                        # Test CONTENT_FILENAME is not null or consists solely of whitespace
-                                        if [[ -n ${CONTENT_FILENAME} && -n ${CONTENT_FILENAME// } ]]; then
-                                            __MSG_DEBUG "CONTENT_FILENAME: '${CONTENT_FILENAME}'"
-                                        else
-                                            __MSG_DEBUG "SERVER RESPONSE FILE - No Content-Disposition Tag"
-                                            # if variable is effectively blank, we can unset it
-                                            unset -v CONTENT_FILENAME
-
-                                            if (( WGET_OPTION_DISPOSITION_FAIL > 0 )); then
-                                                __MSG_DEBUG " - Removing URL from ${DIR_LOG}/${LOG_COMPLETE} to retry next session."
-
-                                                # Remove any COMPLETE log entries to allow it to retry next session.
-                                                RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}"
-                                            fi
-                                        fi
-                                    else
-                                        __MSG_DEBUG "SERVER RESPONSE FILE ZERO SIZE - No Tags"
-                                    fi
-
-                                    # Do we need a cleanup on CONTENT_FILENAME here?
-                                    # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-                                    # down to a single time.
-                                    if [[ -n ${CONTENT_FILENAME+set} ]]; then
-                                        CONTENT_FILENAME=$(echo "${CONTENT_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-                                    fi
-                                fi
-
-                                if (( WGET_OPTION_FILENAME_LOCATION > 0 )); then
-                                    __MSG_DEBUG "FILENAME LOCATION TESTS"
-                                    if [[ -s "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                        __MSG_DEBUG "SERVER RESPONSE FILE NONZERO SIZE"
-
-                                        # Added '|| true' to catch when grep exits with non-zero status because the 'Location' tag was
-                                        # not found.  This eliminates the need to disable errexit and the ERR trap.
-                                        LOCATION_FILENAME=$(grep "^\\s*Location:" "${DIR_SESSION}/${URL_FILENAME}.servresp" | tail -1 | sed -e 's/\s*Location:\s//' -e 's/\(.*\)?.*/\1/') || true
-
-                                        LOCATION_FILENAME="${LOCATION_FILENAME##*/}"
-
-                                        if (( VERBOSITY >= 2 )); then
-                                            # Test if LOCATION_FILENAME is not null and does not consist solely of spaces.
-                                            if [[ -n ${LOCATION_FILENAME} &&  -n ${LOCATION_FILENAME// } ]]; then
-                                                __MSG_DEBUG "LOCATION_FILENAME: '${LOCATION_FILENAME}'"
-                                            else
-                                                __MSG_DEBUG "SERVER RESPONSE FILE - No Location Tag"
-                                                # If LOCATION_FILENAME is effectively blank we can unset it
-                                                unset -v LOCATION_FILENAME
-                                            fi
-                                        fi
-                                    else
-                                        __MSG_DEBUG "SERVER RESPONSE FILE ZERO SIZE - No Tags"
-                                    fi
-
-                                    # Do we need a cleanup on LOCATION_FILENAME here?
-                                    # Two step process.  First modify any BADCHARS into the REPLACECHAR and then squeeze each repetition of the REPLACECHAR
-                                    # down to a single time.
-                                    if [[ -n ${LOCATION_FILENAME+set} ]]; then
-                                        LOCATION_FILENAME=$(echo "${LOCATION_FILENAME}" | tr "${FILENAME_BADCHARS}" "${FILENAME_REPLACECHAR}" | tr -s "${FILENAME_REPLACECHAR}")
-                                    fi
-                                fi
-
-                                # Move filename to that provided by content-disposition
-                                if [[ -n ${CONTENT_FILENAME+set} && -n ${CONTENT_FILENAME} ]]; then
-                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]]; then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
-                                        fi
-                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
-                                        FINAL_FILENAME="${CONTENT_FILENAME}"
-                                    else
-                                        if (( FORCE != 0 )); then
-                                            if [[ "${FINAL_FILENAME}" == "${CONTENT_FILENAME}" ]]; then
-                                                if (( VERBOSITY >= 2 )); then
-                                                    echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
-                                                fi
-                                            else
-                                                if (( VERBOSITY >= 2 )); then
-                                                    echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
-                                                fi
-                                                mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
-                                                FINAL_FILENAME="${CONTENT_FILENAME}"
-                                            fi
-                                        else
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
-                                            fi
-                                        fi
-                                    fi
-                                fi
-
-                                # Move filename to that provided by LOCATION_FILENAME
-                                if [[ -n ${LOCATION_FILENAME+set} && -n ${LOCATION_FILENAME} ]]; then
-                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]]; then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                        fi
-                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
-                                        FINAL_FILENAME="${LOCATION_FILENAME}"
-                                    else
-                                        if (( FORCE != 0 )); then
-                                            if [[ "${FINAL_FILENAME}" == "${LOCATION_FILENAME}" ]]; then
-                                                if (( VERBOSITY >= 2 )); then
-                                                    echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
-                                                fi
-                                            else
-                                                if (( VERBOSITY >= 2 )); then
-                                                    echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                                fi
-                                                mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
-                                                FINAL_FILENAME="${LOCATION_FILENAME}"
-                                            fi
-                                        else
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
-                                            fi
-                                        fi
-                                    fi
-                                fi
-
-                                # Rename a file to title
-                                if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
-                                    if [[ -n "${TITLE}" ]]; then
-                                        __MSG_DEBUG "Title with cleanup: ${TITLE}"
-                                        # Get extension from downloaded filename
-                                        OLDEXT="${FINAL_FILENAME##*.}"
-                                        TITLEEXT="${TITLE##*.}"
-                                        # To protect against hidden filenames that end in a period ('.')
-                                        if [[ -z "${TITLEEXT}" ]]; then
-                                            TITLEEXT="${TITLE}"
-                                        fi
-                                        # If TITLE already has filename extension then do not add a second time,
-                                        # also check that OLDEXT
-                                        if [[ "${OLDEXT}" != "${TITLEEXT}" ]] && [[ -n "${OLDEXT}" ]]; then
-                                            # With pattern substitution to remove a trailing period from title before
-                                            # we add one for the extension.
-                                            FINAL_TITLE="${TITLE/%./}.${OLDEXT}"
-                                        else
-                                            FINAL_TITLE="${TITLE}"
-                                        fi
-                                        __MSG_DEBUG "Title with extension: ${FINAL_TITLE}"
-                                        if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}" ]]; then
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
-                                            fi
-                                            mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
-                                            FINAL_FILENAME="${FINAL_TITLE}"
-                                        else
-                                            if (( FORCE != 0 )); then
-                                                if (( VERBOSITY >= 2 )); then
-                                                    echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
-                                                fi
-                                                mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
-                                                FINAL_FILENAME="${FINAL_TITLE}"
-                                            else
-                                                if (( VERBOSITY >= 2 )); then
-                                                    echo "FILENAME CHANGE PREVENTED [ ${FINAL_TITLE} already exists ]"
-                                                fi
-                                            fi
-                                        fi
-                                    else
-                                        __MSG_DEBUG "Title not set for this item"
-                                    fi
-                                fi
-
-
-                                # Rename file to start from modification date
-                                if (( POST_WGET_RENAME_MDATE == 1 )); then
-                                    FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
-                                    FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
-                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]]; then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
-                                        fi
-                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
-                                        FINAL_FILENAME="${FILENAME_MDATE}"
-                                    else
-                                        if (( FORCE != 0 )); then
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
-                                            fi
-                                            mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
-                                            FINAL_FILENAME="${FILENAME_MDATE}"
-                                        else
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
-                                            fi
-                                        fi
-                                    fi
-                                fi
-
-                                # Add filename.suffix
-                                if [[ -n ${FILENAME_SUFFIX+set} ]]; then
-                                    if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]]; then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                        fi
-                                        mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                        FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                    else
-                                        if (( FORCE != 0 )); then
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                            fi
-                                            mv -f  "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                            FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                        else
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ ${FINAL_FILENAME}.${FILENAME_SUFFIX} already exists ]"
-                                            fi
-                                        fi
-                                    fi
-                                fi
-
-                                if (( NO_PLAYLIST == 0 )) || (( FEED_FULL_PLAYLIST >= 1 )) ; then
-                                    # If creating playlists, then add to file.  Added sed command to remove any './' from each item
-                                    # added to a playlist or the echo statement.
-                                    if [[ -n ${PLAYLIST_NAME+set} ]] ; then
-                                        echo "${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" | sed -e 's|[.]/||g' >> "${DIR_LIBRARY}/${PLAYLIST_NAME}"
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "PLAYLIST: Adding ${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME} to ${DIR_LIBRARY}/${PLAYLIST_NAME}" | sed -e 's|[.]/||g'
-                                        fi
-                                    fi
-                                fi
-
-                                # We're done with CONTENT_FILENAME and FINAL_FILENAME, make sure they are cleared
-                                if [[ -n ${CONTENT_FILENAME+set} ]] ; then
-                                    unset -v CONTENT_FILENAME
-                                fi
-                                if [[ -n ${FINAL_FILENAME+set} ]] ; then
-                                    unset -v FINAL_FILENAME
-                                fi
-                            else
-                                # if downloaded failed, add URL to LOG_FAIL
-                                if (( VERBOSITY >= 2 )) ; then
-                                    echo "Adding URL to error log."
-                                fi
-                                echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-                                # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
-                                # continue function can work on later attempts.
-                                if [[ -n ${MOD_FILENAME} ]]; then
-                                    REMOVE_FILENAME="${MOD_FILENAME}"
-                                else
-                                    REMOVE_FILENAME="${URL_FILENAME}"
-                                fi
-                                if [[ -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}" ]]; then
-                                    if (( VERBOSITY >= 2 )) ; then
-                                        echo "Partial file exists."
-                                    fi
-                                    if [[ ! -s "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}" ]]; then
-                                        if (( VERBOSITY >= 2 )) ; then
-                                            echo "- Removing zero size file."
-                                            rm -fv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}"
-                                        else
-                                            rm -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${REMOVE_FILENAME}"
-                                        fi
-                                    else
-                                        if (( VERBOSITY >= 2 )) ; then
-                                            echo "- Keeping for later attempts"
-                                        fi
-                                    fi
-                                else
-                                    if (( VERBOSITY >= 2 )) ; then
-                                        echo "Partial file does not exist."
-                                    fi
-                                fi
-                            fi
-                        else
-                            # Remove any error log entries for the URL if it failed before
-                            RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
-
-                            if (( VERBOSITY >= 2 )) ; then
-                                if (( VERBOSITY >= 4 )) ; then echo ; fi
-                                echo "Already downloaded ${URL}."
-                            fi
-                        fi
-
-                        # Remove server response file as it's no longer needed
-                        if (( DEBUG >= 0 )); then
-                            if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]]; then
-                                rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
-                            fi
-                        else
-                            if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]] && (( DEBUG == 1 )) ; then
-                                echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
-                            fi
-                        fi
-
-                        __MSG_DEBUG "Clear File Vars"
-                        unset -v URL_FILENAME
-                    done <<< "${INDEXFILE}"
-
-                    if (( VERBOSITY >= 3 )) ; then echo; fi
-
-                    if (( (MOST_RECENT != 0) && (INSTALL_SESSION == 0) )); then
-                        __MSG_DEBUG "Marking additional files in Index as already downloaded (RECENT > 0)."
-                        # for URL in ${FULLINDEXFILE}
-                        # do
-                        while read -r DATA; do
-                            # Check for blank line, if found just proceed to next line.
-                            if [[ -z "${DATA}" ]]; then
-                                continue
-                            fi
-
-                            # Divide URL and TITLE from DATA
-                            URL="${DATA%<Url-Title>*}"
-                            TITLE="${DATA#*<Url-Title>}"
-
-                            # Safety check:  if ${DATA} does not contain '<Url-Title>'
-                            if [[ "${URL}" == "${TITLE}" || "${TITLE}" == "" ]]; then
-                                unset -v TITLE
-                            fi
-
-                            if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
-                                URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
-                                if (( VERBOSITY >= 2 )) ; then
-                                    if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
-                                        if [[ -n "${TITLE}" ]]; then
-                                            echo "Marking as already downloaded ${TITLE}."
-                                        else
-                                            echo "Marking as already downloaded ${URL_FILENAME}."
-                                        fi
-                                    else
-                                        echo "Marking as already downloaded ${URL_FILENAME}."
-                                    fi
-                                fi
-                                echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
-                            fi
-                        # done <<< "${FULLINDEXFILE}"
-                        done <<< "${SURPLUSINDEX}"
-                    fi
-
-                    # If doing individual playlists for each podcast Sort new playlist
-                    if (( NO_PLAYLIST == 0 )) && [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" && -n "${PLAYLIST_PERPODCAST+set}" ]]; then
-                        PlaylistSort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
-
-                        # If doing individual playlists for each podcast, Create ASX Playlist
-                        if (( ASX_PLAYLIST > 0 )); then
-                            PlaylistConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
-                        fi
-
-                        # Done with playlist, unset name.
-                        unset -v PLAYLIST_NAME
-                    fi
-                else
-                    if (( VERBOSITY >= 1 )) ; then
-                        echo "  No enclosures in feed: ${FEED_URL}"
-                    fi
-                    echo "${FEED_URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
-                fi
-
-
-                __MSG_DEBUG "Clear Server Loop Vars"
-                unset -v FEED_URL
-                unset -v FEED_CATEGORY
-                unset -v FEED_NAME
-                unset -v URL_FILENAME
-                unset -v URL_USERNAME
-                unset -v URL_PASSWORD
-            done < "${CURRENT_SERVERLIST}"
-        done
-
-        # If doing one combined playlist for all podcasts, Sort new playlist
-        if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_NAME+set} ]]; then
-            if [[ -e "${DIR_LIBRARY}/$PLAYLIST_NAME" ]]; then
-                PlaylistSort "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
-
-                # If doing one combined playlist for all podcasts, Create ASX Playlist
-                if (( ASX_PLAYLIST > 0 )); then
-                    PlaylistConvertToASX "${DIR_LIBRARY}" "${PLAYLIST_NAME}"
-                fi
-            fi
-        fi
+        PodgetServerLoop
     fi
 
     #                                                                                                                            }}}
