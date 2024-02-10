@@ -19,7 +19,7 @@
 # Installation:  cp podget.sh /usr/local/bin
 #                chmod 755 /usr/local/bin/podget.sh                                                                              }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Enable Debugging (xtrace, verbose, and/or functrace with debug trap)                                                           {{{
+# Debug and Info messages                                                                                                        {{{
 
 # To enable debugging or informational messages, add option to command line:
 #
@@ -44,6 +44,60 @@ DEBUG_LEADER="DEBUG --"
 # If you want to customize this string, add its declaration to your user configuration file (generally podgetrc) like the one
 # for DEBUG_LEADER
 INFO_LEADER="INFO  --"
+
+# Function: __MSG_DEBUG                                                                                                          {{{
+# Display additional informational messages to user.
+# General rules for use:
+#  - For one part messages, the message to user should be less than 72 characters long to fit on one 80 character line.
+#  - For two part messages, the first part can be up to 17 characters long and the second part can be up to 55 characters long to fit.
+#  - These are very general rules because printf will not overlap sections when they are longer than they should be.  So you can
+#    have a longer first part when the second is shorter and still fit on an 80 character line.  However things will line up best if
+#    you follow these guidelines.
+# ARGUMENTS:
+# ${1} == One part message.
+# ${2} == Second part of two part message.
+__MSG_DEBUG() {
+    local PART1="${1}"
+    local PART2="${2:-UNConfigured}"
+    # This looks a bit unusual but allows us to have a local variable that inherits it's value from when it is called.  Technically
+    # the second part is the global value for the variable of name "DEBUG_LEADER" being assigned to local variable of the same name.
+    local DEBUG_LEADER="${DEBUG_LEADER}"
+    local DEBUG="${DEBUG}"
+
+    # Test if INFO is set (may be empty string).
+    if [[ "${DEBUG}" -gt 0 ]]; then
+        if [[ "${PART2}" == "UNConfigured" ]]; then
+            printf '%s %s\n' "${DEBUG_LEADER}" "${PART1}"
+        else
+            printf '%s %-17s : %s\n' "${DEBUG_LEADER}" "${PART1}" "${PART2}"
+        fi
+    fi
+}
+#                                                                                                                                }}}
+
+# Function: __MSG_INFO                                                                                                           {{{
+# Display additional informational messages to user.  Each message should be less that 57 Characters so that the whole line averages
+# less than 80 characters (this limit is especially important for two part messages.
+# ARGUMENTS:
+# ${1} == One part message.
+# ${2} == Second part of two part message.
+__MSG_INFO() {
+    local PART1="${1}"
+    local PART2="${2:-UNConfigured}"
+    # This looks a bit unusual but allows us to have a local variable that inherits it's value from when it is called.  Technically
+    # the second part is the global value for the variable of name "INFO_LEADER" being assigned to local variable of the same name.
+    local INFO_LEADER="${INFO_LEADER}"
+
+    # Test if INFO is set (may be empty string).
+    if [[ -n "${INFO+set}" ]]; then
+        if [[ "${PART2}" == "UNConfigured" ]]; then
+            printf '%s %s\n' "${INFO_LEADER}" "${PART1}"
+        else
+            printf '%s %-17s : %s\n' "${INFO_LEADER}" "${PART1}" "${PART2}"
+        fi
+    fi
+}
+#                                                                                                                                }}}
 
 # NOTE:  We could use a simple test for if DEBUG is set or not, even without a value assigned but unfortunately we previously
 #        used the values of 0 for disabled and 1 for enabled for other tests.  To keep backwards compatibility, we are going to
@@ -72,6 +126,107 @@ if [[ -n "${DEBUG+set}" ]]; then
 fi
 
 #
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Global Variables                                                                                                               {{{
+
+# Default VERBOSITY
+#  0 == silent
+#  1 == Warning messages only.
+#  2 == Progress and Warning messages.
+#  3 == Debug, Progress and Warning messages.
+#  4 == All messages and wget set to maximum VERBOSITY.
+#  NOTE: Verbosity is not a local option because it is needed before and after core function runs. This is the global default but it
+#        can be changed from within podgetcore generally by command line options.
+VERBOSITY=2
+
+#                                                                                                                                }}}
+# ----------------------------------------------------------------------------------------------------------------------------------
+# Early Functions                                                                                                                {{{
+# Note: These are functions that may be called by bash traps or other things that are configured sooner than the section for other
+#       functions.  This should be kept as lean as possible.
+
+# Function: CleanupAndExit                                                                                                     {{{
+# Closes session and removes lock file (if it exists)
+# ARGUMENTS:
+# ${1} == Exit Status to report.
+CleanupAndExit() {
+    local EXITSTATUS=${1}
+    local VERBOSITY="${VERBOSITY}"
+
+    if (( VERBOSITY >= 2 )) ; then
+        #echo -en "\nClosing session"
+        printf '\n%s' "Closing session"
+    fi
+    if [[ -n ${DIR_SESSION+set} && -f ${DIR_SESSION}/podget.$$ ]]; then
+        if (( DEBUG == 0 )); then
+            if (( VERBOSITY >= 2 )) ; then
+                printf '%s' " and removing lock file"
+            fi
+            if (( VERBOSITY >= 4 )) ; then
+                echo
+                rm -fv "${DIR_SESSION}"/podget.$$
+            else
+                rm -f "${DIR_SESSION}"/podget.$$
+            fi
+        else
+            __MSG_DEBUG "Not deleting ${DIR_SESSION}/podget.$$"
+        fi
+    fi
+    if (( (VERBOSITY >= 2) && (VERBOSITY <= 3) )); then
+        printf '%s\n' "."
+    elif (( (VERBOSITY == 1) || (VERBOSITY > 3) )); then
+        echo
+    fi
+
+    exit "${EXITSTATUS}"
+}
+#                                                                                                                                }}}
+
+# Function: ExitOnError                                                                                                           {{{
+# The commands of this function will trigger Shellcheck SC2317 (Command appears to be unreachable)
+# because the function is called from a trap so we can ignore this message.
+# ARGUMENTS:
+# ${1} == Line number the error happened on
+# ${2} == Exit status of the error
+# ${3} == If the error occurred in a function, the name of the function.
+# shellcheck disable=SC2317
+ExitOnError() {
+  # Name of script
+  local JOB_NAME
+  JOB_NAME=$(basename "$0")
+  # The following three variables are configured with a default value in case
+  # the function is called without options set.
+  local LINENUM="${1:-"Unconfigured"}"                   # Line with error
+  local EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
+  local FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
+
+  printf '\n%s\n  %-15s %s\n' "Error:" "Script:" "${JOB_NAME}"
+
+  # Function line only appears if it has been set to value other than the
+  # default.  Works on the assumption that "Unconfigured" is not likely to be
+  # chosen as a function name.
+  if [[ ${FUNCTION} != "Unconfigured" ]]; then
+      printf '  %-15s %s\n' "Function:" "${FUNCTION}"
+  fi
+
+  printf '  %-15s %s\n  %-15s %s\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
+
+  printf '\n%s\n' "Context:"
+  # Test is awk installed, if so use it.  If not, then use tools from coreutils.
+  if hash awk 2>/dev/null; then
+      # This line works and adds a ">>>" to designate the offending line but adds
+      # awk as a script dependency.
+      awk 'NR>L-4 && NR<L+4 { printf "%-5d%3s%s\n",NR,(NR==L?">>>":""),$0 }' L="${LINENUM}" "${0}"
+  else
+      # This line works and only depends on coreutils
+      pr -tn "${0}" | tail -n+$((LINENUM - 3)) | head -n7
+  fi
+
+  CleanupAndExit 1
+}
+#                                                                                                                                }}}
+
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Exit Codes                                                                                                                     {{{
@@ -123,7 +278,7 @@ trap 'CleanupAndExit 130' INT
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Set Shell Options to catch errors ('man bash' for details)                                                                     {{{
+# Set Shell Options                                                                                                              {{{
 
 set -o errexit
 set -o nounset
@@ -145,7 +300,7 @@ shopt -s extglob
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Help text and default file formats                                                                                             {{{
+# Text for command line help option                                                                                              {{{
 
 : << HELP_STEXT
     -c --config <FILE>           Name of configuration file to use.
@@ -186,7 +341,7 @@ HELP_STEXT
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Text for default configuration files:                                                                                          {{{
+# Text for default configuration files                                                                                           {{{
 
 : << TEXT_DEFAULT_CONFIG
 # ----------------------------------------------------------------------------------------------------------------------------------
@@ -551,77 +706,9 @@ TEXT_ASX_END
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# Global Variables                                                                                                               {{{
-
-# Default VERBOSITY
-#  0 == silent
-#  1 == Warning messages only.
-#  2 == Progress and Warning messages.
-#  3 == Debug, Progress and Warning messages.
-#  4 == All messages and wget set to maximum VERBOSITY.
-#  NOTE: Verbosity is not a local option because it is needed before and after core function runs. This is the global default but it
-#        can be changed from within podgetcore generally by command line options.
-VERBOSITY=2
-
-#                                                                                                                                }}}
-# ----------------------------------------------------------------------------------------------------------------------------------
 # Functions                                                                                                                      {{{
 #   NOTE: For consistency, function names should be in what is called Pascal Case.  This is a variation of Camel Case but the first
 #         letter of the first word is also capitalized.
-
-# Function: __MSG_DEBUG                                                                                                          {{{
-# Display additional informational messages to user.
-# General rules for use:
-#  - For one part messages, the message to user should be less than 72 characters long to fit on one 80 character line.
-#  - For two part messages, the first part can be up to 17 characters long and the second part can be up to 55 characters long to fit.
-#  - These are very general rules because printf will not overlap sections when they are longer than they should be.  So you can
-#    have a longer first part when the second is shorter and still fit on an 80 character line.  However things will line up best if
-#    you follow these guidelines.
-# ARGUMENTS:
-# ${1} == One part message.
-# ${2} == Second part of two part message.
-__MSG_DEBUG() {
-    local PART1="${1}"
-    local PART2="${2:-UNConfigured}"
-    # This looks a bit unusual but allows us to have a local variable that inherits it's value from when it is called.  Technically
-    # the second part is the global value for the variable of name "DEBUG_LEADER" being assigned to local variable of the same name.
-    local DEBUG_LEADER="${DEBUG_LEADER}"
-    local DEBUG="${DEBUG}"
-
-    # Test if INFO is set (may be empty string).
-    if [[ "${DEBUG}" -gt 0 ]]; then
-        if [[ "${PART2}" == "UNConfigured" ]]; then
-            printf '%s %s\n' "${DEBUG_LEADER}" "${PART1}"
-        else
-            printf '%s %-17s : %s\n' "${DEBUG_LEADER}" "${PART1}" "${PART2}"
-        fi
-    fi
-}
-#                                                                                                                                }}}
-
-# Function: __MSG_INFO                                                                                                           {{{
-# Display additional informational messages to user.  Each message should be less that 57 Characters so that the whole line averages
-# less than 80 characters (this limit is especially important for two part messages.
-# ARGUMENTS:
-# ${1} == One part message.
-# ${2} == Second part of two part message.
-__MSG_INFO() {
-    local PART1="${1}"
-    local PART2="${2:-UNConfigured}"
-    # This looks a bit unusual but allows us to have a local variable that inherits it's value from when it is called.  Technically
-    # the second part is the global value for the variable of name "INFO_LEADER" being assigned to local variable of the same name.
-    local INFO_LEADER="${INFO_LEADER}"
-
-    # Test if INFO is set (may be empty string).
-    if [[ -n "${INFO+set}" ]]; then
-        if [[ "${PART2}" == "UNConfigured" ]]; then
-            printf '%s %s\n' "${INFO_LEADER}" "${PART1}"
-        else
-            printf '%s %-17s : %s\n' "${INFO_LEADER}" "${PART1}" "${PART2}"
-        fi
-    fi
-}
-#                                                                                                                                }}}
 
 # Function: ArrayContains                                                                                                       {{{
 # Test if Array contains element.
@@ -646,43 +733,6 @@ ArrayContains() {
     local element
     for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
     return 1
-}
-#                                                                                                                                }}}
-
-# Function: CleanupAndExit                                                                                                     {{{
-# Closes session and removes lock file (if it exists)
-# ARGUMENTS:
-# ${1} == Exit Status to report.
-CleanupAndExit() {
-    local EXITSTATUS=${1}
-    local VERBOSITY="${VERBOSITY}"
-
-    if (( VERBOSITY >= 2 )) ; then
-        #echo -en "\nClosing session"
-        printf '\n%s' "Closing session"
-    fi
-    if [[ -n ${DIR_SESSION+set} && -f ${DIR_SESSION}/podget.$$ ]]; then
-        if (( DEBUG == 0 )); then
-            if (( VERBOSITY >= 2 )) ; then
-                printf '%s' " and removing lock file"
-            fi
-            if (( VERBOSITY >= 4 )) ; then
-                echo
-                rm -fv "${DIR_SESSION}"/podget.$$
-            else
-                rm -f "${DIR_SESSION}"/podget.$$
-            fi
-        else
-            __MSG_DEBUG "Not deleting ${DIR_SESSION}/podget.$$"
-        fi
-    fi
-    if (( (VERBOSITY >= 2) && (VERBOSITY <= 3) )); then
-        printf '%s\n' "."
-    elif (( (VERBOSITY == 1) || (VERBOSITY > 3) )); then
-        echo
-    fi
-
-    exit "${EXITSTATUS}"
 }
 #                                                                                                                                }}}
 
@@ -833,50 +883,6 @@ DirectoryCheck() {
         fi
     fi
 
-}
-#                                                                                                                                }}}
-
-# Function: ExitOnError                                                                                                           {{{
-# The commands of this function will trigger Shellcheck SC2317 (Command appears to be unreachable)
-# because the function is called from a trap so we can ignore this message.
-# ARGUMENTS:
-# ${1} == Line number the error happened on
-# ${2} == Exit status of the error
-# ${3} == If the error occurred in a function, the name of the function.
-# shellcheck disable=SC2317
-ExitOnError() {
-  # Name of script
-  local JOB_NAME
-  JOB_NAME=$(basename "$0")
-  # The following three variables are configured with a default value in case
-  # the function is called without options set.
-  local LINENUM="${1:-"Unconfigured"}"                   # Line with error
-  local EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
-  local FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
-
-  printf '\n%s\n  %-15s %s\n' "Error:" "Script:" "${JOB_NAME}"
-
-  # Function line only appears if it has been set to value other than the
-  # default.  Works on the assumption that "Unconfigured" is not likely to be
-  # chosen as a function name.
-  if [[ ${FUNCTION} != "Unconfigured" ]]; then
-      printf '  %-15s %s\n' "Function:" "${FUNCTION}"
-  fi
-
-  printf '  %-15s %s\n  %-15s %s\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
-
-  printf '\n%s\n' "Context:"
-  # Test is awk installed, if so use it.  If not, then use tools from coreutils.
-  if hash awk 2>/dev/null; then
-      # This line works and adds a ">>>" to designate the offending line but adds
-      # awk as a script dependency.
-      awk 'NR>L-4 && NR<L+4 { printf "%-5d%3s%s\n",NR,(NR==L?">>>":""),$0 }' L="${LINENUM}" "${0}"
-  else
-      # This line works and only depends on coreutils
-      pr -tn "${0}" | tail -n+$((LINENUM - 3)) | head -n7
-  fi
-
-  CleanupAndExit 1
 }
 #                                                                                                                                }}}
 
@@ -3362,7 +3368,7 @@ esac
 
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
-# CORE FUNCTION                                                                                                                  {{{
+# Podget Body Function                                                                                                           {{{
 
 PodgetCore() {
     # ------------------------------------------------------------------------------------------------------------------------------
