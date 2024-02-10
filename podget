@@ -59,10 +59,13 @@ if [[ -n "${DEBUG+set}" ]]; then
             if (( DEBUG == 3 )); then
                 set -o verbose
             elif (( DEBUG >= 4 )); then
+                # Enable functrace so that DEBUG and RETURN traps are inherited by functions.
+                set -o functrace
                 # NOTE: Debug trap sends it's output to STDERR (2) so that it does not
                 #       cause errors during command substitutions ( $(..) or `..` ).
                 #       This can happen when functrace is enabled.
                 trap 'echo "LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
+
             fi
         fi
     fi
@@ -128,9 +131,6 @@ set -o pipefail
 
 # Enable errtrace so that the ERR trap is inherited by functions
 set -o errtrace
-
-# Enable functrace so that DEBUG and RETURN traps are inherited by functions.
-set -o functrace
 
 # Enabling inheritance of errexit by command substitution subshells, this was added in Bash 4.4
 #   NOTE:  Test command is run within a subshell where pipefail is disabled.
@@ -631,6 +631,10 @@ __MSG_INFO() {
 # ${2} == Array to search within (also called ${@:2})
 # NOTE: ArrayContains will not respect the errexit shell option because it is generally called from an if statement.  So best to
 #       keep functions like this pithy.
+#
+#       In this type of function if we want to force an exit for command failure, we will need to check the exit status of each
+#       command as it exits.  By following each command with:
+#           if [ $? -ne 0 ]; then .....
 #
 #       From Bash Man page on errexit option:
 #       -e      Exit  immediately if a pipeline (which may consist of a single simple command), a list, or a compound command
