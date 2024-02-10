@@ -63,7 +63,6 @@ if [[ -n "${DEBUG+set}" ]]; then
                 #       cause errors during command substitutions ( $(..) or `..` ).
                 #       This can happen when functrace is enabled.
                 trap 'echo "LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
-                set -o functrace
             fi
         fi
     fi
@@ -129,6 +128,9 @@ set -o pipefail
 
 # Enable errtrace so that the ERR trap is inherited by functions
 set -o errtrace
+
+# Enable functrace so that DEBUG and RETURN traps are inherited by functions.
+set -o functrace
 
 # Enabling inheritance of errexit by command substitution subshells, this was added in Bash 4.4
 #   NOTE:  Test command is run within a subshell where pipefail is disabled.
@@ -627,6 +629,15 @@ __MSG_INFO() {
 # ARGUMENTS:
 # ${1} == String to search for
 # ${2} == Array to search within (also called ${@:2})
+# NOTE: ArrayContains will not respect the errexit shell option because it is generally called from an if statement.  So best to
+#       keep functions like this pithy.
+#
+#       From Bash Man page on errexit option:
+#       -e      Exit  immediately if a pipeline (which may consist of a single simple command), a list, or a compound command
+#               (see SHELL GRAMMAR above), exits with a non-zero status.  The shell does not exit if the command that fails is part
+#               of the command list immediately following a while or  until keyword,  part of the test following the if or elif
+#               reserved words, part of any command executed in a && or || list except the command following the final && or ||,
+#               any command in a pipeline but the last, or if the command's return value is being inverted with !.
 ArrayContains() {
     local element
     for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
