@@ -298,6 +298,38 @@ shopt -s inherit_errexit
 # Enable extended glob matches.
 shopt -s extglob
 
+# Note: Limits on errexit functionality.
+#
+#       Important to remember that there are occasions that a script will not immediately exit when a command exits with a
+#       non-zero status.  These conditions mostly make sense but can have an unexpected effect when there is an error in a function
+#       that is called from an if statement.  For Podget, this was found working with a simulated error within the ArrayContains
+#       function so even though the function inherited the errexit setting, it was ignored for reasons laid out in the man page.
+#       For this reason, we should keep in mind that functions that are to be used in the ways that may cause errexit to be ignored
+#       should be kept as concise and pithy as possible to reduce the opportunity for errors.
+#
+#       For functions with a command that may exit with a non-zero status that cannot be avoided then it may be necessary to add
+#       manual checking for exit status after the command runs to determine if the script should stop or not.
+#
+#       Example of handling such a command:
+#           Command-To-Run
+#           if [ $? -ne 0 ]; then echo "ERROR"; exit 1; fi
+#
+# From Bash Man page on the set option for errexit (-e):
+#    -e      Exit  immediately if a pipeline (which may consist of a single simple command), a list, or a compound command
+#            (see SHELL GRAMMAR above), exits with a non-zero status.  The shell does not exit if the command that fails is part of
+#            the command list immediately following a while or  until keyword,  part of the test following the if or elif reserved
+#            words, part of any command executed in a && or || list except the command following the final && or ||, any command
+#            in a pipeline but the last, or if the command's return value is being inverted with !.  If a compound command other
+#            than a subshell returns a non-zero status because a command failed while -e was being ignored, the shell does not exit.
+#            A trap  on ERR,  if  set, is executed before the shell exits.  This option applies to the shell environment and each
+#            subshell environment separately (see COMMAND EXECUTION ENVIRONMENT above), and may cause subshells to exit before
+#            executing all the commands in the subshell.
+#
+#            If a compound command or shell function executes in a context where -e is being ignored, none of the commands executed
+#            within  the  compound command or function body will be affected by the -e setting, even if -e is set and a command
+#            returns a failure status.  If a compound command or shell function sets -e while executing in a context where -e is
+#            ignored, that setting will not have any effect until the  compound  command or the command containing the function
+#            call completes.
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Text for command line help option                                                                                              {{{
@@ -718,17 +750,6 @@ TEXT_ASX_END
 # ${2} == Array to search within (also called ${@:2})
 # NOTE: ArrayContains will not respect the errexit shell option because it is generally called from an if statement.  So best to
 #       keep functions like this pithy.
-#
-#       In this type of function if we want to force an exit for command failure, we will need to check the exit status of each
-#       command as it exits.  By following each command with:
-#           if [ $? -ne 0 ]; then .....
-#
-#       From Bash Man page on errexit option:
-#       -e      Exit  immediately if a pipeline (which may consist of a single simple command), a list, or a compound command
-#               (see SHELL GRAMMAR above), exits with a non-zero status.  The shell does not exit if the command that fails is part
-#               of the command list immediately following a while or  until keyword,  part of the test following the if or elif
-#               reserved words, part of any command executed in a && or || list except the command following the final && or ||,
-#               any command in a pipeline but the last, or if the command's return value is being inverted with !.
 ArrayContains() {
     local element
     for element in "${@:2}"; do [[ "${element}" =~ ^"${1}".* ]] && return 0; done
