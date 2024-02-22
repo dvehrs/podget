@@ -2103,17 +2103,18 @@ PodgetServerLoop() {
             unset -v WGET_TEST_STRING
 
             __MSG_DEBUG "Reset FEED_FULL_PLAYLIST=0"
-            FEED_FULL_PLAYLIST=0
+            local FEED_FULL_PLAYLIST=0
 
             __MSG_DEBUG "Reset FEED_SORT_ORDER=DESCENDING"
-            FEED_SORT_ORDER="DESCENDING"
+            local FEED_SORT_ORDER="DESCENDING"
 
             __MSG_DEBUG "Reset WGET_OPTION_DEFAULT_USERAGENT"
-            WGET_OPTION_DEFAULT_USERAGENT=0
+            local WGET_OPTION_DEFAULT_USERAGENT=0
 
             __MSG_DEBUG "Reset WGET_OPTION_FILENAME_LOCATION"
-            WGET_OPTION_FILENAME_LOCATION=0
+            local WGET_OPTION_FILENAME_LOCATION=0
 
+            local WGET_OPTION_DISPOSITION
             if ArrayContains "--content-disposition" "${WGET_OPTIONS[@]}" ; then
                 # removing actual --content-disposition option from WGET because it is not used directly
                 # but rather to set mode.  Used for COMMON_OPTIONS to allow ease of use.
@@ -2137,34 +2138,36 @@ PodgetServerLoop() {
             fi
 
             __MSG_DEBUG "Reset WGET_OPTION_DISPOSITION_FAIL"
-            WGET_OPTION_DISPOSITION_FAIL=0
+            local WGET_OPTION_DISPOSITION_FAIL=0
 
             __MSG_DEBUG "Reset WGET_OPTION_NO_CHECK_CERIFICATE"
-            WGET_OPTION_NO_CHECK_CERIFICATE=0
+            local WGET_OPTION_NO_CHECK_CERIFICATE=0
 
             __MSG_DEBUG "Reset WGET_OPTION_PREFER_IP_TYPE"
-            WGET_OPTION_PREFER_IP_TYPE=0
+            local WGET_OPTION_PREFER_IP_TYPE=0
 
             __MSG_DEBUG "Reset WGET_OPTION_RSS_MEDIACONTENT"
-            WGET_OPTION_RSS_MEDIACONTENT=0
+            local WGET_OPTION_RSS_MEDIACONTENT=0
 
             __MSG_DEBUG "Reset POST_WGET_RENAME_MDATE"
-            POST_WGET_RENAME_MDATE=0
+            local POST_WGET_RENAME_MDATE=0
 
             __MSG_DEBUG "Reset POST_WGET_RENAME_TITLETAG"
-            POST_WGET_RENAME_TITLETAG=0
+            local POST_WGET_RENAME_TITLETAG=0
 
             __MSG_DEBUG "Reset POST_WGET_RENAME_REVTITLETAG"
-            POST_WGET_RENAME_REVTITLETAG=0
+            local POST_WGET_RENAME_REVTITLETAG=0
 
             __MSG_DEBUG "Reset ATOM_FILTER_SIMPLE"
-            ATOM_FILTER_SIMPLE=0
+            local ATOM_FILTER_SIMPLE=0
 
             __MSG_DEBUG "Reset ATOM_FILTER_TYPE"
             unset -v ATOM_FILTER_TYPE
+            local ATOM_FILTER_TYPE
 
             __MSG_DEBUG "Reset ATOM_FILTER_LANG"
             unset -v ATOM_FILTER_LANG
+            local ATOM_FILTER_LANG
 
             # End resets
             # -----------------------------------------------------------------
@@ -2177,6 +2180,9 @@ PodgetServerLoop() {
             for FILTER_TARGET in FEED_CATEGORY FEED_NAME; do
                 FilterOptions "${FILTER_TARGET}"
             done
+
+            # Remove variable since it is no longer used.
+            unset -v FILTER_TARGET
 
             # Unset options that are not required in this while loop
 
@@ -2237,6 +2243,9 @@ PodgetServerLoop() {
                 printf '\n%s\n' "-------------------------------------------------"
             fi
             if (( VERBOSITY >= 1 )) ; then
+                local DISPLAY_CATEGORY
+                local DISPLAY_NAME
+
                 if [ "${FEED_CATEGORY}" == "." ]; then
                     DISPLAY_CATEGORY="None"
                 else
@@ -2255,16 +2264,17 @@ PodgetServerLoop() {
             __MSG_DEBUG "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
 
             # DirectoryCheck for FEED_NAME and FEED_CATEGORY here prior to using them.
-            for i in FEED_CATEGORY FEED_NAME; do
+            local ITEM
+            for ITEM in FEED_CATEGORY FEED_NAME; do
                 # FEED_NAME can be blank, if it is then we skip the DirectoryCheck
-                if [[ ${i} == "FEED_NAME" && -z "${!i}" ]]; then
+                if [[ ${ITEM} == "FEED_NAME" && -z "${!ITEM}" ]]; then
                     # we use continue rather than break here in case the variables are in a different order.
                     continue
                 fi
 
                 # Moved DirectoryCheck inside an IF statement so that a non-zero exit status would not trigger either the errexit
                 # or the ERR trap conditions.
-                if ! DirectoryCheck "${i}"; then
+                if ! DirectoryCheck "${ITEM}"; then
                     echo
                     echo "Skipping this feed until corrected, proceeding to next feed listed in ${CURRENT_SERVERLIST}"
                     echo
@@ -2272,8 +2282,8 @@ PodgetServerLoop() {
                     # loop wrapping it.
                     continue 2
                 fi
-
             done
+            unset -v ITEM
 
             if (( FEED_FULL_PLAYLIST >= 1 )) ; then
                 PLAYLIST_NAME=$(echo "PLAYLIST_${FEED_NAME//[[:space:]]/_}.m3u" | tr -s _)
