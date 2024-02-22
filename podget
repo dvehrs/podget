@@ -2728,6 +2728,7 @@ PodgetServerLoop() {
                         # Filename format fixes and character substitutions.
                         # Return value stored in variable ${MOD_FILENAME}, called here as a string to be used as the name of the
                         # variable.
+                        local MOD_FILENAME
                         FilenameFixFormat MOD_FILENAME "${URL_FILENAME}"
 
                         # Fix where filename part of URI is constant
@@ -2736,17 +2737,19 @@ PodgetServerLoop() {
                             if [[ -z ${MOD_FILENAME} ]] ; then
                                 MOD_FILENAME="${URL_FILENAME}"
                             fi
-                            MOD_PREFIX="${URL_BASE%%/}"
-                            MOD_PREFIX="${MOD_PREFIX##*/}"
+                            local MOD_PREFIX="${URL_BASE%%/}"
+                            local MOD_PREFIX="${MOD_PREFIX##*/}"
                             MOD_FILENAME="${MOD_PREFIX##*/}_${MOD_FILENAME}"
                             __MSG_DEBUG "FILENAME FORMAT(4) FIXED: ${MOD_FILENAME}"
                         fi
+
 
                         if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
                             # Title format fixes and character substitutions.
                             # Return value stored in variable ${MOD_TITLE}, called here as a string to be used as the name of the
                             # variable.
                             if [[ -n "${TITLE}" ]]; then
+                                local MOD_TITLE
                                 TitleFixFormat MOD_TITLE "${TITLE}"
                                 if [[ -n "${MOD_TITLE}" ]]; then
                                     TITLE="${MOD_TITLE}"
@@ -2825,6 +2828,11 @@ PodgetServerLoop() {
 
                             # Remove any error log entries for the URL if it failed before
                             RemoveURL "${URL}" "${DIR_LOG}"/"${LOG_FAIL}"
+
+                            # Make sure FILENAME variables are local.
+                            local CONTENT_FILENAME
+                            local FINAL_FILENAME
+                            local LOCATION_FILENAME
 
                             # Before filename changes, set FINAL_FILENAME to URL_FILENAME
                             # IF MOD_FILENAME has already been used, then set FINAL_FILENAME to MOD_FILENAME
@@ -2968,12 +2976,15 @@ PodgetServerLoop() {
                                 if [[ -n "${TITLE}" ]]; then
                                     __MSG_DEBUG "Title with cleanup: ${TITLE}"
                                     # Get extension from downloaded filename
-                                    OLDEXT="${FINAL_FILENAME##*.}"
-                                    TITLEEXT="${TITLE##*.}"
+                                    local OLDEXT="${FINAL_FILENAME##*.}"
+                                    local TITLEEXT="${TITLE##*.}"
                                     # To protect against hidden filenames that end in a period ('.')
                                     if [[ -z "${TITLEEXT}" ]]; then
                                         TITLEEXT="${TITLE}"
                                     fi
+
+                                    local FINAL_TITLE
+
                                     # If TITLE already has filename extension then do not add a second time,
                                     # also check that OLDEXT
                                     if [[ "${OLDEXT}" != "${TITLEEXT}" ]] && [[ -n "${OLDEXT}" ]]; then
@@ -3011,8 +3022,9 @@ PodgetServerLoop() {
 
                             # Rename file to start from modification date
                             if (( POST_WGET_RENAME_MDATE == 1 )); then
+                                local FILE_MDATE
                                 FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
-                                FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
+                                local FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
                                 if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]]; then
                                     if (( VERBOSITY >= 2 )); then
                                         echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
@@ -3083,6 +3095,7 @@ PodgetServerLoop() {
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_FAIL}"
                             # If file has zero size then remove it.  Files that are larger than zero size are kept so WGET's
                             # continue function can work on later attempts.
+                            local REMOVE_FILENAME
                             if [[ -n ${MOD_FILENAME} ]]; then
                                 REMOVE_FILENAME="${MOD_FILENAME}"
                             else
@@ -3148,8 +3161,8 @@ PodgetServerLoop() {
                         fi
 
                         # Divide URL and TITLE from DATA
-                        URL="${DATA%<Url-Title>*}"
-                        TITLE="${DATA#*<Url-Title>}"
+                        local URL="${DATA%<Url-Title>*}"
+                        local TITLE="${DATA#*<Url-Title>}"
 
                         # Safety check:  if ${DATA} does not contain '<Url-Title>'
                         if [[ "${URL}" == "${TITLE}" || "${TITLE}" == "" ]]; then
@@ -3157,6 +3170,7 @@ PodgetServerLoop() {
                         fi
 
                         if ! grep -F "${URL}" "${DIR_LOG}"/"${LOG_COMPLETE}" >/dev/null ; then
+                            local URL_FILENAME
                             URL_FILENAME=$(echo "${URL}" | sed -e 's/.*\/\([^\/]\+\)/\1/' -e 's/%20/ /g')
                             if (( VERBOSITY >= 2 )) ; then
                                 if (( POST_WGET_RENAME_TITLETAG == 1 ))||(( POST_WGET_RENAME_REVTITLETAG == 1 )); then
@@ -3171,7 +3185,6 @@ PodgetServerLoop() {
                             fi
                             echo "${URL}" >> "${DIR_LOG}"/"${LOG_COMPLETE}"
                         fi
-                    # done <<< "${FULLINDEXFILE}"
                     done <<< "${SURPLUSINDEX}"
                 fi
 
