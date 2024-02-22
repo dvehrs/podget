@@ -23,11 +23,11 @@
 
 # To enable debugging or informational messages, add option to command line:
 #
-# INFO= ./bash_template   : Enable only Podget INFO messages.
-# DEBUG=1 ./bash_template : Enable Podget INFO and DEBUG messages.
-# DEBUG=2 ./bash_template : Enable Podget INFO and DEBUG messages with Bash shell option for xtrace.
-# DEBUG=3 ./bash_template : Enable Podget INFO and DEBUG messages with Bash shell options for xtrace, and verbose.
-# DEBUG=4 ./bash_template : Enable Podget INFO and DEBUG messages with Bash shell options for xtrace, functrace and a debug trap.
+# $ INFO= podget   : Enable only Podget INFO messages.
+# $ DEBUG=1 podget : Enable Podget INFO and DEBUG messages.
+# $ DEBUG=2 podget : Enable Podget INFO and DEBUG messages with Bash shell option for xtrace.
+# $ DEBUG=3 podget : Enable Podget INFO and DEBUG messages with Bash shell options for xtrace, and verbose.
+# $ DEBUG=4 podget : Enable Podget INFO and DEBUG messages with Bash shell options for xtrace, functrace and a debug trap.
 #
 # NOTE: The output of the Bash shell options for verbose and the debug trap (as we have it configured) are effectively so similar
 # that enabling both at the same time can be redundant and confusing.
