@@ -2622,7 +2622,8 @@ PodgetServerLoop() {
                 RemoveURL "${FEED_URL}" "${DIR_LOG}"/"${LOG_FAIL}"
 
                 if (( MOST_RECENT > 0 )) ; then
-                    FULLINDEXFILE="${INDEXFILE}"
+                    local FULLINDEXFILE="${INDEXFILE}"
+                    local SURPLUSINDEX
                     if [[ "${FEED_SORT_ORDER}" == "ASCENDING" ]]; then
                         __MSG_DEBUG "FEED SORT ORDER: ASCENDING"
                         # Adding one to MOST_RECENT because we tend to have one blank line
@@ -2638,11 +2639,15 @@ PodgetServerLoop() {
                         # This can also be done with sed but MOST_RECENT needs to be incremented by 2 not 1
                         # MOST_RECENT=$((MOST_RECENT+2))
                         # INDEXFILE=$(echo "${INDEXFILE}" | sed -n -e ':a' -e '$p;N;'"${MOST_RECENT}"',$D;ba')
+                        local LINE_COUNT
+                        local LINE_BREAK
                         LINE_COUNT=$(echo "${FULLINDEXFILE}" | sed -n '$=;')
                         LINE_BREAK=$((LINE_COUNT - MOST_RECENT))
                         INDEXFILE=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ p")
                         # SURPLUSINDEX holds all the items that are not in INDEXFILE for marking as already downloaded below.
                         SURPLUSINDEX=$(echo "${FULLINDEXFILE}" | sed -n "${LINE_BREAK},\$ !p")
+                        unset -v LINE_COUNT
+                        unset -v LINE_BREAK
                     else
                         __MSG_DEBUG "FEED SORT ORDER: DESCENDING"
                         # Attempting to use head here results in exit condition 141, but using the sed construct
