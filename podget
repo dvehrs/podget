@@ -2345,20 +2345,26 @@ PodgetServerLoop() {
             INDEXFILE=$(echo "${INDEXFILE}" | tr '\n\r' ' ' | sed -e 's/<\([^/]\)/\n<\1/g')
 
             # We will look for either '<rss ' or '<feed ' opening tags within first 9 lines of the INDEXFILE
+            local TESTLINES
             TESTLINES=$(sed -n 1,9p <<< "${INDEXFILE}")
 
             # While most these messages are acceptably controlled for display via __MSG_DEBUG, we add an extra check
             # here because the loop in the center would take extra unnecessary time.
             if (( DEBUG >= 1 )) ; then
                 __MSG_DEBUG "------ Check for RSS or Atom feed --------"
+                local LINE
                 while IFS= read -r LINE; do
                     __MSG_DEBUG "${LINE}"
                 done< <(printf "%s\n" "${TESTLINES}")
+                unset -v LINE
                 __MSG_DEBUG "------ ( first 9 lines of feed --------"
                 __MSG_DEBUG "------   looking for '<rss '   --------"
                 __MSG_DEBUG "------   or '<feed ' )         --------"
                 echo
             fi
+
+            local INDEXFILE_TMP
+            local INDEXFILE_TMP2
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
                 __MSG_DEBUG "RSS Feed Found"
@@ -2676,6 +2682,7 @@ PodgetServerLoop() {
                 fi
 
                 # End of this while loop is at approximately line 2980
+                local DATA
                 while read -r DATA; do
                     # Check for blank line, if found just proceed to next line.
                     if [[ -z "${DATA}" ]]; then
@@ -2683,8 +2690,8 @@ PodgetServerLoop() {
                     fi
 
                     # Divide URL and TITLE from DATA
-                    URL="${DATA%<Url-Title>*}"
-                    TITLE="${DATA#*<Url-Title>}"
+                    local URL="${DATA%<Url-Title>*}"
+                    local TITLE="${DATA#*<Url-Title>}"
 
                     # Safety check:  if ${DATA} does not contain '<Url-Title>'
                     if [[ "${URL}" == "${TITLE}" ]]; then
