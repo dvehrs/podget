@@ -2661,6 +2661,7 @@ PodgetServerLoop() {
                 fi
 
                 if (( DEBUG >= 1 )) ; then
+                    local URLCOUNT
                     if (( MOST_RECENT > 0 )) ; then
                         __MSG_DEBUG "Full Index List:"
                         URLCOUNT=0
@@ -2674,7 +2675,6 @@ PodgetServerLoop() {
                             __MSG_DEBUG "${URLCOUNT}. ${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
-                        unset -v URLCOUNT
                     else
                         __MSG_DEBUG "Index List:"
                         URLCOUNT=0
@@ -2682,8 +2682,8 @@ PodgetServerLoop() {
                             __MSG_DEBUG "${URLCOUNT}. ${DATA}"
                             URLCOUNT=$((URLCOUNT+1))
                         done <<<"${INDEXFILE}"
-                        unset -v URLCOUNT
                     fi
+                    unset -v URLCOUNT
                 fi
 
                 # End of this while loop is at approximately line 2980
@@ -2710,18 +2710,20 @@ PodgetServerLoop() {
                         fi
 
                         # Without the 'sed' statements.
-                        URL_FILENAME="${URL##*/}"
-                        URL_BASE="${URL%/*}"
+                        local URL_FILENAME="${URL##*/}"
+                        local URL_BASE="${URL%/*}"
 
                         # replace any whitespace in the filename with underscores.
                         URL_FILENAME=$(echo "${URL_FILENAME}" | tr '[:blank:]' '_' | tr -s '_')
 
                         # Test for available space on library partition
+                        local AVAIL_SPACE
                         AVAIL_SPACE=$(df -kP "${DIR_LIBRARY}" | tail -n 1 | awk '{print $4}')
                         if (( AVAIL_SPACE < MIN_SPACE )); then
                             printf '\n%s\n%s\n' "Available space on Library partition has dropped below allowed." "Stopping Session." 1>&2
                             CleanupAndExit ${ERR_LIBLOWSPACE}
                         fi
+                        unset -v AVAIL_SPACE
 
                         # Filename format fixes and character substitutions.
                         # Return value stored in variable ${MOD_FILENAME}, called here as a string to be used as the name of the
