@@ -1915,10 +1915,7 @@ PodgetServerLoop() {
             COUNTER=$((COUNTER+1))
         done
 
-        if (( VERBOSITY >= 3 )); then
-            echo
-            echo "Playlist name: ${SESSION_PLAYLIST_NAME}"
-        fi
+        __MSG_INFO "Session Playlist Name" "${SESSION_PLAYLIST_NAME}"
     fi
 
     # UTF-8/16 handling
@@ -2259,7 +2256,7 @@ PodgetServerLoop() {
                 printf '%-30s %-50s\n' "Category: ${DISPLAY_CATEGORY}" "Name: ${DISPLAY_NAME}"
             fi
 
-            __MSG_DEBUG "Loop WGET_OPTIONS:" "${WGET_OPTIONS[*]}"
+            __MSG_DEBUG "Loop WGET_OPTIONS" "${WGET_OPTIONS[*]}"
 
             # DirectoryCheck for FEED_NAME and FEED_CATEGORY here prior to using them.
             local ITEM
@@ -2299,22 +2296,20 @@ PodgetServerLoop() {
                 PLAYLIST_NAME="${SESSION_PLAYLIST_NAME}"
             fi
 
-            if (( VERBOSITY >= 2 )) ; then
-                if [[ -n ${URL_USERNAME+set} ]]; then
-                    printf '%-30s %-50s\n' "" "Username: ${URL_USERNAME}"
-                fi
-                if [[ -n ${URL_PASSWORD+set} ]]; then
-                    # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
-                    # useful for debugging connection issues.
-                    __MSG_DEBUG "Password: ${URL_PASSWORD}"
-                fi
-                if (( VERBOSITY >= 4 )) ; then
-                    printf '%-30s %-50s\n' "" "WGET OPTIONS: ${WGET_OPTIONS[*]}"
-                fi
-                if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-                    printf '%-30s %-50s\n' "" "Individual Podcast Playlist Name: ${PLAYLIST_NAME}"
-                fi
+            if [[ -n ${URL_USERNAME+set} ]]; then
+                __MSG_INFO "Podcast Username" "${URL_USERNAME}"
+            fi
+            if [[ -n ${URL_PASSWORD+set} ]]; then
+                # Password is stored in the serverlist file in plain text so displaying it here is a small risk but can be
+                # useful for debugging connection issues.
+                __MSG_DEBUG "Podcast Password" "${URL_PASSWORD}"
+            fi
+            __MSG_DEBUG "WGET Options" "${WGET_OPTIONS[*]}"
+            if (( NO_PLAYLIST == 0 )) && [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
+                __MSG_INFO "Playlist Name" "${PLAYLIST_NAME} (for single Podcast)"
+            fi
 
+            if (( VERBOSITY >= 2 )) ; then
                 echo
                 echo "Downloading feed index from ${FEED_URL}"
             fi
@@ -2366,7 +2361,7 @@ PodgetServerLoop() {
 
             if grep -q '<rss ' <<< "${TESTLINES}" ;then
                 __MSG_DEBUG "RSS Feed Found"
-                if (( DEBUG == 1 )) ; then echo; fi
+                if (( DEBUG > 1 )) ; then echo; fi
                 # if file is RSS then we look for '<enclosure '
                 #    To debug a sed command and see how it flows use --debug option.
                 #    NOTES for sed command:
@@ -2501,7 +2496,7 @@ PodgetServerLoop() {
                  fi
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
                 __MSG_DEBUG "Atom Feed Found"
-                if (( DEBUG == 1 )) ; then echo; fi
+                if (( DEBUG > 1 )) ; then echo; fi
                 # if file is Atom then we look for '<link\s.*rel="enclosure" '
                 # NOTE: there may be a tag between link and rel, therefore we need to add '\s.*'
 
@@ -2533,7 +2528,7 @@ PodgetServerLoop() {
 #       in the feed and not understand why the filtering they have selected results
 #       in fewer or none found.  However it is useful during testing so it is
 #       available.
-#                if (( DEBUG == 1 )); then
+#                if (( DEBUG > 1 )); then
 #                    __MSG_DEBUG "------ Indexfile Contents --------"
 #                    while IFS= read -r LINE; do
 #                        __MSG_DEBUG "${LINE}"
@@ -3137,8 +3132,8 @@ PodgetServerLoop() {
                             rm -f "${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     else
-                        if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]] && (( DEBUG == 1 )) ; then
-                            echo "${DEBUG_LEADER} Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
+                        if [[ -n ${URL_FILENAME+set} && -f "${DIR_SESSION}/${URL_FILENAME}.servresp" ]] && (( DEBUG > 1 )) ; then
+                            __MSG_DEBUG "Not deleting ${DIR_SESSION}/${URL_FILENAME}.servresp"
                         fi
                     fi
 
@@ -3846,9 +3841,7 @@ PodgetCore() {
         DIR_LIBRARY=${CMDL_LIBRARY}
     fi
 
-    if (( VERBOSITY >= 3 )) ; then
-        printf '%-30s %s\n' "Library Directory:" "${DIR_LIBRARY}"
-    fi
+    __MSG_INFO "Library Directory" "${DIR_LIBRARY}"
 
     if [[ -z ${DIR_LIBRARY} ]] ; then
         echo "ERROR - Library directory not defined." 1>&2
@@ -3878,9 +3871,7 @@ PodgetCore() {
         DirectoryCheck DIR_SESSION
     fi
 
-    if (( VERBOSITY >= 3 )) ; then
-        printf '%-30s %s\n' "Session Directory:" "${DIR_SESSION}"
-    fi
+    __MSG_INFO "Session Directory" "${DIR_SESSION}"
 
     if [[ -n ${CMDL_CLEANUP_DAYS+set} ]] ; then
         if [[ -z ${CMDL_CLEANUP_DAYS##*[!0-9]*} ]]; then
@@ -3902,9 +3893,7 @@ PodgetCore() {
 
     DirectoryCheck DIR_LOG
 
-    if (( VERBOSITY >= 3 )) ; then
-        printf '%-30s %s\n' "Log Directory:" "${DIR_LOG}"
-    fi
+    __MSG_INFO "Log Directory" "${DIR_LOG}"
 
     if [[ -n ${CMDL_ASX+set} ]]; then
         ASX_PLAYLIST=${CMDL_ASX}
@@ -3954,9 +3943,9 @@ PodgetCore() {
     fi
 
     if (( DEBUG == 0 )); then
-        __MSG_INFO "Debug Disabled - Delete temp files and reduced progress messages."
+        __MSG_INFO "Debug Disabled" "Delete temp files and reduced progress messages."
     else
-        __MSG_DEBUG "Debug Enabled - Do not delete temp files and increased progress messages."
+        __MSG_DEBUG "Debug Enabled" "Do not delete temp files and increased progress messages."
     fi
 
     if (( VERBOSITY >= 1 )) ; then
@@ -4004,13 +3993,11 @@ PodgetCore() {
         fi
     done < <(find "${DIR_SESSION}" -maxdepth 1 -type f -name "podget.[0-9]*" -print0)
 
-    if (( VERBOSITY >= 2 )) ; then
-        if (( DEBUG == 1 )); then echo; fi
-        if (( TEST_SESSION > 0 )) ; then
-            echo "Old Session file(s) found and removed.  Creating new one."
-        else
-            echo "Session file not found.  Creating podget.$$"
-        fi
+    if (( DEBUG > 1 )); then echo; fi
+    if (( TEST_SESSION > 0 )) ; then
+        __MSG_INFO "Old Session file(s) found and removed.  Creating new one."
+    else
+        __MSG_INFO "Session file not found.  Creating podget.$$"
     fi
 
     # Set session file.  Stores the configuration file used so that multiple sessions can be run per user simultaneously as
