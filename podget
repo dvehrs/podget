@@ -2915,27 +2915,21 @@ PodgetServerLoop() {
                             # Move filename to that provided by content-disposition
                             if [[ -n ${CONTENT_FILENAME+set} && -n ${CONTENT_FILENAME} ]]; then
                                 if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
-                                    fi
+                                    __MSG_INFO "Filename Change" "From ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                     FINAL_FILENAME="${CONTENT_FILENAME}"
                                 else
                                     if (( FORCE != 0 )); then
                                         if [[ "${FINAL_FILENAME}" == "${CONTENT_FILENAME}" ]]; then
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
-                                            fi
+                                            echo "Filename Change Blocked [ Same Filename ]"
                                         else
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
-                                            fi
+                                            __MSG_INFO "Filename Change" "Forced from ${FINAL_FILENAME} to ${CONTENT_FILENAME}"
                                             mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${CONTENT_FILENAME}"
                                             FINAL_FILENAME="${CONTENT_FILENAME}"
                                         fi
                                     else
                                         if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${CONTENT_FILENAME} already exists ]"
+                                            echo "Filename Change" "Blocked [ ${CONTENT_FILENAME} already exists ]"
                                         fi
                                     fi
                                 fi
@@ -2944,27 +2938,23 @@ PodgetServerLoop() {
                             # Move filename to that provided by LOCATION_FILENAME
                             if [[ -n ${LOCATION_FILENAME+set} && -n ${LOCATION_FILENAME} ]]; then
                                 if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                    fi
+                                    __MSG_INFO "Filename Change" "From ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                     FINAL_FILENAME="${LOCATION_FILENAME}"
                                 else
                                     if (( FORCE != 0 )); then
                                         if [[ "${FINAL_FILENAME}" == "${LOCATION_FILENAME}" ]]; then
                                             if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ Same Filenames ]"
+                                                echo "Filename Change" "Blocked [ Same Filename ]"
                                             fi
                                         else
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
-                                            fi
+                                            __MSG_INFO "Filename Change" "Forced from ${FINAL_FILENAME} to ${LOCATION_FILENAME}"
                                             mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${LOCATION_FILENAME}"
                                             FINAL_FILENAME="${LOCATION_FILENAME}"
                                         fi
                                     else
                                         if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${LOCATION_FILENAME} already exists ]"
+                                            echo "Filename Change Blocked [ ${LOCATION_FILENAME} already exists ]"
                                         fi
                                     fi
                                 fi
@@ -2995,21 +2985,17 @@ PodgetServerLoop() {
                                     fi
                                     __MSG_DEBUG "Title with extension: ${FINAL_TITLE}"
                                     if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}" ]]; then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
-                                        fi
+                                        __MSG_INFO "Filename Change" "From ${FINAL_FILENAME} to ${FINAL_TITLE}"
                                         mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
                                         FINAL_FILENAME="${FINAL_TITLE}"
                                     else
                                         if (( FORCE != 0 )); then
-                                            if (( VERBOSITY >= 2 )); then
-                                                echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_TITLE}"
-                                            fi
+                                            __MSG_INFO "Filename Change" "Forced from ${FINAL_FILENAME} to ${FINAL_TITLE}"
                                             mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_TITLE}"
                                             FINAL_FILENAME="${FINAL_TITLE}"
                                         else
                                             if (( VERBOSITY >= 2 )); then
-                                                echo "FILENAME CHANGE PREVENTED [ ${FINAL_TITLE} already exists ]"
+                                                echo "Filename Change Blocked [ ${FINAL_TITLE} already exists ]"
                                             fi
                                         fi
                                     fi
@@ -3025,21 +3011,17 @@ PodgetServerLoop() {
                                 FILE_MDATE=$(date -r "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" '+%Y%m%d_%Hh%Mm')
                                 local FILENAME_MDATE="${FILE_MDATE}_${FINAL_FILENAME}"
                                 if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
-                                    fi
+                                    __MSG_INFO "Filename Change" "From ${FINAL_FILENAME} to ${FILENAME_MDATE}"
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
                                     FINAL_FILENAME="${FILENAME_MDATE}"
                                 else
                                     if (( FORCE != 0 )); then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
-                                        fi
+                                        __MSG_INFO "Filename Change" "Forced from ${FINAL_FILENAME} to ${FILENAME_MDATE}"
                                         mv -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FILENAME_MDATE}"
                                         FINAL_FILENAME="${FILENAME_MDATE}"
                                     else
                                         if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${FILENAME_MDATE} already exists ]"
+                                            echo "Filename Change Blocked [ ${FILENAME_MDATE} already exists ]"
                                         fi
                                     fi
                                 fi
@@ -3048,21 +3030,17 @@ PodgetServerLoop() {
                             # Add filename.suffix
                             if [[ -n ${FILENAME_SUFFIX+set} ]]; then
                                 if [[ ! -f "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}" ]]; then
-                                    if (( VERBOSITY >= 2 )); then
-                                        echo "FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                    fi
+                                    __MSG_INFO "Filename Change" "From ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     mv "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                 else
                                     if (( FORCE != 0 )); then
-                                        if (( VERBOSITY >= 2 )); then
-                                            echo "Forced FILENAME CHANGE from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
-                                        fi
+                                        __MSG_INFO "Filename Change" "Forced from ${FINAL_FILENAME} to ${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                         mv -f  "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}" "${DIR_LIBRARY}/${FEED_CATEGORY}/${FEED_NAME}/${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                         FINAL_FILENAME="${FINAL_FILENAME}.${FILENAME_SUFFIX}"
                                     else
                                         if (( VERBOSITY >= 2 )); then
-                                            echo "FILENAME CHANGE PREVENTED [ ${FINAL_FILENAME}.${FILENAME_SUFFIX} already exists ]"
+                                            echo "Filename Change Blocked [ ${FINAL_FILENAME}.${FILENAME_SUFFIX} already exists ]"
                                         fi
                                     fi
                                 fi
