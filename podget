@@ -69,7 +69,7 @@ __MSG_DEBUG() {
         if [[ "${PART2}" == "UNConfigured" ]]; then
             printf '%s %s\n' "${DEBUG_LEADER}" "${PART1}"
         else
-            printf '%s %-17s : %s\n' "${DEBUG_LEADER}" "${PART1}" "${PART2}"
+            printf '%s %-20s : %s\n' "${DEBUG_LEADER}" "${PART1}" "${PART2}"
         fi
     fi
 }
@@ -93,7 +93,7 @@ __MSG_INFO() {
         if [[ "${PART2}" == "UNConfigured" ]]; then
             printf '%s %s\n' "${INFO_LEADER}" "${PART1}"
         else
-            printf '%s %-17s : %s\n' "${INFO_LEADER}" "${PART1}" "${PART2}"
+            printf '%s %-20s : %s\n' "${INFO_LEADER}" "${PART1}" "${PART2}"
         fi
     fi
 }
@@ -1534,8 +1534,9 @@ PodgetBuildFeedPlaylist() {
                     if [ -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}" ]; then
                         if (( VERBOSITY >= 2 )) ; then
                             echo "Remove old playlist: ${FULL_PLAYLIST_NAME}"
-                            rm -v "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                            rm "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                         else
+                            __MSG_INFO "Remove old playlist" "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                             rm -f "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                         fi
                     fi
@@ -1543,6 +1544,8 @@ PodgetBuildFeedPlaylist() {
                         # Build new full playlist.
                         if (( VERBOSITY >= 2 )); then
                             echo "Build new ${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
+                        else
+                            __MSG_INFO "Build new playlist" "${DIR_LIBRARY}/${FULL_PLAYLIST_NAME}"
                         fi
                         local FEED_ITEMS
                         if (( FEED_FULL_PLAYLIST == 1 )); then
