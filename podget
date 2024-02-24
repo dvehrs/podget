@@ -1416,7 +1416,8 @@ PodgetBuildFeedPlaylist() {
     # NOTE: filename globbing for the grep command is somewhat clunky because expansion does not happen within quotes.  Might be
     #       nice to find a more elegant way to state this.
     if grep --files-with-match --quiet --no-messages "OPT_FEED_PLAYLIST_\\(NEW\\|OLD\\)FIRST" "${DIR_CONFIG}/${CONFIG_SERVERLIST}"{.utf16,}; then
-        __MSG_DEBUG "Build OPT_FEED_PLAYLISTs"
+        __MSG_DEBUG "============================================================"
+        __MSG_INFO "Build OPT_FEED_PLAYLISTs"
         # Set header to not be displayed unless active feed configured to require one.
         local FEED_PLAYLIST_HEADER=0
 
@@ -1597,6 +1598,9 @@ PodgetCleanup() {
         else
             printf '\n%s\n%s\n' "-------------------------------------------------" "Cleanup old tracks."
         fi
+    else
+        __MSG_DEBUG "============================================================"
+        __MSG_INFO "Cleanup Old Tracks"
     fi
     FILELIST=$(find "${DIR_LIBRARY}"/ -maxdepth 1 -type f -name "*.m3u")
     # Convert CLEANUP_DAYS to CLEANUP_SECONDS (86400 == seconds in a day)
@@ -1619,6 +1623,8 @@ PodgetCleanup() {
         fi
         if (( VERBOSITY >= 2 )) ; then
             echo "Deleting tracks from ${FILE}:"
+        else
+            __MSG_INFO "Deleting Tracks" "From ${FILE}"
         fi
         local LINE
         while read -r LINE ; do
@@ -1629,27 +1635,21 @@ PodgetCleanup() {
                     if (( CLEANUP_SIMULATE > 0 )); then
                         echo "File to remove:  ${DIR_LIBRARY}/${LINE}"
                     else
-                        if (( VERBOSITY >= 2 )) ; then
-                            rm -v "${DIR_LIBRARY}/${LINE}"
-                        else
-                            rm -f "${DIR_LIBRARY}/${LINE}"
-                        fi
+                        __MSG_INFO "Remove File" "${DIR_LIBRARY}/${LINE}"
+                        rm -f "${DIR_LIBRARY}/${LINE}"
                     fi
                 fi
             else
-                if (( VERBOSITY >= 2 || CLEANUP_SIMULATE > 0 )) ; then
-                    echo "File not found:  ${DIR_LIBRARY}/${LINE}"
+                if (( CLEANUP_SIMULATE > 0 )) ; then
+                    __MSG_INFO "File not found" "${DIR_LIBRARY}/${LINE}"
                 fi
             fi
         done < "${FILE}"
         if (( CLEANUP_SIMULATE > 0 )); then
             echo "Playlist to remove: ${FILE}"
         else
-            if (( VERBOSITY <= 1 )) ; then
-                rm -f "${FILE}"
-            else
-                rm -fv "${FILE}"
-            fi
+            __MSG_INFO "Remove Playlist" "${FILE}"
+            rm -f "${FILE}"
         fi
     done <<<"${FILELIST}"
 }
@@ -4057,6 +4057,9 @@ PodgetCore "${@}"
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Close session with '0' status and clean up:                                                                                    {{{
+
+__MSG_DEBUG "============================================================"
+__MSG_INFO "Closing session with '0' status and cleanup"
 
 # Disable extended glob matches.
 shopt -u extglob
