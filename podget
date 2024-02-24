@@ -1070,9 +1070,7 @@ FilenameFixFormat() {
           -n ${FILENAME_FORMATFIX4+set} || -n ${FILENAME_FORMATFIX5+set} || -n ${FILENAME_FORMATFIX6+set} ||
           -n ${FILENAME_FORMATFIX7+set} || -n ${FILENAME_FORMATFIX8+set} || -n ${FILENAME_FORMATFIX9+set} ||
           -n ${FILENAME_FORMATFIX10+set} ]]; then
-        if (( VERBOSITY >= 3 )) ; then
-           printf '%-30s %s\n' "ORIGINAL FILENAME:" "${ORIGINAL_FILENAME}"
-        fi
+       __MSG_INFO "ORIGINAL FILENAME" "${ORIGINAL_FILENAME}"
     fi
 
     # Note:  Filename format fixes that have more specific conditions come first.  More generic last.  This is
@@ -1190,8 +1188,8 @@ FilenameFixFormat() {
         fi
     fi
 
-    if (( VERBOSITY >= 3 )) && [[ "${ORIGINAL_FILENAME}" != "${MODIFIED_FILENAME}" ]]; then
-        printf '%-30s %s\n' "MODIFIED FILENAME:" "${MODIFIED_FILENAME}"
+    if [[ "${ORIGINAL_FILENAME}" != "${MODIFIED_FILENAME}" ]]; then
+        __MSG_INFO "MODIFIED FILENAME" "${MODIFIED_FILENAME}"
     fi
 
     # Pass the modified filename back to the calling variable.
@@ -3293,9 +3291,7 @@ TitleFixFormat() {
     # ORIGINAL and MODIFIED start out the same.
     local ORIGINAL_TITLE="${MODIFIED_TITLE}"
 
-    if (( VERBOSITY >= 3 )) ; then
-       printf '%-30s %s\n' "ORIGINAL TITLE:" "${ORIGINAL_TITLE}"
-    fi
+   __MSG_INFO "ORIGINAL TITLE" "${ORIGINAL_TITLE}"
 
     if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
@@ -3344,8 +3340,8 @@ TitleFixFormat() {
         __MSG_INFO "TITLE FORMAT FIXED: ${MODIFIED_TITLE}"
     fi
 
-    if (( VERBOSITY >= 3 ))  && [[ "${ORIGINAL_TITLE}" != "${MODIFIED_TITLE}" ]]; then
-        printf '%-30s %s\n' "MODIFIED TITLE:" "${MODIFIED_TITLE}"
+    if [[ "${ORIGINAL_TITLE}" != "${MODIFIED_TITLE}" ]]; then
+        __MSG_INFO "MODIFIED TITLE" "${MODIFIED_TITLE}"
     fi
 
     # Pass the modified filename back to the calling variable.
