@@ -2309,6 +2309,8 @@ PodgetServerLoop() {
             # We use double brackets here instead of double parentheses for numeric comparisons because it allows us
             # to string the three options together.   And inside double brackets, the && (and) takes precedence over the
             # || (or).  So it can be confusing to read but works.
+            #
+            # That is why '[[ A && B || C && D ]]' will result in both A and B needing to be true OR both C and D.
             if [[ "${NO_PLAYLIST}" -eq 0  &&  -n ${PLAYLIST_PERPODCAST+set} || "${FEED_FULL_PLAYLIST}" -gt 0 ]]; then
                 __MSG_INFO "Playlist Name" "${PLAYLIST_NAME} (for single Podcast)"
             fi
