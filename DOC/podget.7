@@ -681,5 +681,17 @@ Level 4 Debug includes:
 - Enable Bash shell debug trap.  Podget uses a very simple debug trap that causes each line as it is read to be printed with the line number it is on.  This is effectively a slightly improved version of what the verbose option tells us.
 .PD
 
+.SS Special Handling for Debug messages.
+.PP
+The majority of the output from Podget is set to the STDOUT stream.  However, when using Debug modes at level 2 or above, the additional messages are sent to the STDERR stream.  For most uses, this is just fine.  However if you wish to pipe the output to another command then it may be necessary to merge the two streams back together so they are displayed in the expected order.
+.PP
+For example to pipe the output of Podget to less, you could run:
+.PP
+.nf
+.fam C
+  $ DEBUG=2 podget 2>&1 | less
+.fam T
+.fi
+
 .SH AUTHORS
 Dave Vehrs
