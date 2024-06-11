@@ -1376,8 +1376,8 @@ PlaylistConvertToASX() {
 # ${1} == Library directory that files are stored in.
 # ${2} == M3U Playlist to sort.
 PlaylistSort() {
-    local DIR_LIBRARY=${1}
-    local M3U_PLAYLISTNAME=${2}
+    local -r DIR_LIBRARY=${1}
+    local -r M3U_PLAYLISTNAME=${2}
     local REALPLAYLISTNAME="${DIR_LIBRARY}/$M3U_PLAYLISTNAME"
 
     # Sort Playlist
@@ -1407,9 +1407,9 @@ PlaylistSort() {
 # Build M3U playlist for a single feed if it is configured to get them in the serverlist file.
 # ARGUMENTS: <none>
 PodgetBuildFeedPlaylist() {
-    local DIR_CONFIG="${DIR_CONFIG}"
-    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
-    local VERBOSITY="${VERBOSITY}"
+    local -r DIR_CONFIG="${DIR_CONFIG}"
+    local -r CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+    local -r VERBOSITY="${VERBOSITY}"
 
     # Test if any feeds are configured to require individual playlists.  If none are configured to require them, skip this
     # section.
@@ -1591,10 +1591,10 @@ PodgetBuildFeedPlaylist() {
 # Cleanup loop for PodgetCore function.  This loop removes any downloaded files older than CLEANUP_DAYS
 # ARGUMENTS: <none>
 PodgetCleanup() {
-    local VERBOSITY="${VERBOSITY}"
-    local CLEANUP_SIMULATE="${CLEANUP_SIMULATE}"
-    local DIR_LIBRARY="${DIR_LIBRARY}"
-    local PLAYLIST_NAMEBASE="${PLAYLIST_NAMEBASE}"
+    local -r VERBOSITY="${VERBOSITY}"
+    local -r CLEANUP_SIMULATE="${CLEANUP_SIMULATE}"
+    local -r DIR_LIBRARY="${DIR_LIBRARY}"
+    local -r PLAYLIST_NAMEBASE="${PLAYLIST_NAMEBASE}"
     if (( VERBOSITY >= 2 )) ; then
         if (( CLEANUP_SIMULATE > 0 )); then
             echo "Simulating cleanup, the following files will be removed when you run cleanup."
@@ -1662,11 +1662,11 @@ PodgetCleanup() {
 # Displays general message with command line options.
 # ARGUMENTS: <none>
 PodgetExportOPML() {
-    local EXPORT_OPML="${1}"
-    local VERBOSITY="${VERBOSITY}"
-    local DIR_CONFIG="${DIR_CONFIG}"
-    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
-    local ERR_EXPORTOPML="${ERR_EXPORTOPML}"
+    local -r EXPORT_OPML="${1}"
+    local -r VERBOSITY="${VERBOSITY}"
+    local -r DIR_CONFIG="${DIR_CONFIG}"
+    local -r CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+    local -r ERR_EXPORTOPML="${ERR_EXPORTOPML}"
 
     if [[ ${EXPORT_OPML} == "NONE" ]]; then
         echo
@@ -1741,7 +1741,7 @@ PodgetExportOPML() {
 # ARGUMENTS:
 # ${1} == OPML to import
 PodgetImportOPML() {
-    local IMPORT_OPML="${1}"
+    local -r IMPORT_OPML="${1}"
 
     if [[ ${IMPORT_OPML} == "NONE" ]]; then
         echo
@@ -1875,17 +1875,17 @@ PodgetServerLoop() {
     # Set local variables (and get values from global variables as necessary).
     #   NOTE: These might look a little redundant because the local variable has the same name as the global but it works and
     #         Shellcheck does not complain.
-    local VERBOSITY="${VERBOSITY}"
-    local LOG_FAIL="${LOG_FAIL}"
-    local LOG_COMPLETE="${LOG_COMPLETE}"
-    local CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
-    local NO_PLAYLIST="${NO_PLAYLIST}"
+    local -r VERBOSITY="${VERBOSITY}"
+    local -r LOG_FAIL="${LOG_FAIL}"
+    local -r LOG_COMPLETE="${LOG_COMPLETE}"
+    local -r CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
+    local -r NO_PLAYLIST="${NO_PLAYLIST}"
     if [[ -n ${PLAYLIST_PERPODCAST+set} ]]; then
-        local PLAYLIST_PERPODCAST="${PLAYLIST_PERPODCAST}"
+        local -r PLAYLIST_PERPODCAST="${PLAYLIST_PERPODCAST}"
     fi
-    local DIR_LOG="${DIR_LOG}"
+    local -r DIR_LOG="${DIR_LOG}"
     local SESSION_PLAYLIST_NAME
-    local DIR_CONFIG="${DIR_CONFIG}"
+    local -r DIR_CONFIG="${DIR_CONFIG}"
     local CURRENT_SERVERLIST
     local COUNTER
     local FEED_CATEGORY
@@ -3218,8 +3218,8 @@ PodgetServerLoop() {
 # ${1} == URL to remove from file
 # ${2} == FILE to remove URL from
 RemoveURL() {
-    local URL_INPUT=${1}
-    local TARGET_FILE=${2}
+    local -r URL_INPUT=${1}
+    local -r TARGET_FILE=${2}
 
     # Characters unlikely to appear in an URL that are suitable for use as delimiters in SED statements.
     # List has been pruned down to eliminate any characters that need to be escaped themselves.
@@ -3263,7 +3263,7 @@ RemoveURL() {
 # ${2} == string to fix the format of
 TitleFixFormat() {
     # variable to hold returned value.
-    local VAR_RETURN=${1}
+    local -r VAR_RETURN=${1}
 
     # Filename to be modified.
     # Set original value for title format fixes and character substitutions.
@@ -3271,7 +3271,7 @@ TitleFixFormat() {
     local MODIFIED_TITLE=${2}
 
     # ORIGINAL and MODIFIED start out the same.
-    local ORIGINAL_TITLE="${MODIFIED_TITLE}"
+    local -r ORIGINAL_TITLE="${MODIFIED_TITLE}"
 
    __MSG_INFO "ORIGINAL TITLE" "${ORIGINAL_TITLE}"
 
