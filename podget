@@ -118,7 +118,7 @@ if [[ -n "${DEBUG+set}" ]]; then
                 # NOTE: Debug trap sends it's output to STDERR (2) so that it does not
                 #       cause errors during command substitutions ( $(..) or `..` ).
                 #       This can happen when functrace is enabled.
-                trap 'echo "LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
+                trap 'echo "DEBUG LINE ${LINENO}: ${BASH_COMMAND}" >&2' DEBUG
 
             fi
         fi
