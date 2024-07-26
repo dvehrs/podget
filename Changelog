@@ -1,5 +1,7 @@
   * Small cleanup, removed old bit that had been commented out but without
     explanation.  Thanks to Francois Marier for the pull request on Github.
+  * Updated configuration example in the documentation to use https.  Thanks
+    to Francois Marier for the suggestion and pull request on Github.
 
 podget (0.9.3) unstable; urgency=low
 
