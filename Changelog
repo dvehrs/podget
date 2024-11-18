@@ -2,6 +2,13 @@
     explanation.  Thanks to Francois Marier for the pull request on Github.
   * Updated configuration example in the documentation to use https.  Thanks
     to Francois Marier for the suggestion and pull request on Github.
+  * Replaced use of expr statements so that we could enable 'set -o errtrace'.
+    These were replaced with bash test regex statements ( [[ =~ ]] ).
+  * Added increased debugging options (xtrace, verbosity and/or functrace).
+  * Converted many "DEBUG --*" statements to "INFO --" for easier access and
+    clarity.
+  * Changed sort command on approximately line 1401 to use the -o option instead
+    of --output= to designate the output file for NetBSD compatibility.
 
 podget (0.9.3) unstable; urgency=low
 

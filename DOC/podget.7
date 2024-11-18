@@ -1,5 +1,5 @@
 .\" Hand Tweaked Man Page.
-.TH podget 7 "10 February 2023" "" ""
+.TH podget 7 "22 February 2024" "" ""
 
 .SH NAME
 .B Podget 
@@ -578,6 +578,118 @@ Then the job might look like:
 .nf
 .fam C
   15 04 * * * PATH=/opt/local/bin:/usr/local/bin:$PATH /usr/bin/podget \-s
+.fam T
+.fi
+
+.SH INFORMATION AND DEBUG MESSAGES
+
+Sometimes when you are running Podget, it is nice to get a bit more information about what is happening to pinpoint what is causing a problem.  With that in mind, Podget makes it possible to display more of what is happening behind the scenes.
+
+For informational messages:
+.PP
+.nf
+.fam C
+  $ INFO= podget
+.fam T
+.fi
+
+INFO can be set to any value or none.  It just matters that the variable is set.
+
+By default any informational message line will be prefixed with 'INFO  --'.
+
+Debug messages get deeper into what is happening and are available in 5 levels.
+
+By default Debug messages are disabled and are the equivalent of running:
+.PP
+.nf
+.fam C
+  $ DEBUG=0 podget
+.fam T
+.fi
+
+Higher Debug levels can be enabled and include these options.
+
+.PP
+.nf
+.fam C
+  $ DEBUG=1 podget
+.fam T
+.fi
+
+Level 1 Debug includes:
+.PD 0
+.P
+- Informational messages.
+.P
+- Debugging messages (by default prefixed with 'DEBUG --').
+.PD
+
+.PP
+.nf
+.fam C
+  $ DEBUG=2 podget
+.fam T
+.fi
+
+Level 2 Debug includes:
+.PD 0
+.P
+- Informational messages.
+.P
+- Debugging messages.
+.P
+- Enable Bash Shell option for xtrace.  The shell will print the expanded version of each command and arguments as they are run.
+.PD
+
+.PP
+.nf
+.fam C
+  $ DEBUG=3 podget
+.fam T
+.fi
+
+Level 3 Debug includes:
+.PD 0
+.P
+- Informational messages.
+.P
+- Debugging messages.
+.P
+- Enable Bash Shell option for xtrace.
+.P
+- Enable Bash Shell option for verbose.  This will cause the script to print each line as they are read without expanding anything.
+.PD
+
+.PP
+.nf
+.fam C
+  $ DEBUG=4 podget
+.fam T
+.fi
+
+Level 4 Debug includes:
+.PD 0
+.P
+- Informational messages.
+.P
+- Debugging messages.
+.P
+- Enable Bash Shell option for xtrace.
+.P
+- Enable Bash Shell option for functrace.  When enabled any traps on DEBUG and RETURN are inherited by shell functions, command substitutions and subshells.
+.P
+- Enable Bash shell debug trap.  Podget uses a very simple debug trap that causes each line as it is read to be printed with the line number it is on.  This is effectively a slightly improved version of what the verbose option tells us.
+.PD
+
+.SS Special Handling for Debug messages.
+.PP
+The majority of the output from Podget is set to the STDOUT stream.  However, when using Debug modes at level 2 or above, the additional messages are sent to the STDERR stream.  For most uses, this is just fine.  However if you wish to pipe the output to another command then it may be necessary to merge the two streams back together so they are displayed in the expected order.
+.PP
+For example to pipe the output of Podget to less, you could run:
+.PP
+.nf
+.fam C
+  $ DEBUG=2 podget 2>&1 | less
 .fam T
 .fi
 
