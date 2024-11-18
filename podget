@@ -1397,7 +1397,9 @@ PlaylistSort() {
         return
     fi
 
-    cp -p "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && sort --output="$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && rm "$TEMPPLAYLISTNAME"
+    # Convert Sort --output= option to -o for compatibility with NetBSD
+    cp -p "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && sort -o "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && rm "$TEMPPLAYLISTNAME"
+    # cp -p "$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && sort --output="$REALPLAYLISTNAME" "$TEMPPLAYLISTNAME" && rm "$TEMPPLAYLISTNAME"
 
     unset -v REALPLAYLISTNAME TEMPPLAYLISTNAME
 }
