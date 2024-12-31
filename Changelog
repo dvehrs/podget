@@ -9,6 +9,8 @@
     clarity.
   * Changed sort command on approximately line 1401 to use the -o option instead
     of --output= to designate the output file for NetBSD compatibility.
+  * Modified FILENAME_FORMATFIX9 to include the underscore in its pattern.
+    Fix for filename too long issue reported by jim-pye-007 on Github.
 
 podget (0.9.3) unstable; urgency=low
 
