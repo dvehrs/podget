@@ -11,6 +11,8 @@
     of --output= to designate the output file for NetBSD compatibility.
   * Modified FILENAME_FORMATFIX9 to include the underscore in its pattern.
     Fix for filename too long issue reported by jim-pye-007 on Github.
+  * Just passed the twentieth anniversary of the first release of Podget on
+    Sourceforge.net.  Big thanks to everyone that's been along for the ride!
 
 podget (0.9.3) unstable; urgency=low
 
