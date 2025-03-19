@@ -1,3 +1,11 @@
+podget (1.0.0-1) unstable; urgency=medium
+
+  [ Dave Vehrs ]
+  * New Upstream release
+  * Bump Standards-Version up to 4.7.2
+
+ -- Dave Vehrs <dvehrs@gmail.com>  Wed, 19 Mar 2025 14:21:07 -0600
+
 podget (0.9.3-1) unstable; urgency=medium
 
   [ Dave Vehrs ]
