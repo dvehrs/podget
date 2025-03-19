@@ -1,3 +1,5 @@
+podget (1.0.0) unstable; urgency=low
+
   * Small cleanup, removed old bit that had been commented out but without
     explanation.  Thanks to Francois Marier for the pull request on Github.
   * Updated configuration example in the documentation to use https.  Thanks
@@ -11,8 +13,16 @@
     of --output= to designate the output file for NetBSD compatibility.
   * Modified FILENAME_FORMATFIX9 to include the underscore in its pattern.
     Fix for filename too long issue reported by jim-pye-007 on Github.
+  * Reformatted script to run primarily from within functions.  Main body of
+    script was placed into PodgetCore function.
+  * Started experiment with functions and local variables to limit variable
+    scope.  More details in note at end of Podget script.
+  * Updated configuration file version checking to support versions greater
+    than 1.x.x
   * Just passed the twentieth anniversary of the first release of Podget on
     Sourceforge.net.  Big thanks to everyone that's been along for the ride!
+
+ -- Dave Vehrs <dvehrs@gmail.com> Thu, 13 Mar 2025 13:37:38 -0600
 
 podget (0.9.3) unstable; urgency=low
 

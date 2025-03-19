@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Filename:      podget                                                                                                          {{{
 # Maintainer:    Dave Vehrs (dvehrs on Github.com)
-# Copyright:     (c) 2005-2024 Dave Vehrs
+# Copyright:     (c) 2005-2025 Dave Vehrs
 #
 #                This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public
 #                License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any
@@ -1409,6 +1409,7 @@ PlaylistSort() {
 # Build M3U playlist for a single feed if it is configured to get them in the serverlist file.
 # ARGUMENTS: <none>
 PodgetBuildFeedPlaylist() {
+    # If you're curious about why we doing what we do here, please refer to note on variable scope at end of file.
     local -r DIR_CONFIG="${DIR_CONFIG}"
     local -r CONFIG_SERVERLIST="${CONFIG_SERVERLIST}"
     local -r VERBOSITY="${VERBOSITY}"
@@ -1593,6 +1594,7 @@ PodgetBuildFeedPlaylist() {
 # Cleanup loop for PodgetCore function.  This loop removes any downloaded files older than CLEANUP_DAYS
 # ARGUMENTS: <none>
 PodgetCleanup() {
+    # If you're curious about why we doing what we do here, please refer to note on variable scope at end of file.
     local -r VERBOSITY="${VERBOSITY}"
     local -r CLEANUP_SIMULATE="${CLEANUP_SIMULATE}"
     local -r DIR_LIBRARY="${DIR_LIBRARY}"
@@ -1664,6 +1666,7 @@ PodgetCleanup() {
 # Displays general message with command line options.
 # ARGUMENTS: <none>
 PodgetExportOPML() {
+    # If you're curious about why we doing what we do here, please refer to note on variable scope at end of file.
     local -r EXPORT_OPML="${1}"
     local -r VERBOSITY="${VERBOSITY}"
     local -r DIR_CONFIG="${DIR_CONFIG}"
@@ -1743,6 +1746,7 @@ PodgetExportOPML() {
 # ARGUMENTS:
 # ${1} == OPML to import
 PodgetImportOPML() {
+    # If you're curious about why we doing what we do here, please refer to note on variable scope at end of file.
     local -r IMPORT_OPML="${1}"
 
     if [[ ${IMPORT_OPML} == "NONE" ]]; then
@@ -1821,6 +1825,7 @@ PodgetImportOPML() {
 # ARGUMENTS:
 # ${1} == PCAST to import (file or URL)
 PodgetImportPCAST() {
+    # If you're curious about why we doing what we do here, please refer to note on variable scope at end of file.
     local IMPORT_PCAST="${IMPORT_PCAST}"
     local VERBOSITY="${VERBOSITY}"
     local DIR_CONFIG="${DIR_CONFIG}"
@@ -1875,8 +1880,7 @@ PodgetImportPCAST() {
 # ARGUMENTS: <none>
 PodgetServerLoop() {
     # Set local variables (and get values from global variables as necessary).
-    #   NOTE: These might look a little redundant because the local variable has the same name as the global but it works and
-    #         Shellcheck does not complain.
+    # If you're curious about why we doing what we do here, please refer to note on variable scope at end of file.
     local -r VERBOSITY="${VERBOSITY}"
     local -r LOG_FAIL="${LOG_FAIL}"
     local -r LOG_COMPLETE="${LOG_COMPLETE}"
@@ -3412,7 +3416,7 @@ PodgetCore() {
     # ------------------------------------------------------------------------------------------------------------------------------
     # Version  (Update with changes!)                                                                                            {{{
 
-    local VERSION=0.9.3
+    local VERSION=1.0.0
     local REPORT_VERSION=0
 
     #                                                                                                                            }}}
@@ -3734,16 +3738,17 @@ PodgetCore() {
 
         # Assign values from array to named variables with a default of '0' if unset.
         # NOTE: BASE is currently commented out because it is currently unused.  It is here if we need it.
-        # BASE="${VERSION_ARRAY[0]:-0}"
-        MAJOR="${VERSION_ARRAY[1]:-0}"
-        MINOR="${VERSION_ARRAY[2]:-0}"
+        local BASE="${VERSION_ARRAY[0]:-0}"
+        local MAJOR="${VERSION_ARRAY[1]:-0}"
+        local MINOR="${VERSION_ARRAY[2]:-0}"
 
         __MSG_DEBUG "PODGETRC Version Check:  (looking for newer than 0.6.18)"
         __MSG_DEBUG "  BASE: ${BASE:-0}"
         __MSG_DEBUG "  MAJOR: ${MAJOR}"
         __MSG_DEBUG "  MINOR: ${MINOR}"
 
-        if (( (MAJOR < 7) && (MINOR < 19) )); then
+        # Version 0.6.18 was the last version before 0.7.0, so this check should catch any of it's configuration files.
+        if (( (BASE < 1) && (MAJOR < 7) && (MINOR < 19) )); then
             echo "${DIR_CONFIG}/${CONFIG_CORE} was created by an older version of podget than is needed by this version."
             echo
             echo "This version of podget requires a configuration produced for version 0.7.0 or newer.  This configuration"
@@ -3754,6 +3759,10 @@ PodgetCore() {
             echo "your desired configuration, move it in place of the old one."
             CleanupAndExit 1
         fi
+
+        unset -v BASE
+        unset -v MAJOR
+        unset -v MINOR
     fi
 
     #                                                                                                                            }}}
@@ -3803,7 +3812,7 @@ PodgetCore() {
 
     #                                                                                                                            }}}
     # ------------------------------------------------------------------------------------------------------------------------------
-    # Configuration adjustments for command line options                                                                             {{{
+    # Configuration adjustments for command line options                                                                         {{{
 
     if [[ -n ${CMDL_NOPLAYLIST+set} ]]; then
         if (( VERBOSITY >= 1 )) ; then
@@ -4074,7 +4083,25 @@ CleanupAndExit 0
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # Notes:                                                                                                                         {{{
-# 1.  Best viewed in Vim (http://vim.sf.net) with the Relaxedgreen colorscheme (vimscripts #791).
+#
+# 1. In version 1.0.0, we begin an experiment with limiting variable scope with functions and local declarations.  The default way
+#    Bash implements this works well for most cases, however we ran into a small issue that a variable would have near global status
+#    within any function (child) called from the function (parent) it was declared local in.  Not generally an issue but it could
+#    make tracking down where a variable change happened a bit more difficult.  To address this issue, it was discovered that within
+#    a child function when we declared a variable local read-only we could also assign it the value of a variable of the same name
+#    from the parent function.  This allowed us to pass the value and name of the variable to the child function in a way that
+#    effectively limited the scope of where the variable could be changed while still allowing us to use variables of the same name.
+#
+#    For example, in the function PodgetBuildFeedPlaylist() we have the following declaration:
+#       local -r DIR_CONFIG="${DIR_CONFIG}"
+#    This creates a local read-only variable named DIR_CONFIG and inherits its setting from a variable of the same name that was set
+#    within the PodgetCore parent function before it called the child function.  The syntax might look a little redundant because
+#    the local variable has the same name as the global but it works and Shellcheck does not complain.
+#
+#    Declaring the variable local provides the protection from altering it that we want, while declaring it read-only causes an
+#    error if we ever mistakenly do so we know where to fix it.  In some cases, this may mean not protecting the variable and
+#    allowing it to be changed.
+#
 #                                                                                                                                }}}
 # ----------------------------------------------------------------------------------------------------------------------------------
 # vim:tw=132:ts=4:sw=4:foldmethod=marker
