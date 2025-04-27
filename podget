@@ -192,38 +192,38 @@ CleanupAndExit() {
 # ${3} == If the error occurred in a function, the name of the function.
 # shellcheck disable=SC2317
 ExitOnError() {
-  # Name of script
-  local JOB_NAME
-  JOB_NAME=$(basename "$0")
-  # The following three variables are configured with a default value in case
-  # the function is called without options set.
-  local LINENUM="${1:-"Unconfigured"}"                   # Line with error
-  local EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
-  local FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
+    # Name of script
+    local JOB_NAME
+    JOB_NAME=$(basename "$0")
+    # The following three variables are configured with a default value in case
+    # the function is called without options set.
+    local LINENUM="${1:-"Unconfigured"}"                   # Line with error
+    local EXITSTATUS="${2:-"Unconfigured"}"                # exit status of error
+    local FUNCTION="${3:-"Unconfigured"}"                  # If error occurred in a function, its name will be listed.
 
-  printf '\n%s\n  %-15s %s\n' "Error:" "Script:" "${JOB_NAME}"
+    printf '\n%s\n  %-15s %s\n' "Error:" "Script:" "${JOB_NAME}"
 
-  # Function line only appears if it has been set to value other than the
-  # default.  Works on the assumption that "Unconfigured" is not likely to be
-  # chosen as a function name.
-  if [[ ${FUNCTION} != "Unconfigured" ]]; then
-      printf '  %-15s %s\n' "Function:" "${FUNCTION}"
-  fi
+    # Function line only appears if it has been set to value other than the
+    # default.  Works on the assumption that "Unconfigured" is not likely to be
+    # chosen as a function name.
+    if [[ ${FUNCTION} != "Unconfigured" ]]; then
+        printf '  %-15s %s\n' "Function:" "${FUNCTION}"
+    fi
 
-  printf '  %-15s %s\n  %-15s %s\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
+    printf '  %-15s %s\n  %-15s %s\n' "At line:" "${LINENUM}" "Exit Status:" "${EXITSTATUS}"
 
-  printf '\n%s\n' "Context:"
-  # Test is awk installed, if so use it.  If not, then use tools from coreutils.
-  if hash awk 2>/dev/null; then
-      # This line works and adds a ">>>" to designate the offending line but adds
-      # awk as a script dependency.
-      awk 'NR>L-4 && NR<L+4 { printf "%-5d%3s%s\n",NR,(NR==L?">>>":""),$0 }' L="${LINENUM}" "${0}"
-  else
-      # This line works and only depends on coreutils
-      pr -tn "${0}" | tail -n+$((LINENUM - 3)) | head -n7
-  fi
+    printf '\n%s\n' "Context:"
+    # Test is awk installed, if so use it.  If not, then use tools from coreutils.
+    if hash awk 2>/dev/null; then
+        # This line works and adds a ">>>" to designate the offending line but adds
+        # awk as a script dependency.
+        awk 'NR>L-4 && NR<L+4 { printf "%-5d%3s%s\n",NR,(NR==L?">>>":""),$0 }' L="${LINENUM}" "${0}"
+    else
+        # This line works and only depends on coreutils
+        pr -tn "${0}" | tail -n+$((LINENUM - 3)) | head -n7
+    fi
 
-  CleanupAndExit 1
+    CleanupAndExit 1
 }
 #                                                                                                                                }}}
 
@@ -782,8 +782,8 @@ CompareStringInString() {
 # Displays general message with command line options.
 # ARGUMENTS: <none>
 DisplayShortHelp() {
-	echo; echo "Usage $0 [options]"; echo
-	sed --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | sed -e '/HELP_STEXT/d'
+    echo; echo "Usage $0 [options]"; echo
+    sed --silent -e '/HELP_STEXT$/,/^HELP_STEXT/p' "$0" | sed -e '/HELP_STEXT/d'
 }
 #                                                                                                                                }}}
 
@@ -1070,7 +1070,7 @@ FilenameFixFormat() {
           -n ${FILENAME_FORMATFIX4+set} || -n ${FILENAME_FORMATFIX5+set} || -n ${FILENAME_FORMATFIX6+set} ||
           -n ${FILENAME_FORMATFIX7+set} || -n ${FILENAME_FORMATFIX8+set} || -n ${FILENAME_FORMATFIX9+set} ||
           -n ${FILENAME_FORMATFIX10+set} ]]; then
-       __MSG_INFO "ORIGINAL FILENAME" "${ORIGINAL_FILENAME}"
+        __MSG_INFO "ORIGINAL FILENAME" "${ORIGINAL_FILENAME}"
     fi
 
     # Note:  Filename format fixes that have more specific conditions come first.  More generic last.  This is
@@ -1350,24 +1350,24 @@ PlaylistConvertToASX() {
     ASX_LOCATION="\\SD Card\\POD\\"
     ASX_PLAYLISTNAME=$(basename "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}" .m3u).asx
     sed --silent -e '/TEXT_ASX_BEGINNING$/,/^TEXT_ASX_BEGINNING/p' "$0" |
-      sed -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+        sed -e '/TEXT_ASX_BEGINNING/d' > "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 
     while read -r line ; do
-      local FIXED_ENTRY="${line//\//\\}"
-      {
-          echo '    <ENTRY>'
-          echo "        <ref href = \"${ASX_LOCATION}${FIXED_ENTRY}\" />"
-          echo "        <ref href = \".\\${FIXED_ENTRY}\" />"
-          echo '    </ENTRY>'
-      } >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+        local FIXED_ENTRY="${line//\//\\}"
+        {
+            echo '    <ENTRY>'
+            echo "        <ref href = \"${ASX_LOCATION}${FIXED_ENTRY}\" />"
+            echo "        <ref href = \".\\${FIXED_ENTRY}\" />"
+            echo '    </ENTRY>'
+        } >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
     done < "${DIR_LIBRARY}"/"${M3U_PLAYLISTNAME}"
 
     sed --silent -e '/TEXT_ASX_END$/,/^TEXT_ASX_END/p' "$0" |
-      sed -e '/TEXT_ASX_END/d' >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+        sed -e '/TEXT_ASX_END/d' >> "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 
-     # Removing unix2dos dependency. Converting to sed statement with in-place editing of the file in question.
-     # ctrl-v ctrl-m for windows line end.
-     sed -i 's/$//' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
+    # Removing unix2dos dependency. Converting to sed statement with in-place editing of the file in question.
+    # ctrl-v ctrl-m for windows line end.
+    sed -i 's/$//' "${DIR_LIBRARY}"/"${ASX_PLAYLISTNAME}"
 }
 #                                                                                                                                }}}
 
@@ -1727,7 +1727,7 @@ PodgetExportOPML() {
             unset -v ATOM_FILTER_LANG
 
             if (( VERBOSITY >= 3 )) ; then
-                     echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
+                echo "  Writing out feed ${FEED_NAME} in category ${FEED_CATEGORY} with url ${FEED_URL}"
             fi
             printf '\t<outline text="%s"><outline text="%s" type="rss" xmlUrl="%s" /></outline>' \
                 "${FEED_CATEGORY}" "${FEED_NAME}" "${FEED_URL}" >> "${EXPORT_OPML}"
@@ -2430,12 +2430,12 @@ PodgetServerLoop() {
                 #                          -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
                 if (( WGET_OPTION_RSS_MEDIACONTENT < 1 )); then
                     INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                                sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
-                                             -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
-                                             -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                             -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
-                                             -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
-                                             -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
+                    sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                        -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                        -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                        -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
+                        -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                        -e '/\(<enclosure\|<title>\).*/I{N;s/\ *\n/\ /;T;ba}')
                 else
                     # This section adds a couple of tests to look for <media:content ...> tags from the RSS Media Specification.
                     # This is used in the feeds created by FreshRSS aggregator so it's use is not expected to be common but we may
@@ -2470,45 +2470,45 @@ PodgetServerLoop() {
                     #                    an 'I' flag to make it case insensitive for the 'enclosure' bit.
                     #
                     INDEXFILE_TMP=$(echo "${INDEXFILE}" | \
-                                sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
-                                             -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
-                                             -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
-                                             -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
-                                             -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip' -e t \
-                                             -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip" -e t \
-                                             -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip' -e t \
-                                             -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip" -e t \
-                                             -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
-                                             -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
+                    sed -n -e :a -e '/<podcast:liveitem.*<\/podcast:liveitem>/Id' \
+                        -e '/<podcast:liveitem.*/I{N;s/\ *\n/\ /;T;ba}' \
+                        -e 's/.*<enclosure.*url\s*=\s*"\([^"]\+\)".*/URL \1/Ip' -e t \
+                        -e "s/.*<enclosure.*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\1/Ip" -e t \
+                        -e 's/.*<media:content.*type="\(video\|audio\).*url\s*=\s*"\([^"]\+\)".*/URL \2/Ip' -e t \
+                        -e "s/.*<media:content.*type='\\(video\\|audio\\).*url\\s*=\\s*'\\([^']\\+\\)'.*/URL \\2/Ip" -e t \
+                        -e 's/.*<media:content.*url\s*=\s*"\([^"]\+\)".*type="\(video\|audio\).*/URL \1/Ip' -e t \
+                        -e "s/.*<media:content.*url\\s*=\\s*'\\([^']\\+\\)'.*type=\\(video\\|audio\\).*/URL \\1/Ip" -e t \
+                        -e 's/.*<title>\(.*\)<[/]title>.*$/TITLE \1/Ip' -e t \
+                        -e '/\(<enclosure\|<title>\|<media:content\).*/I{N;s/\ *\n/\ /;T;ba}')
                 fi
-                 # If TITLE tag appears after the ENCLOSURE tag in the file, reverse the order of list for parsing.
-                 if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
-                     INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
-                 fi
-                 # Merge TITLE AND URL lines onto single line divided by '<Url-Title>'
-                 INDEXFILE_TMP2=""
-                 while read -r TAG DATA; do
-                     case ${TAG} in
-                         "TITLE" )
-                             ITEM_TITLE="${DATA}"
-                             ;;
-                         "URL" )
-                             # with cleanup for URL (used to be called FINAL below ATOM section)
-                             ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
-                             # Enabled handling of unset ITEM_TITLE items by including a dash at the end of the variable name to
-                             # signify that the default is a blank value (or we could specify a value we wanted after the dash).
-                             INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE-}${NEWLINE}"
-                             unset -v ITEM_TITLE ITEM_URL
-                             ;;
-                     esac
-                 done <<<"${INDEXFILE_TMP}"
-                 if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
-                     # Return INDEX to its default order
-                     INDEXFILE=$(echo "${INDEXFILE_TMP2}" | sed -n '1!G;h;$p')
-                 else
-                     # INDEX already in correct order.
-                     INDEXFILE="${INDEXFILE_TMP2}"
-                 fi
+                # If TITLE tag appears after the ENCLOSURE tag in the file, reverse the order of list for parsing.
+                if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
+                    INDEXFILE_TMP=$(echo "${INDEXFILE_TMP}" | sed -n '1!G;h;$p')
+                fi
+                # Merge TITLE AND URL lines onto single line divided by '<Url-Title>'
+                INDEXFILE_TMP2=""
+                while read -r TAG DATA; do
+                    case ${TAG} in
+                        "TITLE" )
+                            ITEM_TITLE="${DATA}"
+                            ;;
+                        "URL" )
+                            # with cleanup for URL (used to be called FINAL below ATOM section)
+                            ITEM_URL=$(echo "${DATA}" | sed -e 's/\s/%20/g' -e "s/'/%27/g" -e 's/\&apos;/%27/g' -e 's/\&amp;/\&/g')
+                            # Enabled handling of unset ITEM_TITLE items by including a dash at the end of the variable name to
+                            # signify that the default is a blank value (or we could specify a value we wanted after the dash).
+                            INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${ITEM_TITLE-}${NEWLINE}"
+                            unset -v ITEM_TITLE ITEM_URL
+                            ;;
+                    esac
+                done <<<"${INDEXFILE_TMP}"
+                if (( POST_WGET_RENAME_REVTITLETAG > 0 )); then
+                    # Return INDEX to its default order
+                    INDEXFILE=$(echo "${INDEXFILE_TMP2}" | sed -n '1!G;h;$p')
+                else
+                    # INDEX already in correct order.
+                    INDEXFILE="${INDEXFILE_TMP2}"
+                fi
             elif grep -q '<feed ' <<< "${TESTLINES}"; then
                 __MSG_DEBUG "Atom Feed Found"
                 if (( DEBUG > 1 )) ; then echo; fi
@@ -2613,7 +2613,7 @@ PodgetServerLoop() {
                 # titles from we can convert or move this section as necessary.
                 INDEXFILE_TMP2=""
                 for ITEM_URL in ${INDEXFILE}; do
-                     INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${NEWLINE}"
+                    INDEXFILE_TMP2+="${ITEM_URL}<Url-Title>${NEWLINE}"
                 done
                 # Set back to INDEXFILE
                 INDEXFILE="${INDEXFILE_TMP2}"
@@ -3279,7 +3279,7 @@ TitleFixFormat() {
     # ORIGINAL and MODIFIED start out the same.
     local -r ORIGINAL_TITLE="${MODIFIED_TITLE}"
 
-   __MSG_INFO "ORIGINAL TITLE" "${ORIGINAL_TITLE}"
+    __MSG_INFO "ORIGINAL TITLE" "${ORIGINAL_TITLE}"
 
     if [[ "${MODIFIED_TITLE}" =~ .*" ".* ]]; then
         MODIFIED_TITLE="${MODIFIED_TITLE// /${FILENAME_REPLACECHAR}}"
@@ -3731,7 +3731,7 @@ PodgetCore() {
     else
         # get version
         VERSION=$(grep -F "Podget configuration file created by version" "${DIR_CONFIG}"/"${CONFIG_CORE}" | \
-                  sed -e 's/.*by version \([0-9.]\)/\1/')
+                       sed -e 's/.*by version \([0-9.]\)/\1/')
 
         # Split version string into an array by replacing '.' with 'space'
         IFS='.' read -r -a VERSION_ARRAY <<< "${VERSION}"
